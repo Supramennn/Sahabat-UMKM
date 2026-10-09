@@ -46,6 +46,7 @@ npm run dev:web
 | Perintah | Fungsi |
 | --- | --- |
 | `npm test` | Semua tes tanpa server database, memakai PGlite |
+| `npx tsx scripts/dev-api.mts` | Jalankan API dengan database PGlite dalam memori, untuk pemeriksaan manual tanpa PostgreSQL |
 | `npm run test:postgres` | Tes yang butuh PostgreSQL sungguhan, setel `TEST_DATABASE_URL` |
 | `npm run test:e2e` | Uji ujung ke ujung dengan Playwright |
 | `npm run lint` | ESLint |

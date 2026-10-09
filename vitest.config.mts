@@ -13,6 +13,11 @@ export default defineConfig({
           name: 'unit',
           include: ['packages/*/test/**/*.test.ts', 'apps/api/test/**/*.test.ts'],
           environment: 'node',
+          // Setiap berkas tes memakai PGlite sendiri, jadi penyiapan skema perlu
+          // waktu lebih dari default 10 detik ketika banyak berkas berjalan
+          // bersamaan.
+          testTimeout: 30_000,
+          hookTimeout: 60_000,
         },
       },
       {
@@ -23,6 +28,8 @@ export default defineConfig({
           name: 'postgres',
           include: ['packages/db/test-postgres/**/*.test.ts'],
           environment: 'node',
+          testTimeout: 30_000,
+          hookTimeout: 60_000,
         },
       },
     ],

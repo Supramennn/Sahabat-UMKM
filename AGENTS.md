@@ -47,7 +47,7 @@ Kerjaan berjalan per fase. Laporan tiap fase memuat apa yang selesai, bagian PRD
 dipenuhi, tes yang dijalankan beserta hasilnya, apa yang belum selesai atau menyimpang,
 dan keputusan yang dibutuhkan.
 
-Fase 0 fondasi selesai. Berikutnya Fase 1: autentikasi, workspace, peran, dan isolasi data.
+Fase 0 fondasi dan Fase 1 autentikasi selesai. Berikutnya Fase 2: stok.
 
 <!-- antislop:start -->
 ## antislop

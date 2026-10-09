@@ -127,7 +127,7 @@ describe('pembatasan laju (PRD 9)', () => {
     const app = await appWithRoutes(() => {})
     let sawLimit = false
 
-    for (let attempt = 0; attempt < 200; attempt += 1) {
+    for (let attempt = 0; attempt < 400; attempt += 1) {
       const response = await app.inject({ method: 'GET', url: '/health' })
       if (response.statusCode === 429) {
         sawLimit = true

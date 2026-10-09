@@ -1,23 +1,21 @@
+import type { Database } from '@sahabat/db'
 import cookie from '@fastify/cookie'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { ZodError } from 'zod'
+import { registerAuthRoutes, type AuthDeps } from './auth/routes.ts'
+import { AuthenticationError, AuthorizationError, registerSessionLoader } from './auth/session.ts'
+import { createLogEmailProvider, type EmailProvider } from './services/email.ts'
 
 export interface BuildOptions {
   logger?: boolean
   origin?: string
   sessionSecret?: string
-}
-
-function statusOf(error: unknown): number {
-  if (typeof error === 'object' && error !== null && 'statusCode' in error) {
-    const candidate = (error as { statusCode?: unknown }).statusCode
-    if (typeof candidate === 'number' && candidate >= 400 && candidate <= 599) {
-      return candidate
-    }
-  }
-  return 500
+  db?: Database
+  email?: EmailProvider
+  /** True saat dijalankan di belakang HTTPS. Cookie Secure tidak bisa diuji di localhost. */
+  secureCookies?: boolean
 }
 
 export async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
@@ -26,6 +24,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
   })
 
   const origin = options.origin ?? process.env.WEB_ORIGIN ?? 'http://localhost:3000'
+  const secureCookies = options.secureCookies ?? process.env.NODE_ENV === 'production'
 
   await app.register(helmet, {
     contentSecurityPolicy: {
@@ -62,12 +61,26 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     hook: 'onRequest',
   })
 
-  // PRD 9: pembatasan percobaan masuk per akun dan per alamat IP.
+  // PRD 9: pembatasan percobaan. Batas kasar di sini, lalu batas per akun dan per
+  // alamat IP yang lebih ketat ditangani di lapisan login.
   await app.register(rateLimit, {
-    max: 120,
+    max: 300,
     timeWindow: '1 minute',
     keyGenerator: (request) => request.ip,
   })
+
+  if (options.db) {
+    registerSessionLoader(app, options.db, secureCookies)
+
+    const deps: AuthDeps = {
+      db: options.db,
+      secureCookies,
+      sendEmail: (options.email ?? createLogEmailProvider(app.log)).send.bind(
+        options.email ?? createLogEmailProvider(app.log),
+      ),
+    }
+    registerAuthRoutes(app, deps)
+  }
 
   app.get('/health', async () => ({ status: 'ok' }))
 
@@ -88,6 +101,10 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
       })
     }
 
+    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+      return reply.code(error.statusCode).send({ error: error.code, message: error.message })
+    }
+
     const status = statusOf(error)
     request.log.error({ err: error }, 'permintaan gagal')
 
@@ -97,4 +114,14 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
   })
 
   return app
+}
+
+function statusOf(error: unknown): number {
+  if (typeof error === 'object' && error !== null && 'statusCode' in error) {
+    const candidate = (error as { statusCode?: unknown }).statusCode
+    if (typeof candidate === 'number' && candidate >= 400 && candidate <= 599) {
+      return candidate
+    }
+  }
+  return 500
 }
