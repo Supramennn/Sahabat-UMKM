@@ -1,9 +1,11 @@
 import type { Database } from '@sahabat/db'
 import cookie from '@fastify/cookie'
+import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { ZodError } from 'zod'
+import { registerMfaRoutes } from './auth/mfa-routes.ts'
 import { registerAuthRoutes, type AuthDeps } from './auth/routes.ts'
 import { AuthenticationError, AuthorizationError, registerSessionLoader } from './auth/session.ts'
 import { createLogEmailProvider, type EmailProvider } from './services/email.ts'
@@ -16,6 +18,8 @@ export interface BuildOptions {
   email?: EmailProvider
   /** True saat dijalankan di belakang HTTPS. Cookie Secure tidak bisa diuji di localhost. */
   secureCookies?: boolean
+  /** Kunci enkripsi rahasia MFA. Nilai pengembangan dipakai kalau tidak diisi. */
+  encryptionSecret?: string
 }
 
 export async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
@@ -45,15 +49,19 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   })
 
-  // PRD 9: CORS terbatas. Tanpa daftar asal yang eksplisit, tidak ada asal lain
-  // yang boleh membaca respons. Hook dipasang pada instance akar, bukan di dalam
-  // register, karena Fastify mengunci hook tiap plugin di lingkupnya sendiri, jadi
-  // route yang didaftarkan di luar tidak akan melihat hook tersebut.
-  app.addHook('onRequest', async (request, reply) => {
-    const requestOrigin = request.headers.origin
-    if (requestOrigin && requestOrigin !== origin) {
-      return reply.code(403).send({ error: 'asal_tidak_diizinkan' })
-    }
+  // PRD 9: CORS terbatas. Plugin ini tidak hanya memeriksa asal, ia juga
+  // menuliskan Access-Control-Allow-Origin pada respons. Pemeriksaan asal saja
+  // tidak cukup, karena peramban menolak membaca respons yang tidak memakai header
+  // itu, dan cookie sesi hanya boleh dibaca bila Allow-Credentials ikut dikirim.
+  await app.register(cors, {
+    // Hanya satu asal, bukan pola. Origins yang tidak terdaftar tidak mendapat
+    // header allow-origin sama sekali, sehingga peramban memblokir responsnya.
+    origin: [origin],
+    // Wajib true karena sesi memakai cookie HttpOnly. Tanpa header ini, cookie
+    // tidak ikut pada permintaan lintas asal dan pengguna selalu terb logout.
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
   })
 
   await app.register(cookie, {
@@ -72,14 +80,18 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
   if (options.db) {
     registerSessionLoader(app, options.db, secureCookies)
 
+    const email = options.email ?? createLogEmailProvider(app.log)
     const deps: AuthDeps = {
       db: options.db,
       secureCookies,
-      sendEmail: (options.email ?? createLogEmailProvider(app.log)).send.bind(
-        options.email ?? createLogEmailProvider(app.log),
-      ),
+      sendEmail: email.send.bind(email),
+      // PRD 9: enkripsi saat disimpan dan tanpa secret di repositori, jadi kunci
+      // MFA hanya datang dari environment.
+      encryptionSecret:
+        options.encryptionSecret ?? process.env.MFA_ENCRYPTION_SECRET ?? 'rahasia-mfa-pengembangan',
     }
     registerAuthRoutes(app, deps)
+    registerMfaRoutes(app, deps)
   }
 
   app.get('/health', async () => ({ status: 'ok' }))

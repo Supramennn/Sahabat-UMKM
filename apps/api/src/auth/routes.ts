@@ -3,6 +3,8 @@ import type { Database, Sql } from '@sahabat/db'
 import { hashForLookup, hashToken, tokenMatches } from './token.ts'
 import { hashPassword, passwordMatchesAny, checkPasswordPolicy } from './password.ts'
 import { writeAudit } from './audit.ts'
+import { consumeMfaRecoveryCode, mfaVerifySchema } from './mfa-routes.ts'
+import { decryptSecret, verifyMfaToken } from './mfa.ts'
 import {
   changeEmailSchema,
   changePasswordSchema,
@@ -13,6 +15,7 @@ import {
   registerSchema,
   resetPasswordSchema,
   updateMembershipSchema,
+  updateProfileSchema,
   updateWorkspaceSchema,
   type CreateWorkspaceInput,
   type InvitationInput,
@@ -26,6 +29,7 @@ import {
   rotateSession,
   setSessionCookie,
 } from './session.ts'
+import { loadSessionForToken } from './session.ts'
 import type { FastifyInstance } from 'fastify'
 import { can, canAssignRole, type Role } from '@sahabat/shared'
 
@@ -118,6 +122,11 @@ export interface AuthDeps {
   secureCookies: boolean
   /** Mengirim email. Fase 1 memakai penyedia log, tidak pernah gagal diam-diam. */
   sendEmail: (message: EmailMessage) => Promise<void>
+  /**
+   * Kunci enkripsi untuk rahasia MFA. PRD 9 mewajibkan enkripsi saat disimpan dan
+   * melarang secret ada di repositori, jadi nilainya hanya dari environment.
+   */
+  encryptionSecret: string
 }
 
 export interface EmailMessage {
@@ -276,12 +285,15 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       })
     }
 
-    const mfaRequired = isMfaMandatory(user.mfa_required_at, user.mfa_required_at !== null)
+    // Kalau pengguna sudah mengaktifkan verifikasi dua langkah, langkah kedua
+    // selalu diminta. Kolom mfa_required_at hanya menandai tenggat kewajiban 30
+    // hari, jadi menghilangkannya dari kondisi ini berarti MFA yang sudah aktif
+    // tetap dilewati setiap kali masuk.
     const hasMfa = await db.query(
       'select 1 from mfa_secrets where user_id = $1 and confirmed_at is not null',
       [user.id],
     )
-    const needsMfaStep = mfaRequired && hasMfa.rows.length > 0
+    const needsMfaStep = hasMfa.rows.length > 0
 
     if (needsMfaStep) {
       // Sesi terbit tetapi belum memenuhi MFA, jadi tidak bisa menyentuh data
@@ -292,9 +304,9 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
         userAgent,
         mfaSatisfied: false,
       })
+      setSessionCookie(reply, issued.token, secureCookies)
       return reply.code(200).send({
         mfaRequired: true,
-        sessionId: issued.sessionId,
       })
     }
 
@@ -324,7 +336,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       ip,
       userAgent,
       workspaceId,
-      mfaSatisfied: !mfaRequired,
+      mfaSatisfied: !needsMfaStep,
     })
 
     await db.query(
@@ -348,8 +360,101 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       userId: user.id,
       workspaceId,
       mfaRequired: false,
-      mfaSatisfied: !mfaRequired,
+      mfaSatisfied: !needsMfaStep,
     })
+  })
+
+  app.post('/api/auth/mfa/verify', async (request, reply) => {
+    const input = mfaVerifySchema.parse(request.body)
+
+    const token = request.cookies.sahabat_session
+    if (!token) {
+      return reply.code(401).send({ error: 'belum_masuk', message: 'Sesi tidak berlaku.' })
+    }
+
+    const session = await loadSessionForToken(db, token)
+    if (!session) {
+      return reply.code(401).send({ error: 'belum_masuk', message: 'Sesi tidak berlaku.' })
+    }
+
+    const row = await db.query<{ secret_encrypted: Buffer }>(
+      'select secret_encrypted from mfa_secrets where user_id = $1 and confirmed_at is not null',
+      [session.userId],
+    )
+    const encrypted = row.rows[0]?.secret_encrypted
+    if (!encrypted) {
+      return reply.code(409).send({
+        error: 'mfa_tidak_aktif',
+        message: 'Verifikasi dua langkah belum aktif di akun ini.',
+      })
+    }
+
+    const secret = decryptSecret(encrypted, deps.encryptionSecret)
+    const result = await verifyMfaToken(secret, input.token)
+
+    if (!result.valid && !input.recoveryCode) {
+      await writeAudit(db, {
+        actorUserId: session.userId,
+        action: 'mfa.verify_failed',
+        result: 'denied',
+        ip: request.ip ?? null,
+        userAgent: request.headers['user-agent'] ?? null,
+      })
+      return reply.code(401).send({
+        error: 'kode_salah',
+        message: 'Kode itu tidak cocok. Periksa jam perangkat Anda lalu coba lagi.',
+      })
+    }
+
+    if (!result.valid && input.recoveryCode) {
+      const used = await consumeMfaRecoveryCode(db, session.userId, input.recoveryCode)
+      if (!used) {
+        return reply.code(401).send({
+          error: 'kode_pemulihan_salah',
+          message: 'Kode pemulihan itu tidak berlaku atau sudah dipakai.',
+        })
+      }
+    }
+
+    await db.query('update sessions set mfa_satisfied_at = now() where id = $1', [session.sessionId])
+
+    await writeAudit(db, {
+      workspaceId: session.workspaceId,
+      actorUserId: session.userId,
+      action: 'mfa.verified',
+      objectType: 'session',
+      objectId: session.sessionId,
+      ip: request.ip ?? null,
+      userAgent: request.headers['user-agent'] ?? null,
+      metadata: { usedRecoveryCode: !result.valid },
+    })
+
+    // Sesi diputar ulang setelah MFA, supaya token yang sempat ada sebelum kode
+    // diberikan tidak lagi berlaku (PRD 9).
+    const workspaceId =
+      session.workspaceId ??
+      (
+        await db.query<{ workspace_id: number }>(
+          'select workspace_id from memberships where user_id = $1 and removed_at is null order by joined_at asc limit 1',
+          [session.userId],
+        )
+      ).rows[0]?.workspace_id ??
+      null
+
+    await rotateSession(
+      db,
+      token,
+      reply,
+      {
+        ip: request.ip ?? null,
+        userAgent: request.headers['user-agent'] ?? null,
+        workspaceId,
+        mfaSatisfied: true,
+      },
+      secureCookies,
+    )
+
+    return reply.code(200).send({ verified: true, workspaceId })
   })
 
   app.post('/api/auth/logout', async (request, reply) => {
@@ -555,6 +660,25 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
     })
 
     return reply.code(200).send({ message: 'Email sudah diperbarui.' })
+  })
+
+  app.patch('/api/auth/profile', async (request, reply) => {
+    const session = requireSession(request)
+    const input = updateProfileSchema.parse(request.body)
+
+    await db.query('update users set name = $1 where id = $2', [input.name, session.userId])
+
+    await writeAudit(db, {
+      workspaceId: session.workspaceId,
+      actorUserId: session.userId,
+      action: 'user.name_changed',
+      objectType: 'user',
+      objectId: String(session.userId),
+      ip: request.ip ?? null,
+      userAgent: request.headers['user-agent'] ?? null,
+    })
+
+    return reply.code(200).send({ message: 'Nama sudah diperbarui.' })
   })
 
   app.get('/api/auth/session', async (request, reply) => {
@@ -1135,12 +1259,6 @@ async function requestPasswordReset(
   })
 }
 
-function isMfaMandatory(mfaRequiredAt: Date | null, exists: boolean): boolean {
-  if (!exists) {
-    return false
-  }
-  return mfaRequiredAt !== null && mfaRequiredAt.getTime() <= Date.now()
-}
 
 function generateVerificationToken(): string {
   return cryptoRandomToken()

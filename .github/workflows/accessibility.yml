@@ -1,0 +1,67 @@
+name: Aksesibilitas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # API memakai PGlite dalam memori supaya halaman bisa diperiksa tanpa
+      # layanan database terpisah.
+      - name: Jalankan API
+        run: |
+          nohup npx tsx scripts/dev-api.mts > api.log 2>&1 &
+          for attempt in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:4000/health > /dev/null; then
+              echo "API siap"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API tidak siap"
+          cat api.log
+          exit 1
+
+      - run: npm run build --workspace apps/web
+
+      - name: Jalankan frontend
+        run: |
+          nohup npm run start --workspace apps/web > web.log 2>&1 &
+          for attempt in $(seq 1 40); do
+            if curl -sf http://localhost:3000/masuk > /dev/null; then
+              echo "Frontend siap"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Frontend tidak siap"
+          cat web.log
+          exit 1
+
+      - name: Pasang peramban
+        run: npx playwright install --with-deps chromium
+
+      # PRD 10 dan PRD 17: keyboard, fokus, target sentuh, tanpa gulir
+      # horizontal, dan tidak ada pelanggaran axe yang serius.
+      - name: Uji aksesibilitas
+        run: npm run test:e2e
+
+      - name: Simpan laporan bila gagal
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7

@@ -17,6 +17,10 @@ Terakhir diperbarui: 9 Oktober 2026.
 | K-05 | Payment gateway | Midtrans | PRD 6.10, PRD 20 |
 | K-06 | Cara pakai antislop | Applied selama pengerjaan (Mode 1), bukan audit setelah selesai | Persetujuan pemilik produk |
 | K-07 | Data contoh | Angka contoh hanya boleh tampil dengan label "data contoh" yang terlihat. Tidak ada testimoni, jumlah pengguna, logo pelanggan, atau klaim tanpa bukti | PRD 11 |
+| K-08 | Sifat butir di bagian 7 | Semua butir A-01 sampai A-11 dan B-01 sampai B-13 disetujui pemilik produk dan menjadi nilai tetap, bukan lagi usulan | Persetujuan pemilik produk, 9 Okt 2026 |
+| K-09 | Cakupan UI Fase 1 | Seluruh halaman autentikasi plus halaman pengaturan akun. Pemilih workspace belum termasuk Fase 1 | Persetujuan pemilik produk, 9 Okt 2026 |
+| K-10 | MFA | Dibangun pada Fase 1, bukan ditunda ke Fase 8 | Persetujuan pemilik produk, 9 Okt 2026 |
+| K-11 | PostgreSQL dan CI | Menyiapkan PostgreSQL sungguhan untuk mesin ini dan CI untuk menjalankan tes konkurensi | Persetujuan pemilik produk, 9 Okt 2026 |
 
 ### Alasan K-02
 
@@ -156,11 +160,13 @@ Aksen kuning dipakai sebagai isian sorotan dengan teks `#17212F`, sesuai PRD 10.
 tidak dipakai sebagai warna teks di atas putih. Identitas visual memegang satu aksen hijau
 kebiruan, yaitu `#0B7A6B`, dan kuning diperlakukan sebagai warna data, bukan warna merek.
 
-## 7. Baoan yang belum diputuskan dan yang memakai usulan default
+## 7. Baoan yang sudah disetujui
 
-Semua butir di bagian ini berstatus **usulan**. Saya implementasikan usulan tersebut sebagai
-nilai default sampai pemilik produk mengubahnya, kecuali butir bertanda `[perlu persetujuan]`
-yang saya tanyakan secara eksplisit karena sulit dibalik setelah ada data.
+Seluruh usulan di bagian ini disetujui pemilik produk pada 9 Oktober 2026 dan menjadi
+nilai tetap. A-01 sampai A-11 dan B-01 sampai B-13 tidak lagi berstatus usulan.
+
+Ringkasan singkat per butir ada di tabel di bawah. Nilai lengkapnya tetap di
+`docs/ARSITEKTUR.md` dan di kode.
 
 ### Golong A
 
@@ -170,20 +176,20 @@ yang saya tanyakan secara eksplisit karena sulit dibalik setelah ada data.
 | A-02 | PRD 6.6 mengizinkan ekspor CSV dan XLSX untuk semua laporan, PRD 16 memberi paket Gratis hanya CSV | Paket Gratis: CSV dan cetak. Paket Usaha dan Bisnis: CSV dan XLSX |
 | A-03 | PRD 6.3 membuat retur mengurangi stok, PRD 6.2 dan 13 melarang stok negatif | Retur ditolak bila saldo di lokasi terkait tidak cukup, dengan pesan yang menyebut produk, lokasi, dan saldo tersedia |
 | A-04 | PRD 6.7 memuat kartu penjualan dan utang jatuh tempo, PRD 16 tidak memberi keduanya ke paket Gratis | Setiap kartu menyebutkan paket minimumnya. Kartu di bawah batas paket tidak dirender, diganti keterangan singkat yang menyebut paket dan batasnya |
-| A-05 | PRD 6.2 menyimpan tanggal kedaluwarsa per penerimaan, tapi 13 tidak punya entitas lot dan 4 menunda transfer berstatus transit | 1.0 tidak mengimplementasikan alokasi FEFO. Tanggal kedaluwarsa yang ditampilkan adalah yang paling awal dari penerimaan aktif per produk dan lokasi, dengan label eksplisit di laporan. `[perlu persetujuan]` |
+| A-05 | PRD 6.2 menyimpan tanggal kedaluwarsa per penerimaan, tapi 13 tidak punya entitas lot dan 4 menunda transfer berstatus transit | 1.0 tidak mengimplementasikan alokasi FEFO. Tanggal kedaluwarsa yang ditampilkan adalah yang paling awal dari penerimaan aktif per produk dan lokasi, dengan label eksplisit di laporan. |
 | A-06 | PRD 7 hanya menyebut penghitungan ulang rata-rata pada penerimaan barang | Hitung ulang pada penerimaan barang, retur pembelian, dan koreksi harga beli lewat revisi. Saldo nol mereset rata-rata ke harga penerimaan berikutnya |
 | A-07 | PRD 7 membuat laba kotor memakai rata-rata bergerak "pada saat penjualan", sehingga angka lama bisa berubah karena ada penerimaan baru | Simpan `harga_pokok_snapshot` di setiap baris penjualan. Pembatalan mengembalikan stok memakai snapshot itu |
 | A-08 | Pembayaran supplier tanpa PO yang dipilih tidak punya aturan alokasi | Kalau pembayaran memilih PO, alokasi ke PO itu. Tanpa PO, alokasi otomatis FIFO berdasarkan jatuh tempo lalu nomor PO, alokasi ditampilkan dan dapat dibalik Owner dengan audit |
 | A-09 | Tipe kolom uang tidak ditetapkan | `BIGINT` rupiah penuh, pembulatan setengah ke atas per baris. Lihat bagian 3 |
 | A-10 | Daftar entitas PRD 13 tidak lengkap dibanding bagian 6 | Lihat bagian 4 |
-| A-11 | PRD 6.3 mengizinkan tautan baca-saja untuk PO, PRD 9 mewajibkan semua data bisnis terikat workspace | Tautan bertoken acak, kedaluwarsa 30 hari secara bawaan dan dapat diubah Owner, dapat dicabut kapan saja, diberi `noindex`, setiap pembukaan masuk audit log dengan IP dan waktu. `[perlu persetujuan]` |
+| A-11 | PRD 6.3 mengizinkan tautan baca-saja untuk PO, PRD 9 mewajibkan semua data bisnis terikat workspace | Tautan bertoken acak, kedaluwarsa 30 hari secara bawaan dan dapat diubah Owner, dapat dicabut kapan saja, diberi `noindex`, setiap pembukaan masuk audit log dengan IP dan waktu. |
 
 ### Golong B
 
 | No | Isu | Usulan default |
 | --- | --- | --- |
 | B-01 | "Anggota dan peran: Admin Sebagian" tidak jelas batasnya | Admin dapat mengundang staf, purchasing, dan viewer. Admin tidak dapat menetapkan peran Admin, tidak dapat mengubah peran Owner, dan tidak dapat mengelola langganan |
-| B-02 | Izin laporan Viewer tertulis "Sesuai izin" | Viewer mendapat laporan posisi stok, pergerakan stok, dan penjualan. Viewer tidak mendapat laporan pembelian, utang supplier, dan laba kotor, karena Viewer tidak boleh melihat harga beli supplier. `[perlu persetujuan]` |
+| B-02 | Izin laporan Viewer tertulis "Sesuai izin" | Viewer mendapat laporan posisi stok, pergerakan stok, dan penjualan. Viewer tidak mendapat laporan pembelian, utang supplier, dan laba kotor, karena Viewer tidak boleh melihat harga beli supplier. |
 | B-03 | PRD 8 menyebut persetujuan PO "Sesuai aturan", PRD 16 hanya memberi approval berjenjang ke paket Bisnis | Persetujuan satu tingkat ada di semua paket saat aturan approval workspace aktif. Multi tingkat ambang nominal hanya di paket Bisnis. Owner dan Admin selalu boleh menyetujui, Purchasing hanya bila pengaturan workspace mengizinkan |
 | B-04 | "Dapat dibatalkan dalam 24 jam" pada PRD 6.8 tidak punya batas | Batalkan impor bila belum ada transaksi turunan yang menyentuh baris hasil impor. Data master seperti produk dan supplier selalu dapat dibatalkan karena tidak menghasilkan transaksi |
 | B-05 | Retensi audit log berbeda per paket pada PRD 16, PRD 6.10 menyebut audit log dasar ada di semua paket | 30 hari menjadi minimum semua paket. Entri yang lebih lama dari retensi paket dihapus permanen dan hal ini dinyatakan di Kebijakan Privasi |
@@ -193,7 +199,7 @@ yang saya tanyakan secara eksplisit karena sulit dibalik setelah ada data.
 | B-09 | Kode pemulihan MFA tidak disebut di PRD 9 | Sertakan kode pemulihan sekali pakai. Tanpa ini, MFA dapat mengunci akun dan Owner yang diwajibkan memakai MFA tidak dapat masuk. Ini tambahan kecil di luar PRD, saya usulkan sebagai kebutuhan agar Owner tidak terkunci dari akunnya sendiri |
 | B-10 | Mata uang dan format tanggal pada PRD 6.1 | Mata uang tetap Rupiah di 1.0 dan field-nya baca saja. Format tanggal dan zona waktu mengikuti workspace. Waktu disimpan UTC, hari dan periode laporan dihitung menurut zona waktu workspace |
 | B-11 | PRD 11 meminta satu halaman fitur per modul tanpa menyebut daftarnya | Enam halaman fitur: Stok, Pembelian, Penjualan, Pengeluaran, Laporan dan Dashboard, Langganan |
-| B-12 | PRD 11 meminta cara kerja setiap modul dengan jumlah bagian mengikuti jumlah modul | Cara kerja dibangun untuk tiga modul yang dipakai staf dan pemilik setiap hari, yaitu Stok, Pembelian, dan Penjualan. Pengeluaran, Laporan, dan Langganan dijelaskan satu paragraf di halaman fiturnya. `[perlu persetujuan]` |
+| B-12 | PRD 11 meminta cara kerja setiap modul dengan jumlah bagian mengikuti jumlah modul | Cara kerja dibangun untuk tiga modul yang dipakai staf dan pemilik setiap hari, yaitu Stok, Pembelian, dan Penjualan. Pengeluaran, Laporan, dan Langganan dijelaskan satu paragraf di halaman fiturnya. |
 | B-13 | Tombol "Lihat Demo Produk" pada PRD 11 butuh tujuan yang nyata | Workspace contoh yang dapat dibuka tanpa login, diberi label "data contoh" di setiap layar, dapat dihapus sekali klik sesuai PRD 12 |
 
 ## 8. Penghalang rilis yang di luar kendali kode

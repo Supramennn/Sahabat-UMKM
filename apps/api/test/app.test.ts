@@ -40,7 +40,7 @@ describe('keputusan lapisan (PRD 9)', () => {
     await app.close()
   })
 
-  it('menolak asal yang tidak terdaftar', async () => {
+  it('tidak mengirim header CORS untuk asal yang tidak terdaftar', async () => {
     const app = await appWithRoutes(() => {})
     const response = await app.inject({
       method: 'GET',
@@ -48,12 +48,13 @@ describe('keputusan lapisan (PRD 9)', () => {
       headers: { origin: 'https://penyerang.example' },
     })
 
-    expect(response.statusCode).toBe(403)
-    expect(response.json()).toEqual({ error: 'asal_tidak_diizinkan' })
+    // Peramban tidak akan membaca respons ini. Yang menentukan adalah header
+    // yang tidak ada, bukan kode status.
+    expect(response.headers['access-control-allow-origin']).toBeUndefined()
     await app.close()
   })
 
-  it('menerima asal yang terdaftar', async () => {
+  it('mengizinkan asal yang terdaftar dan mengizinkan kredensial', async () => {
     const app = await appWithRoutes(() => {})
     const response = await app.inject({
       method: 'GET',
@@ -61,11 +62,30 @@ describe('keputusan lapisan (PRD 9)', () => {
       headers: { origin: 'http://localhost:3000' },
     })
 
-    expect(response.statusCode).toBe(200)
+    // Tanpa kedua header ini, peramban tidak bisa membaca respons dan cookie
+    // sesi tidak ikut terbaca, sehingga seluruh halaman tidak bisa berfungsi.
+    expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000')
+    expect(response.headers['access-control-allow-credentials']).toBe('true')
     await app.close()
   })
 
-  it('menolak permintaan tanpa asal yang mencurigakan', async () => {
+  it('menjawab permintaan prapengecekan tanpa asal terdaftar', async () => {
+    const app = await appWithRoutes(() => {})
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/auth/login',
+      headers: {
+        origin: 'http://localhost:3000',
+        'access-control-request-method': 'POST',
+      },
+    })
+
+    expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000')
+    expect(response.headers['access-control-allow-methods']).toContain('POST')
+    await app.close()
+  })
+
+  it('menjawab permintaan tanpa asal seperti biasa', async () => {
     const app = await appWithRoutes(() => {})
     const response = await app.inject({ method: 'GET', url: '/health' })
 

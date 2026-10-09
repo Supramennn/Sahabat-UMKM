@@ -41,11 +41,45 @@ npm run dev:api
 npm run dev:web
 ```
 
+Tanpa PostgreSQL, API bisa dijalankan dengan database PGlite dalam memori. Berguna
+untuk memeriksa alur autentikasi, tapi data hilang saat proses berhenti.
+
+```bash
+npx tsx scripts/dev-api.mts
+```
+
+## Uji aksesibilitas
+
+Butuh frontend produksi dan API yang sudah berjalan. API harus diakses lewat
+`localhost`, karena hanya asal itu yang diizinkan oleh CORS.
+
+```bash
+npm run build --workspace apps/web
+npx tsx scripts/dev-api.mts                       # terminal pertama
+npm run start --workspace apps/web                # terminal kedua
+npm run test:e2e
+```
+
+## CI
+
+Tiga job berjalan sendiri di `.github/workflows`:
+
+| Job | Isi |
+| --- | --- |
+| `verify` | lint, typecheck, tes, kontras warna, build frontend |
+| `postgres-concurrency` | Tes konkurensi terhadap PostgreSQL sungguhan, memakai layanan CI |
+| `e2e` | Uji aksesibilitas Playwright di ponsel dan desktop |
+
+Tes konkurensi butuh dua koneksi PostgreSQL, jadi tidak bisa berjalan di PGlite.
+Job `verify` sengaja tidak memorinya.
+
 ## Perintah
 
 | Perintah | Fungsi |
 | --- | --- |
 | `npm test` | Semua tes tanpa server database, memakai PGlite |
+| `npm run test:contrast` | Hitung kontras setiap pasangan warna komponen, gagal kalau ada yang di bawah ambang |
+| `npm run test:e2e` | Uji aksesibilitas Playwright di ponsel dan desktop. Butuh API dan frontend sudah berjalan |
 | `npx tsx scripts/dev-api.mts` | Jalankan API dengan database PGlite dalam memori, untuk pemeriksaan manual tanpa PostgreSQL |
 | `npm run test:postgres` | Tes yang butuh PostgreSQL sungguhan, setel `TEST_DATABASE_URL` |
 | `npm run test:e2e` | Uji ujung ke ujung dengan Playwright |

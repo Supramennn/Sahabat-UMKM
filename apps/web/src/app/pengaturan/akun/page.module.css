@@ -1,0 +1,192 @@
+/*
+ * Halaman pengaturan akun memakai tata letak yang lebih luas dari halaman
+ * autentikasi: satu kolom di ponsel, dua kolom di desktop. Formulir di dalam
+ * tiap bagian tetap satu kolom supaya isian tidak terlalu lebar untuk dibaca.
+ */
+
+.settingsShell {
+  min-height: 100dvh;
+  padding: var(--space-lg);
+}
+
+.settingsMain {
+  width: 100%;
+  max-width: 52rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.settingsHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.settingsTitle {
+  font-size: 1.5rem;
+}
+
+.settingsMeta {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.sectionList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-strong);
+}
+
+.sectionTitle {
+  font-size: 1.125rem;
+  color: var(--primary);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: 26rem;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: flex-start;
+}
+
+.recoveryNote {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.deviceList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-sm);
+}
+
+.device {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+}
+
+.deviceMeta {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Lencana ini menandai perangkat yang sedang dipakai, jadi ia punya fungsi. */
+.deviceBadge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-badge);
+  background: #ecfdf5;
+  color: #14532d;
+  border: 1px solid var(--success);
+  font-size: 0.8125rem;
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--background);
+  max-width: 26rem;
+}
+
+.stateTitle {
+  font-weight: 600;
+}
+
+.stateBody {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.recoveryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recoveryCode {
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+  font-variant-numeric: 'tnum' 1;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  padding: var(--space-md);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+/* Kode rahasia TOTP ditampilkan besar dan bisa dipecah baris, supaya tidak
+ * keluar dari wadahnya di layar sempit. */
+.secret {
+  display: block;
+  max-width: 26rem;
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  background: var(--background);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  padding: var(--space-md);
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.textButton {
+  align-self: flex-start;
+  min-height: var(--min-touch-target);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  color: var(--secondary);
+  font-size: 0.9375rem;
+  font-family: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.textButton:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Daftar perangkat melebar menjadi dua kolom hanya saat ruangnya cukup. */
+@media (min-width: 40rem) {
+  .deviceList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .settingsShell {
+    padding: var(--space-xxl);
+  }
+}

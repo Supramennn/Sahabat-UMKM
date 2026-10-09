@@ -47,7 +47,12 @@ Kerjaan berjalan per fase. Laporan tiap fase memuat apa yang selesai, bagian PRD
 dipenuhi, tes yang dijalankan beserta hasilnya, apa yang belum selesai atau menyimpang,
 dan keputusan yang dibutuhkan.
 
-Fase 0 fondasi dan Fase 1 autentikasi selesai. Berikutnya Fase 2: stok.
+## Status fase
+
+Fase 0 fondasi, Fase 1 autentikasi dan UI selesai. Berikutnya Fase 2: stok.
+
+Cara menjalankan semuanya tercantum di README.md. Perintah yang dipakai sebelum
+menyerahkan hasil: npm run verify, npm run test:contrast, dan npm run test:e2e.
 
 <!-- antislop:start -->
 ## antislop

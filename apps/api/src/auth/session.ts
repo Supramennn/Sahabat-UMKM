@@ -60,7 +60,7 @@ interface RawSessionRow {
   active_workspace_id: number | null
 }
 
-async function loadSession(db: Database, token: string): Promise<SessionUser | null> {
+export async function loadSessionForToken(db: Database, token: string): Promise<SessionUser | null> {
   const result = await db.query<RawSessionRow>(
     `select s.id as session_id, u.id as user_id, u.email, u.name,
             u.email_verified_at, u.mfa_required_at, s.mfa_satisfied_at,
@@ -210,7 +210,7 @@ export function registerSessionLoader(app: FastifyInstance, db: Database, secure
       return
     }
 
-    const user = await loadSession(db, token)
+    const user = await loadSessionForToken(db, token)
     if (!user) {
       clearSessionCookie(reply, secureCookies)
       return

@@ -40,6 +40,10 @@ export const changePasswordSchema = z.object({
   newPassword: passwordSchema,
 })
 
+export const updateProfileSchema = z.object({
+  name: z.string().trim().min(2, 'Nama minimal 2 karakter.').max(120),
+})
+
 export const changeEmailSchema = z.object({
   currentPassword: z.string().min(1, 'Kata sandi wajib diisi.').max(200),
   newEmail: emailSchema,
