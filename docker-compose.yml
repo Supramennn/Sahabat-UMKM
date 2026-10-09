@@ -1,0 +1,43 @@
+# PostgreSQL dan penyimpanan objek untuk pengembangan lokal.
+#
+# Pengujian otomatis tidak memakai layanan di sini. Tes memakai PGlite agar
+# `npm test` berjalan di mesin tanpa Docker. Layanan ini diperlukan untuk
+# menjalankan aplikasi secara lokal dan untuk tes konkurensi dua koneksi.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sahabat
+      POSTGRES_PASSWORD: sahabat
+      POSTGRES_DB: sahabat_umkm
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sahabat -d sahabat_umkm']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: sahabat
+      MINIO_ROOT_PASSWORD: sahabat-minio
+    ports:
+      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:9001:9001'
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
+  minio-data:

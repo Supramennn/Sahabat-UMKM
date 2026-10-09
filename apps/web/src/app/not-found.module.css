@@ -1,0 +1,37 @@
+.main {
+  min-height: 100dvh;
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-md);
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 1.5rem;
+}
+
+.body {
+  color: var(--text-secondary);
+}
+
+.link {
+  /* Target sentuh minimal 44 x 44 px (PRD 10). */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--min-touch-target);
+  padding: 0 var(--space-lg);
+  border-radius: var(--radius-control);
+  background: var(--secondary);
+  color: var(--surface);
+  text-decoration: none;
+}
+
+@media (min-width: 40rem) {
+  .main {
+    padding: var(--space-xxl);
+  }
+}

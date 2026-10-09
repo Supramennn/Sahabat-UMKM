@@ -1,0 +1,31 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+*.log
+npm-debug.log*
+
+# embedded postgres data directories used by local development
+.pgdata/
+.pgdata-*/
+
+# local object storage
+.minio/
+
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.tsbuildinfo
