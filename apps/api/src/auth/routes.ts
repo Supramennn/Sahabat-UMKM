@@ -1,10 +1,11 @@
 import { randomBytes } from 'node:crypto'
 import type { Database, Sql } from '@sahabat/db'
-import { hashForLookup, hashToken, tokenMatches } from './token.ts'
-import { hashPassword, passwordMatchesAny, checkPasswordPolicy } from './password.ts'
+import { hashForLookup, hashToken } from './token.ts'
+import { checkPasswordPolicy, dummyPasswordHash, hashPassword, passwordMatchesAny } from './password.ts'
 import { writeAudit } from './audit.ts'
 import { consumeMfaRecoveryCode, mfaVerifySchema } from './mfa-routes.ts'
 import { decryptSecret, verifyMfaToken } from './mfa.ts'
+import { loadMfaGate } from './mfa-policy.ts'
 import {
   changeEmailSchema,
   changePasswordSchema,
@@ -13,10 +14,12 @@ import {
   invitationSchema,
   loginSchema,
   registerSchema,
+  resendVerificationSchema,
   resetPasswordSchema,
   updateMembershipSchema,
   updateProfileSchema,
   updateWorkspaceSchema,
+  verifyEmailSchema,
   type CreateWorkspaceInput,
   type InvitationInput,
 } from './schemas.ts'
@@ -53,6 +56,11 @@ interface DeviceRow {
 const RESET_TOKEN_TTL_MINUTES = 60
 const VERIFICATION_TOKEN_TTL_HOURS = 24
 const INVITATION_TTL_DAYS = 14
+/**
+ * PRD 9: email verifikasi tidak boleh disimpan tanpa batas. Tanpa itu, siapa pun
+ * bisa membuat email sekali dan meminta tautan tanpa henti.
+ */
+const VERIFICATION_RESEND_COOLDOWN_MINUTES = 10
 
 
 /**
@@ -127,6 +135,11 @@ export interface AuthDeps {
    * melarang secret ada di repositori, jadi nilainya hanya dari environment.
    */
   encryptionSecret: string
+  /**
+   * Asal aplikasi web. Tautan di email menuju ke sini, bukan ke asal API, karena
+   * yang dibuka pengguna adalah halaman, bukan endpoint.
+   */
+  webOrigin: string
 }
 
 export interface EmailMessage {
@@ -154,6 +167,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
     }
 
     const passwordHash = await hashPassword(input.password)
+    const verificationToken = cryptoRandomToken()
 
     const user = await db.transaction(async (tx) => {
       const existing = await tx.query('select 1 from users where email = $1 and deleted_at is null', [
@@ -176,8 +190,15 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
         [userId, passwordHash],
       )
 
-      const verificationHash = hashToken(cryptoRandomToken())
-      return { userId, verificationHash }
+      // Token disimpan bersama akunnya dalam satu transaksi. Kalau INSERT token
+      // gagal, akunnya ikut batal, jadi tidak pernah ada akun tanpa jalan verifikasi.
+      await tx.query(
+        `insert into email_verification_tokens (user_id, token_hash, expires_at)
+         values ($1, $2, now() + make_interval(hours => $3))`,
+        [userId, hashToken(verificationToken), VERIFICATION_TOKEN_TTL_HOURS],
+      )
+
+      return { userId }
     })
 
     if (!user) {
@@ -188,17 +209,10 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       })
     }
 
-    const rawToken = generateVerificationToken()
-    await db.query(
-      `insert into email_verification_tokens (user_id, token_hash, expires_at)
-       values ($1, $2, now() + make_interval(hours => $3))`,
-      [user.userId, hashToken(rawToken), VERIFICATION_TOKEN_TTL_HOURS],
-    )
-
     await deps.sendEmail({
       to: input.email,
       subject: 'Verifikasi email Anda di Sahabat UMKM',
-      body: `Buka tautan ini untuk verifikasi email: ${rawToken}`,
+      body: `Buka tautan ini untuk memverifikasi email: ${deps.webOrigin}/verifikasi-email?token=${verificationToken}`,
     })
 
     await writeAudit(db, {
@@ -214,6 +228,84 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       userId: user.userId,
       message: 'Jika email itu bisa dipakai, kami mengirim tautan verifikasi.',
     })
+  })
+
+  /**
+   * PRD 6.1: verifikasi email. Tanpa endpoint ini, akun yang baru mendaftar tidak
+   * pernah bisa masuk karena masuk menolak email yang belum diverifikasi.
+   *
+   * Token hanya disimpan sebagai hash dan hanya bisa dipakai sekali, jadi tautan
+   * yang bocor lewat log peramban atau riwayat email tidak cukup untuk membuka
+   * akun (PRD 9).
+   */
+  app.post('/api/auth/verify-email', async (request, reply) => {
+    const input = verifyEmailSchema.parse(request.body)
+
+    const tokenHash = hashToken(input.token)
+    const found = await db.query<{ id: string; user_id: number }>(
+      `select id, user_id from email_verification_tokens
+        where token_hash = $1 and consumed_at is null and expires_at > now()`,
+      [tokenHash],
+    )
+
+    const matched = found.rows[0]
+    if (!matched) {
+      await writeAudit(db, {
+        action: 'user.email_verification_failed',
+        result: 'denied',
+        ip: request.ip ?? null,
+        userAgent: request.headers['user-agent'] ?? null,
+      })
+      return reply.code(400).send({
+        error: 'token_tidak_valid',
+        message: 'Tautan itu sudah dipakai atau kedaluwarsa. Minta tautan baru di halaman masuk.',
+      })
+    }
+
+    await db.transaction(async (tx) => {
+      // Syarat consumed_at is null membuat tautan hanya berlaku sekali, walau
+      // dua permintaan datang bersamaan.
+      const claimed = await tx.query(
+        'update email_verification_tokens set consumed_at = now() where id = $1 and consumed_at is null',
+        [matched.id],
+      )
+      if (claimed.affected === 0) {
+        throw new AuthenticationError('Tautan itu sudah dipakai atau kedaluwarsa.')
+      }
+
+      await tx.query(
+        'update users set email_verified_at = now() where id = $1 and email_verified_at is null',
+        [matched.user_id],
+      )
+    })
+
+    await writeAudit(db, {
+      actorUserId: matched.user_id,
+      action: 'user.email_verified',
+      objectType: 'user',
+      objectId: String(matched.user_id),
+      ip: request.ip ?? null,
+      userAgent: request.headers['user-agent'] ?? null,
+    })
+
+    return reply.code(200).send({
+      verified: true,
+      message: 'Email terverifikasi. Silakan masuk.',
+    })
+  })
+
+  /**
+   * Mengirim ulang tautan verifikasi. Respons sama untuk email terdaftar,
+   * belum terdaftar, dan sudah terverifikasi, supaya endpoint ini tidak bisa
+   * dipakai memetakan email mana yang punya akun (PRD 9).
+   */
+  app.post('/api/auth/resend-verification', async (request, reply) => {
+    const input = resendVerificationSchema.parse(request.body)
+    const message = 'Jika email itu terdaftar dan belum terverifikasi, kami mengirim tautan baru.'
+
+    await resendVerificationEmail(db, deps, input.email, request.ip ?? null)
+
+    return reply.code(202).send({ message })
   })
 
   app.post('/api/auth/login', async (request, reply) => {
@@ -250,8 +342,10 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
     const user = found.rows[0]
 
     // Tetap jalankan verifikasi meski email tidak ada, supaya waktu respons tidak
-    // membedakan email terdaftar dan tidak (PRD 9).
-    const storedHash = user?.password_hash ?? DUMMY_HASH
+    // membedakan email terdaftar dan tidak (PRD 9). Hash penutupnya harus hash
+    // Argon2id yang sungguhan: string yang gagal diurai akan selesai seketika dan
+    // justru membuka celah pemetaan email lewat perbedaan lama respons.
+    const storedHash = user?.password_hash ?? (await dummyPasswordHash())
     const matchedIndex = await passwordMatchesAny([storedHash], input.password)
     // passwordMatchesAny mengembalikan indeks, jadi 0 berarti hash pertama cocok.
     // `matchedIndex` tidak boleh dipakai langsung sebagai boolean, karena 0
@@ -339,9 +433,12 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       mfaSatisfied: !needsMfaStep,
     })
 
+    // issueSession tidak menulis active_workspace_id, jadi harus diisi di sini.
+    // Tanpa itu sesi masuk tidak punya workspace aktif dan setiap endpoint
+    // workspace akan meminta pengguna memilih workspace lebih dulu.
     await db.query(
-      `update sessions set token_hash = $1 where id = $2`,
-      [hashToken(issued.token), issued.sessionId],
+      `update sessions set active_workspace_id = $1 where id = $2`,
+      [workspaceId, issued.sessionId],
     )
 
     setSessionCookie(reply, issued.token, secureCookies)
@@ -353,14 +450,20 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       objectType: 'session',
       objectId: issued.sessionId,
       ip,
-    userAgent,
+      userAgent,
     })
+
+    // PRD 9: Owner dan Admin wajib MFA setelah 30 hari. Sesi tetap terbit karena
+    // pengaturan akun tidak butuh izin workspace, tapi endpoint workspace menolak
+    // sampai MFA aktif, jadi flag ini hanya memberi tahu halaman tujuan masuk.
+    const gate = await loadMfaGate(db, { userId: user.id, mfaSatisfiedAt: new Date() })
 
     return reply.code(200).send({
       userId: user.id,
       workspaceId,
       mfaRequired: false,
       mfaSatisfied: !needsMfaStep,
+      mfaSetupRequired: gate.blocked,
     })
   })
 
@@ -497,12 +600,16 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       return reply.code(400).send({ error: 'kata_sandi_lemah', problems: policy.problems })
     }
 
-    const found = await db.query<{ id: number; user_id: number; token_hash: string }>(
-      `select id, user_id, token_hash from password_reset_tokens
-        where consumed_at is null and expires_at > now()`,
+    // Token disimpan sebagai hash SHA-256 yang deterministik, jadi pencarian bisa
+    // lewat indeks. Memindai semua token aktif akan membaca seluruh tabel pada
+    // endpoint publik setiap kali ada permintaan.
+    const found = await db.query<{ id: string; user_id: number }>(
+      `select id, user_id from password_reset_tokens
+        where token_hash = $1 and consumed_at is null and expires_at > now()`,
+      [hashToken(input.token)],
     )
 
-    const matchedRow = found.rows.find((row) => tokenMatches(tokenHashOf(row), input.token))
+    const matchedRow = found.rows[0]
     if (!matchedRow) {
       return reply.code(400).send({
         error: 'token_tidak_valid',
@@ -551,7 +658,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       'select password_hash from users where id = $1',
       [session.userId],
     )
-    const currentHash = current.rows[0]?.password_hash ?? DUMMY_HASH
+    const currentHash = current.rows[0]?.password_hash ?? (await dummyPasswordHash())
     // passwordMatchesAny mengembalikan indeks, jadi 0 berarti cocok. Nilai 0
     // bernilai falsy, jadi tidak boleh dipakai langsung sebagai kondisi.
     if ((await passwordMatchesAny([currentHash], input.currentPassword)) === -1) {
@@ -632,7 +739,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       'select password_hash from users where id = $1',
       [session.userId],
     )
-    const currentHash = current.rows[0]?.password_hash ?? DUMMY_HASH
+    const currentHash = current.rows[0]?.password_hash ?? (await dummyPasswordHash())
     if ((await passwordMatchesAny([currentHash], input.currentPassword)) === -1) {
       return reply.code(401).send({ error: 'kredensial_salah', message: 'Kata sandi salah.' })
     }
@@ -797,8 +904,6 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
     const session = requireSession(request)
     const input = createWorkspaceSchema.parse(request.body) as CreateWorkspaceInput
 
-    const planLimit = await activeWorkspaceLimit(db, session.userId)
-
     const created = await db.transaction(async (tx) => {
       const slug = await uniqueSlug(tx, input.name)
 
@@ -832,7 +937,6 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       objectId: String(created),
       ip: request.ip ?? null,
       userAgent: request.headers['user-agent'] ?? null,
-      metadata: { planLimit, limitReached: false },
     })
 
     return reply.code(201).send({ workspaceId: created })
@@ -1013,16 +1117,17 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       workspace_id: number
       email: string
       role: Role
-      token_hash: string
-      expires_at: Date
-      accepted_at: Date | null
     }>(
-      `select id, workspace_id, email, role, token_hash, expires_at, accepted_at
+      `select id, workspace_id, email, role
          from workspace_invitations
-        where accepted_at is null and revoked_at is null and expires_at > now()`,
+        where token_hash = $1
+          and accepted_at is null
+          and revoked_at is null
+          and expires_at > now()`,
+      [hashToken(token)],
     )
 
-    const matchedRow = candidates.rows.find((row) => tokenMatches(row.token_hash, token))
+    const matchedRow = candidates.rows[0]
     if (!matchedRow) {
       return reply.code(400).send({
         error: 'token_tidak_valid',
@@ -1211,15 +1316,6 @@ async function tooManyAttempts(
   return false
 }
 
-async function activeWorkspaceLimit(db: Database, userId: number): Promise<number> {
-  const result = await db.query<{ count: number }>(
-    `select count(*)::int as count from memberships
-      where user_id = $1 and removed_at is null`,
-    [userId],
-  )
-  return result.rows[0]?.count ?? 0
-}
-
 async function requestPasswordReset(
   db: Database,
   deps: AuthDeps,
@@ -1246,7 +1342,7 @@ async function requestPasswordReset(
   await deps.sendEmail({
     to: email,
     subject: 'Atur ulang kata sandi Sahabat UMKM',
-    body: `Token atur ulang: ${rawToken}`,
+    body: `Buka tautan ini untuk membuat kata sandi baru: ${deps.webOrigin}/atur-ulang-kata-sandi?token=${rawToken}`,
   })
 
   await writeAudit(db, {
@@ -1259,23 +1355,66 @@ async function requestPasswordReset(
   })
 }
 
+/**
+ * Kirim ulang tautan verifikasi. Token lama dicabut supaya hanya satu tautan
+ * yang berlaku, dan permintaan beruntun dibatasi supaya alamat email orang lain
+ * tidak bisa dipakai membanjiri kotak masuk (PRD 9).
+ */
+async function resendVerificationEmail(
+  db: Database,
+  deps: AuthDeps,
+  email: string,
+  ip: string | null,
+): Promise<void> {
+  const user = await db.query<{ id: number }>(
+    `select id from users
+      where email = $1 and deleted_at is null and email_verified_at is null`,
+    [email],
+  )
+  const userId = user.rows[0]?.id
+  if (userId === undefined) {
+    return
+  }
 
-function generateVerificationToken(): string {
-  return cryptoRandomToken()
-}
+  const recent = await db.query<{ count: number }>(
+    `select count(*)::int as count from email_verification_tokens
+      where user_id = $1
+        and created_at > now() - make_interval(mins => $2)`,
+    [userId, VERIFICATION_RESEND_COOLDOWN_MINUTES],
+  )
+  if ((recent.rows[0]?.count ?? 0) > 0) {
+    return
+  }
 
-function tokenHashOf(row: { token_hash: string }): string {
-  return row.token_hash
+  const token = cryptoRandomToken()
+
+  await db.transaction(async (tx) => {
+    await tx.query(
+      'update email_verification_tokens set consumed_at = now() where user_id = $1 and consumed_at is null',
+      [userId],
+    )
+    await tx.query(
+      `insert into email_verification_tokens (user_id, token_hash, expires_at)
+       values ($1, $2, now() + make_interval(hours => $3))`,
+      [userId, hashToken(token), VERIFICATION_TOKEN_TTL_HOURS],
+    )
+  })
+
+  await deps.sendEmail({
+    to: email,
+    subject: 'Verifikasi email Anda di Sahabat UMKM',
+    body: `Buka tautan ini untuk memverifikasi email: ${deps.webOrigin}/verifikasi-email?token=${token}`,
+  })
+
+  await writeAudit(db, {
+    actorUserId: userId,
+    action: 'user.verification_resent',
+    objectType: 'user',
+    objectId: String(userId),
+    ip,
+  })
 }
 
 function cryptoRandomToken(): string {
   return randomBytes(32).toString('base64url')
 }
-
-/**
- * Hash tetap yang dipakai ketika email tidak ditemukan, supaya waktu verifikasi
- * sama dengan akun yang ada. Hash ini bukan hash kata sandi mana pun yang pernah
- * dipakai pengguna.
- */
-const DUMMY_HASH =
-  '$argon2id$v=19$m=19456,t=2,p=1$c2FoaGFidW1rb3RleW1wdWxra2V5$8Q0zZb8Vd0Yy5nJ3kQ1oWx7p5rT2sN4vX6yZ0aB1cD3e'

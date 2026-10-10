@@ -1,9 +1,10 @@
 import { randomBytes } from 'node:crypto'
 import { z } from 'zod'
-import type { Database, Sql } from '@sahabat/db'
+import type { Database } from '@sahabat/db'
 import { requireSession } from './session.ts'
 import { writeAudit } from './audit.ts'
 import { hashToken, tokenMatches } from './token.ts'
+import { loadMfaGate } from './mfa-policy.ts'
 import {
   decryptSecret,
   encryptSecret,
@@ -22,6 +23,10 @@ import type { AuthDeps } from './routes.ts'
  *
  * Rahasia disimpan terenkripsi dan hanya hash kode pemulihan yang disimpan, jadi
  * bocornya satu tidak memberi jalan masuk yang bisa langsung dipakai.
+ *
+ * Batas 30 hari dan cara menghitungnya ada di mfa-policy.ts, karena tegakannya
+ * dipakai dua tempat: halaman status di sini dan penjaga setiap endpoint
+ * workspace di session.ts.
  */
 
 const RECOVERY_CODE_COUNT = 8
@@ -48,35 +53,6 @@ export const mfaProofSchema = z.object({
     .optional(),
   recoveryCode: z.string().trim().max(32).optional(),
 })
-
-/**
- * Owner dan Admin wajib MFA setelah 30 hari. Peran dibaca dari database, bukan
- * dari sesi, jadi penurunan peran juga mencabut kewajiban MFA pada hari ke-30
- * berikutnya.
- */
-const MANDATORY_MFA_DAYS = 30
-
-interface MembershipRole {
-  role: string
-  joined_at: Date
-}
-
-export async function mfaMandatoryFor(db: Sql, userId: number): Promise<boolean> {
-  const memberships = await db.query<MembershipRole>(
-    `select role, joined_at from memberships
-      where user_id = $1 and removed_at is null
-        and role in ('owner', 'admin')`,
-    [userId],
-  )
-
-  for (const membership of memberships.rows) {
-    const deadline = new Date(membership.joined_at.getTime() + MANDATORY_MFA_DAYS * 86_400_000)
-    if (deadline.getTime() <= Date.now()) {
-      return true
-    }
-  }
-  return false
-}
 
 function newRecoveryCode(): string {
   // Alfabet tanpa karakter yang mudah tertukar dengan huruf lain.
@@ -316,17 +292,15 @@ export function registerMfaRoutes(app: FastifyInstance, deps: AuthDeps): void {
   app.get('/api/auth/mfa/status', async (request, reply) => {
     const session = requireSession(request)
 
-    const row = await db.query<{ confirmed_at: Date | null }>(
-      'select confirmed_at from mfa_secrets where user_id = $1',
-      [session.userId],
-    )
-
-    const mandatory = await mfaMandatoryFor(db, session.userId)
+    const gate = await loadMfaGate(db, session)
 
     return reply.code(200).send({
-      enabled: row.rows[0]?.confirmed_at !== null && row.rows[0] !== undefined,
-      mandatory,
+      enabled: gate.enabled,
+      mandatory: gate.mandatory,
+      // Sesi ini belum memberi kode, jadi masih ada langkah yang belum tuntas.
       satisfied: session.mfaSatisfiedAt !== null,
+      // True berarti akun tidak bisa membuka data workspace sampai MFA aktif.
+      blocked: gate.blocked,
     })
   })
 }

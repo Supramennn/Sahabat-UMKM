@@ -110,6 +110,11 @@ export type LoginResponse = {
   userId: number
   workspaceId: number | null
   mfaRequired: boolean
+  /**
+   * Owner dan Admin wajib MFA pada hari ke-30 (PRD 9). Sesi tetap terbit supaya
+   * pengaturan akun bisa dibuka, tapi endpoint workspace akan menolak.
+   */
+  mfaSetupRequired: boolean
 }
 
 export type MfaVerifyResponse = { verified: boolean; workspaceId: number | null }

@@ -89,6 +89,9 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
       // MFA hanya datang dari environment.
       encryptionSecret:
         options.encryptionSecret ?? process.env.MFA_ENCRYPTION_SECRET ?? 'rahasia-mfa-pengembangan',
+      // Tautan verifikasi dan atur ulang kata sandi menuju ke halaman web,
+      // bukan ke endpoint API.
+      webOrigin: origin,
     }
     registerAuthRoutes(app, deps)
     registerMfaRoutes(app, deps)

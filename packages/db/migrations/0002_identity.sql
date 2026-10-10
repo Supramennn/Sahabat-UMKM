@@ -34,7 +34,9 @@ create index login_attempts_email on login_attempts (email_hash, created_at desc
 create index login_attempts_ip on login_attempts (ip, created_at desc);
 
 -- Room. Verifikasi email memakai token acak yang hanya hash-nya yang disimpan.
-alter table email_verification_tokens add column if not exists attempt_count integer not null default 0;-- Hash kata sandi sebelumnya, supaya mengganti kata sandi tidak bisa memakai
+alter table email_verification_tokens add column if not exists attempt_count integer not null default 0;
+
+-- Hash kata sandi sebelumnya, supaya mengganti kata sandi tidak bisa memakai
 -- kembali kata sandi yang baru saja dibuang.
 create table password_history (
   id bigint generated always as identity primary key,

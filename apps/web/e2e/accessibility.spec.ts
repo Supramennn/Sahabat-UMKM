@@ -13,6 +13,7 @@ const HALAMAN = [
   { path: '/buat-akun', nama: 'buat akun' },
   { path: '/lupa-kata-sandi', nama: 'lupa kata sandi' },
   { path: '/atur-ulang-kata-sandi', nama: 'atur ulang kata sandi' },
+  { path: '/verifikasi-email', nama: 'verifikasi email' },
   { path: '/masuk/verifikasi', nama: 'verifikasi MFA' },
 ]
 

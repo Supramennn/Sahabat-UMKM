@@ -1,9 +1,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import type { FastifyInstance, LightMyRequestResponse } from 'fastify'
+import type { FastifyInstance } from 'fastify'
 import type { Database } from '@sahabat/db'
 import { closeTestDatabase, createTestDatabase } from '@sahabat/db/test-harness'
 import { buildApp } from '../src/app.ts'
-import { createCapturingEmailProvider, type EmailProvider } from '../src/services/email.ts'
+import { createCapturingEmailProvider } from '../src/services/email.ts'
+import {
+  cookieOf,
+  registerVerifyAndLogin,
+  type CapturedEmail,
+} from './account-helpers.ts'
 import { decryptSecret, encryptSecret, formatRecoveryCode } from '../src/auth/mfa.ts'
 import { generate } from 'otplib'
 
@@ -17,7 +22,7 @@ const ENCRYPTION_SECRET = 'kunci-uji-yang-cukup-panjang-1234567890'
 
 let db: Database
 let app: FastifyInstance
-let email: EmailProvider & { messages: { to: string; subject: string; body: string }[] }
+let email: CapturedEmail
 
 beforeAll(async () => {
   db = await createTestDatabase()
@@ -41,26 +46,16 @@ beforeEach(() => {
   email.messages.length = 0
 })
 
-function cookieOf(response: LightMyRequestResponse): string {
-  const header = response.headers['set-cookie']
-  const raw = Array.isArray(header) ? header[0] : header
-  return String(raw).split(';')[0] ?? ''
+async function registerAndVerify(emailAddress: string, name = 'Pemilik'): Promise<string> {
+  return registerVerifyAndLogin(app, email, emailAddress, name)
 }
 
-async function registerAndVerify(emailAddress: string, name = 'Pemilik'): Promise<string> {
-  await app.inject({
-    method: 'POST',
-    url: '/api/auth/register',
-    payload: { email: emailAddress, password: PASSWORD, name },
-  })
-  await db.query('update users set email_verified_at = now() where email = $1', [emailAddress])
-  const login = await app.inject({
-    method: 'POST',
-    url: '/api/auth/login',
-    payload: { email: emailAddress, password: PASSWORD },
-  })
-  expect(login.statusCode).toBe(200)
-  return cookieOf(login)
+/** Mundurkan tanggal akun supaya batas 30 hari sudah lewat (PRD 9). */
+async function backdateAccount(emailAddress: string, days: number): Promise<void> {
+  await db.query(
+    `update users set created_at = now() - make_interval(days => $2) where email = $1`,
+    [emailAddress, days],
+  )
 }
 
 async function currentSecretFor(userId: number): Promise<string> {
@@ -74,6 +69,29 @@ async function currentSecretFor(userId: number): Promise<string> {
 async function userIdFor(emailAddress: string): Promise<number> {
   const row = await db.query<{ id: number }>('select id from users where email = $1', [emailAddress])
   return row.rows[0]!.id
+}
+
+/** Workspace dengan satu anggota, supaya kewajiban MFA punya tempat diuji. */
+async function createWorkspaceWithRole(
+  slug: string,
+  name: string,
+  userId: number,
+  role: 'owner' | 'admin' | 'viewer',
+): Promise<number> {
+  const workspace = await db.query<{ id: number }>(
+    'insert into workspaces (slug, name, owner_id) values ($1, $2, $3) returning id',
+    [slug, name, userId],
+  )
+  const workspaceId = workspace.rows[0]!.id
+
+  await db.query('insert into workspace_settings (workspace_id) values ($1)', [workspaceId])
+  await db.query('insert into memberships (workspace_id, user_id, role) values ($1, $2, $3)', [
+    workspaceId,
+    userId,
+    role,
+  ])
+
+  return workspaceId
 }
 
 async function enableMfa(cookie: string, userId: number): Promise<string[]> {
@@ -514,6 +532,7 @@ describe('status MFA dan kewajiban 30 hari (PRD 9)', () => {
     expect(response.statusCode).toBe(200)
     expect(response.json().enabled).toBe(false)
     expect(response.json().mandatory).toBe(false)
+    expect(response.json().blocked).toBe(false)
   })
 
   it('melaporkan wajib setelah Owner 30 hari', async () => {
@@ -521,21 +540,8 @@ describe('status MFA dan kewajiban 30 hari (PRD 9)', () => {
     const cookie = await registerAndVerify(emailAddress)
     const userId = await userIdFor(emailAddress)
 
-    await db.query(
-      `insert into workspaces (slug, name, owner_id) values ($1, $2, $3)`,
-      ['mfa-owner-lama', 'Toko MFA Lama', userId],
-    )
-    await db.query('insert into memberships (workspace_id, user_id, role) values ($1, $2, $3)', [
-      (
-        await db.query<{ id: number }>('select id from workspaces where slug = $1', ['mfa-owner-lama'])
-      ).rows[0]!.id,
-      userId,
-      'owner',
-    ])
-    await db.query(
-      `update memberships set joined_at = now() - interval '31 days' where user_id = $1`,
-      [userId],
-    )
+    await createWorkspaceWithRole('mfa-owner-lama', 'Toko MFA Lama', userId, 'owner')
+    await backdateAccount(emailAddress, 31)
 
     const response = await app.inject({
       method: 'GET',
@@ -544,26 +550,16 @@ describe('status MFA dan kewajiban 30 hari (PRD 9)', () => {
     })
 
     expect(response.json().mandatory).toBe(true)
+    expect(response.json().blocked).toBe(true)
   })
 
-  it('tidak mewajibkan Viewer', async () => {
+  it('tidak mewajibkan Viewer meski akunnya sudah lama', async () => {
     const emailAddress = 'mfa-viewer@contoh.test'
     const cookie = await registerAndVerify(emailAddress)
     const userId = await userIdFor(emailAddress)
 
-    const workspace = await db.query<{ id: number }>(
-      'insert into workspaces (slug, name, owner_id) values ($1, $2, $3) returning id',
-      ['mfa-viewer', 'Toko MFA Viewer', userId],
-    )
-    await db.query('insert into memberships (workspace_id, user_id, role) values ($1, $2, $3)', [
-      workspace.rows[0]!.id,
-      userId,
-      'viewer',
-    ])
-    await db.query(
-      `update memberships set joined_at = now() - interval '400 days' where user_id = $1`,
-      [userId],
-    )
+    await createWorkspaceWithRole('mfa-viewer', 'Toko MFA Viewer', userId, 'viewer')
+    await backdateAccount(emailAddress, 400)
 
     const response = await app.inject({
       method: 'GET',
@@ -572,6 +568,97 @@ describe('status MFA dan kewajiban 30 hari (PRD 9)', () => {
     })
 
     expect(response.json().mandatory).toBe(false)
+    expect(response.json().blocked).toBe(false)
+  })
+})
+
+describe('penegakan kewajiban MFA di server (PRD 9)', () => {
+  it('menolak akses data workspace sampai MFA aktif', async () => {
+    const emailAddress = 'mfa-tegakan@contoh.test'
+    const cookie = await registerAndVerify(emailAddress)
+    const userId = await userIdFor(emailAddress)
+
+    const workspaceId = await createWorkspaceWithRole('mfa-tegakan', 'Toko Wajib MFA', userId, 'owner')
+
+    // Sebelum 30 hari, workspace boleh dibuka.
+    const sebelum = await app.inject({
+      method: 'GET',
+      url: `/api/workspaces/${workspaceId}`,
+      headers: { cookie },
+    })
+    expect(sebelum.statusCode).toBe(200)
+
+    await backdateAccount(emailAddress, 31)
+
+    const sesudah = await app.inject({
+      method: 'GET',
+      url: `/api/workspaces/${workspaceId}`,
+      headers: { cookie },
+    })
+    expect(sesudah.statusCode).toBe(403)
+    expect(sesudah.json().error).toBe('mfa_wajib_aktif')
+  })
+
+  it('tetap membuka pengaturan akun supaya MFA bisa diaktifkan', async () => {
+    const emailAddress = 'mfa-activate@contoh.test'
+    const cookie = await registerAndVerify(emailAddress)
+    await backdateAccount(emailAddress, 31)
+
+    const sesi = await app.inject({
+      method: 'GET',
+      url: '/api/auth/session',
+      headers: { cookie },
+    })
+    expect(sesi.statusCode).toBe(200)
+
+    const mulai = await app.inject({
+      method: 'POST',
+      url: '/api/auth/mfa/setup',
+      headers: { cookie },
+    })
+    expect(mulai.statusCode).toBe(200)
+  })
+
+  it('melepas kunci workspace setelah MFA aktif', async () => {
+    const emailAddress = 'mfa-lepas@contoh.test'
+    const cookie = await registerAndVerify(emailAddress)
+    const userId = await userIdFor(emailAddress)
+    const workspaceId = await createWorkspaceWithRole('mfa-lepas', 'Toko Lepas Kunci', userId, 'owner')
+
+    await backdateAccount(emailAddress, 31)
+
+    const terkunci = await app.inject({
+      method: 'GET',
+      url: `/api/workspaces/${workspaceId}`,
+      headers: { cookie },
+    })
+    expect(terkunci.statusCode).toBe(403)
+
+    await enableMfa(cookie, userId)
+
+    const terbuka = await app.inject({
+      method: 'GET',
+      url: `/api/workspaces/${workspaceId}`,
+      headers: { cookie },
+    })
+    expect(terbuka.statusCode).toBe(200)
+  })
+
+  it('memberi tahu halaman masuk saat MFA sudah menjadi kewajiban', async () => {
+    const emailAddress = 'mfa-flag@contoh.test'
+    await registerAndVerify(emailAddress)
+    const userId = await userIdFor(emailAddress)
+    await createWorkspaceWithRole('mfa-flag', 'Toko Flag', userId, 'owner')
+    await backdateAccount(emailAddress, 31)
+
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: emailAddress, password: PASSWORD },
+    })
+
+    expect(login.statusCode).toBe(200)
+    expect(login.json().mfaSetupRequired).toBe(true)
   })
 })
 

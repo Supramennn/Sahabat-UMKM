@@ -1,17 +1,24 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import type { FastifyInstance, LightMyRequestResponse } from 'fastify'
+﻿import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { FastifyInstance } from 'fastify'
 import type { Database } from '@sahabat/db'
 import { closeTestDatabase, createTestDatabase } from '@sahabat/db/test-harness'
 import { buildApp } from '../src/app.ts'
-import { createCapturingEmailProvider, type EmailProvider } from '../src/services/email.ts'
-import { hashPassword, checkPasswordPolicy, MINIMUM_PASSWORD_LENGTH } from '../src/auth/password.ts'
+import { createCapturingEmailProvider } from '../src/services/email.ts'
+import {
+  cookieOf,
+  register,
+  registerVerifyAndLogin,
+  tokenFromLastEmail,
+  type CapturedEmail,
+} from './account-helpers.ts'
+import { hashPassword, checkPasswordPolicy, dummyPasswordHash, MINIMUM_PASSWORD_LENGTH } from '../src/auth/password.ts'
 import { generateToken, hashToken, tokenMatches } from '../src/auth/token.ts'
 
 const PASSWORD = 'kata-sandi-pengujian-2026'
 
 let db: Database
 let app: FastifyInstance
-let email: EmailProvider & { messages: { to: string; subject: string; body: string }[] }
+let email: CapturedEmail
 
 beforeAll(async () => {
   db = await createTestDatabase()
@@ -29,44 +36,8 @@ beforeEach(() => {
   email.messages.length = 0
 })
 
-/**
- * Token undangan dan atur ulang dikirim lewat email. Dalam produksi email itu
- * benar-benar terkirim; di sini isi email ditahan di memori oleh penyedia uji, dan
- * token diambil darinya. Kegagalan berarti ada bug, jadi ia dilempar, bukan
- * diteruskan sebagai undefined.
- */
-function tokenFromLastEmail(): string {
-  const message = email.messages.at(-1)
-  if (!message) {
-    throw new Error('Tidak ada email yang dikirim pada langkah ini.')
-  }
-  const token = message.body.match(/: (\S+)\s*$/)?.[1]
-  if (!token) {
-    throw new Error(`Email tidak memuat token: ${message.body}`)
-  }
-  return token
-}
-
-function cookieOf(response: LightMyRequestResponse): string {
-  const header = response.headers['set-cookie']
-  const raw = Array.isArray(header) ? header[0] : header
-  return String(raw).split(';')[0] ?? ''
-}
-
 async function registerAndVerify(emailAddress: string, name = 'Pemilik'): Promise<string> {
-  await app.inject({
-    method: 'POST',
-    url: '/api/auth/register',
-    payload: { email: emailAddress, password: PASSWORD, name },
-  })
-  await db.query('update users set email_verified_at = now() where email = $1', [emailAddress])
-  const login = await app.inject({
-    method: 'POST',
-    url: '/api/auth/login',
-    payload: { email: emailAddress, password: PASSWORD },
-  })
-  expect(login.statusCode).toBe(200)
-  return cookieOf(login)
+  return registerVerifyAndLogin(app, email, emailAddress, name)
 }
 
 describe('Argon2id dan kebijakan kata sandi (PRD 9)', () => {
@@ -138,6 +109,16 @@ describe('Argon2id dan kebijakan kata sandi (PRD 9)', () => {
   it('menolak hash yang rusak tanpa melempar galat', async () => {
     const { verifyPassword } = await import('../src/auth/password.ts')
     expect(await verifyPassword('bukan-hash', 'apa saja')).toBe(false)
+  })
+
+  it('pakai hash Argon2id sungguhan saat email tidak ditemukan', async () => {
+    // PRD 9: waktu verifikasi tidak boleh membocorkan apakah email terdaftar.
+    // Hash yang gagal diurai selesai seketika, jadi jalur email tak dikenal
+    // harus memakai hash yang bisa diurai seperti hash pengguna sungguhan.
+    const hash = await dummyPasswordHash()
+    expect(hash).toMatch(/^\$argon2id\$/)
+    const { verifyPassword } = await import('../src/auth/password.ts')
+    expect(await verifyPassword(hash, 'apa saja')).toBe(false)
   })
 })
 
@@ -308,9 +289,10 @@ describe('masuk dan pembatasan percobaan (PRD 9)', () => {
 
 describe('cookie Secure saat produksi (PRD 9)', () => {
   it('menambahkan Secure ketika aplikasi berjalan di belakang HTTPS', async () => {
+    const secureEmail = createCapturingEmailProvider()
     const secureApp = await buildApp({
       db,
-      email: createCapturingEmailProvider(),
+      email: secureEmail,
       sessionSecret: 'rahasia-uji',
       origin: 'http://localhost:3000',
       secureCookies: true,
@@ -322,9 +304,11 @@ describe('cookie Secure saat produksi (PRD 9)', () => {
       url: '/api/auth/register',
       payload: { email: 'secure@contoh.test', password: PASSWORD, name: 'Secure' },
     })
-    await db.query('update users set email_verified_at = now() where email = $1', [
-      'secure@contoh.test',
-    ])
+    await secureApp.inject({
+      method: 'POST',
+      url: '/api/auth/verify-email',
+      payload: { token: tokenFromLastEmail(secureEmail) },
+    })
 
     const response = await secureApp.inject({
       method: 'POST',
@@ -466,7 +450,7 @@ describe('atur ulang kata sandi (PRD 9)', () => {
     await registerAndVerify('sekali@contoh.test')
 
     await app.inject({ method: 'POST', url: '/api/auth/forgot-password', payload: { email: 'sekali@contoh.test' } })
-    const token = tokenFromLastEmail()
+    const token = tokenFromLastEmail(email)
 
     const pertama = await app.inject({
       method: 'POST',
@@ -487,7 +471,7 @@ describe('atur ulang kata sandi (PRD 9)', () => {
     const cookie = await registerAndVerify('cabut@contoh.test')
 
     await app.inject({ method: 'POST', url: '/api/auth/forgot-password', payload: { email: 'cabut@contoh.test' } })
-    const token = tokenFromLastEmail()
+    const token = tokenFromLastEmail(email)
 
     await app.inject({
       method: 'POST',
@@ -506,7 +490,7 @@ describe('atur ulang kata sandi (PRD 9)', () => {
       url: '/api/auth/forgot-password',
       payload: { email: 'lemah-reset@contoh.test' },
     })
-    const token = tokenFromLastEmail()
+    const token = tokenFromLastEmail(email)
 
     const response = await app.inject({
       method: 'POST',
@@ -518,17 +502,188 @@ describe('atur ulang kata sandi (PRD 9)', () => {
   })
 })
 
-describe('perangkat dan sesi aktif (PRD 6.1)', () => {
-  it('menampilkan perangkat beserta label yang bisa dibaca', async () => {
+describe('verifikasi email (PRD 6.1)', () => {
+  it('memverifikasi email dari tautan dan mengizinkan masuk', async () => {
+    await register(app, 'verifikasi@contoh.test')
+
+    const sebelum = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'verifikasi@contoh.test', password: PASSWORD },
+    })
+    expect(sebelum.statusCode).toBe(403)
+
+    const verifikasi = await app.inject({
+      method: 'POST',
+      url: '/api/auth/verify-email',
+      payload: { token: tokenFromLastEmail(email) },
+    })
+    expect(verifikasi.statusCode).toBe(200)
+
+    const sesudah = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'verifikasi@contoh.test', password: PASSWORD },
+    })
+    expect(sesudah.statusCode).toBe(200)
+  })
+
+  it('hanya memuat tautan ke halaman web, bukan ke endpoint API', async () => {
+    await register(app, 'tautan@contoh.test')
+    const body = email.messages.at(-1)!.body
+    expect(body).toContain('http://localhost:3000/verifikasi-email?token=')
+  })
+
+  it('menolak tautan yang sudah dipakai', async () => {
+    await register(app, 'sekali-pakai@contoh.test')
+    const token = tokenFromLastEmail(email)
+
+    const pertama = await app.inject({
+      method: 'POST',
+      url: '/api/auth/verify-email',
+      payload: { token },
+    })
+    expect(pertama.statusCode).toBe(200)
+
+    const kedua = await app.inject({
+      method: 'POST',
+      url: '/api/auth/verify-email',
+      payload: { token },
+    })
+    expect(kedua.statusCode).toBe(400)
+    expect(kedua.json().error).toBe('token_tidak_valid')
+  })
+
+  it('menolak tautan yang kedaluwarsa', async () => {
+    await register(app, 'kedaluwarsa@contoh.test')
+    const token = tokenFromLastEmail(email)
+
+    await db.query(
+      "update email_verification_tokens set expires_at = now() - interval '1 minute'",
+    )
+
     const response = await app.inject({
       method: 'POST',
-      url: '/api/auth/register',
-      payload: { email: 'perangkat@contoh.test', password: PASSWORD, name: 'Perangkat' },
+      url: '/api/auth/verify-email',
+      payload: { token },
     })
-    expect(response.statusCode).toBe(201)
-    await db.query('update users set email_verified_at = now() where email = $1', [
-      'perangkat@contoh.test',
-    ])
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('menolak token yang tidak dikenal', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/auth/verify-email',
+      payload: { token: generateToken() },
+    })
+    expect(response.statusCode).toBe(400)
+    expect(response.json().error).toBe('token_tidak_valid')
+  })
+
+  it('menulis akun bersama tokennya, jadi tidak ada akun tanpa jalan verifikasi', async () => {
+    await register(app, 'satu-transaksi@contoh.test')
+
+    const tokens = await db.query<{ token_hash: string }>(
+      'select token_hash from email_verification_tokens',
+    )
+    expect(tokens.rows.some((row) => row.token_hash === hashToken(tokenFromLastEmail(email)))).toBe(true)
+  })
+})
+
+describe('kirim ulang tautan verifikasi (PRD 6.1)', () => {
+  it('memberi respons sama untuk email terdaftar, tidak terdaftar, dan sudah terverifikasi', async () => {
+    await registerAndVerify('terverifikasi@contoh.test')
+    await register(app, 'baru-daftar@contoh.test')
+
+    const sudah = await app.inject({
+      method: 'POST',
+      url: '/api/auth/resend-verification',
+      payload: { email: 'terverifikasi@contoh.test' },
+    })
+    const pending = await app.inject({
+      method: 'POST',
+      url: '/api/auth/resend-verification',
+      payload: { email: 'baru-daftar@contoh.test' },
+    })
+    const asing = await app.inject({
+      method: 'POST',
+      url: '/api/auth/resend-verification',
+      payload: { email: 'tidak-ada@contoh.test' },
+    })
+
+    expect(sudah.statusCode).toBe(asing.statusCode)
+    expect(sudah.json()).toEqual(asing.json())
+    expect(pending.statusCode).toBe(asing.statusCode)
+    expect(pending.json()).toEqual(asing.json())
+  })
+
+  it('membatalkan tautan lama saat mengirim yang baru', async () => {
+    await register(app, 'ganti-tautan@contoh.test')
+    const lama = tokenFromLastEmail(email)
+
+    // Jeda 10 menit berlalu, jadi permintaan ini bukan alamatan batas.
+    await db.query(
+      "update email_verification_tokens set created_at = now() - interval '20 minutes'",
+    )
+
+    email.messages.length = 0
+    await app.inject({
+      method: 'POST',
+      url: '/api/auth/resend-verification',
+      payload: { email: 'ganti-tautan@contoh.test' },
+    })
+    const baru = tokenFromLastEmail(email)
+    expect(baru).not.toBe(lama)
+
+    const denganLama = await app.inject({
+      method: 'POST',
+      url: '/api/auth/verify-email',
+      payload: { token: lama },
+    })
+    expect(denganLama.statusCode).toBe(400)
+
+    const denganBaru = await app.inject({
+      method: 'POST',
+      url: '/api/auth/verify-email',
+      payload: { token: baru },
+    })
+    expect(denganBaru.statusCode).toBe(200)
+  })
+
+  it('membatasi permintaan beruntun supaya kotak masuk tidak dibanjiri', async () => {
+    await register(app, 'banjir@contoh.test')
+    email.messages.length = 0
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await app.inject({
+        method: 'POST',
+        url: '/api/auth/resend-verification',
+        payload: { email: 'banjir@contoh.test' },
+      })
+    }
+
+    expect(email.messages).toHaveLength(0)
+  })
+
+  it('tidak mengirim apa pun untuk email yang sudah terverifikasi', async () => {
+    await registerAndVerify('sudah-aktif@contoh.test')
+    email.messages.length = 0
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/auth/resend-verification',
+      payload: { email: 'sudah-aktif@contoh.test' },
+    })
+
+    expect(email.messages).toHaveLength(0)
+  })
+})
+
+describe('perangkat dan sesi aktif (PRD 6.1)', () => {
+  it('menampilkan perangkat beserta label yang bisa dibaca', async () => {
+    // Masuk kedua kali dengan user-agent peramban, supaya label perangkatnya
+    // berasal dari permintaan itu dan bukan dari envelop DEVELOPER_UNKNOWN.
+    await registerAndVerify('perangkat@contoh.test')
 
     const login = await app.inject({
       method: 'POST',

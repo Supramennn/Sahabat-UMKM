@@ -30,8 +30,23 @@ export const forgotPasswordSchema = z.object({
   email: emailSchema,
 })
 
+/**
+ * Token verifikasi email dan atur ulang kata sandi sama-sama 32 byte acak dalam
+ * base64url, jadi panjangnya selalu 43 karakter. Rentang 10 sampai 200 menyisakan
+ * tempat untuk format token lain tanpa menerima sembarang isian.
+ */
+const tokenSchema = z.string().min(10).max(200)
+
+export const verifyEmailSchema = z.object({
+  token: tokenSchema,
+})
+
+export const resendVerificationSchema = z.object({
+  email: emailSchema,
+})
+
 export const resetPasswordSchema = z.object({
-  token: z.string().min(10),
+  token: tokenSchema,
   password: passwordSchema,
 })
 

@@ -1,9 +1,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import type { FastifyInstance, LightMyRequestResponse } from 'fastify'
+import type { FastifyInstance } from 'fastify'
 import type { Database } from '@sahabat/db'
 import { closeTestDatabase, createTestDatabase } from '@sahabat/db/test-harness'
 import { buildApp } from '../src/app.ts'
-import { createCapturingEmailProvider, type EmailProvider } from '../src/services/email.ts'
+import { createCapturingEmailProvider } from '../src/services/email.ts'
+import {
+  registerVerifyAndLogin,
+  type CapturedEmail,
+} from './account-helpers.ts'
 
 /**
  * PRD 9: setiap query, pencarian, ekspor, impor, dan berkas menerapkan batas
@@ -15,7 +19,7 @@ const PASSWORD = 'kata-sandi-pengujian-2026'
 
 let db: Database
 let app: FastifyInstance
-let email: EmailProvider & { messages: { to: string; subject: string; body: string }[] }
+let email: CapturedEmail
 
 beforeAll(async () => {
   db = await createTestDatabase()
@@ -45,33 +49,19 @@ interface RegisteredUser {
 }
 
 async function register(emailAddress: string, name = 'Pemilik Usaha'): Promise<RegisteredUser> {
-  const response = await app.inject({
-    method: 'POST',
-    url: '/api/auth/register',
-    payload: { email: emailAddress, password: PASSWORD, name },
-  })
-  expect(response.statusCode).toBe(201)
+  const cookie = await registerVerifyAndLogin(app, email, emailAddress, name)
 
-  await db.query('update users set email_verified_at = now() where email = $1', [emailAddress])
-
-  const login = await app.inject({
-    method: 'POST',
-    url: '/api/auth/login',
-    payload: { email: emailAddress, password: PASSWORD },
+  const sesi = await app.inject({
+    method: 'GET',
+    url: '/api/auth/session',
+    headers: { cookie },
   })
-  expect(login.statusCode).toBe(200)
 
   return {
-    userId: login.json().userId as number,
+    userId: sesi.json().user.id as number,
     email: emailAddress,
-    cookie: cookieOf(login),
+    cookie,
   }
-}
-
-function cookieOf(response: LightMyRequestResponse): string {
-  const header = response.headers['set-cookie']
-  const raw = Array.isArray(header) ? header[0] : header
-  return String(raw).split(';')[0] ?? ''
 }
 
 async function createWorkspace(user: RegisteredUser, name: string): Promise<number> {

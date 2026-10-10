@@ -91,7 +91,7 @@ function SettingsSections() {
         <PasswordSection />
         <EmailSection currentEmail={session.user.email} />
         <DevicesSection />
-        <MfaSection mandatory={false} />
+        <MfaSection />
       </div>
     </div>
   )
@@ -334,8 +334,15 @@ function DevicesSection() {
   )
 }
 
-function MfaSection({ mandatory }: { mandatory: boolean }) {
-  const [enabled, setEnabled] = useState<boolean | null>(null)
+interface MfaStatus {
+  enabled: boolean
+  mandatory: boolean
+  satisfied: boolean
+  blocked: boolean
+}
+
+function MfaSection() {
+  const [status, setStatus] = useState<MfaStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [setup, setSetup] = useState<MfaSetupResponse | null>(null)
@@ -343,15 +350,15 @@ function MfaSection({ mandatory }: { mandatory: boolean }) {
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null)
   const [proof, setProof] = useState(false)
   const [proofToken, setProofToken] = useState('')
+  const [proofRecoveryCode, setProofRecoveryCode] = useState('')
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const result = await apiGet<{ enabled: boolean; mandatory: boolean; satisfied: boolean }>(
-      '/api/auth/mfa/status',
-    )
+    const result = await apiGet<MfaStatus>('/api/auth/mfa/status')
     if (result.ok) {
-      setEnabled(result.data.enabled)
+      setStatus(result.data)
+      setError(null)
     } else {
       setError(errorMessage(result.error))
     }
@@ -391,6 +398,7 @@ function MfaSection({ mandatory }: { mandatory: boolean }) {
               setRecoveryCodes(null)
               setProof(false)
               setProofToken('')
+              setProofRecoveryCode('')
             }}
           >
             Saya sudah menyimpannya
@@ -460,11 +468,13 @@ function MfaSection({ mandatory }: { mandatory: boolean }) {
             setBusy(true)
             setError(null)
             void apiPost<RecoveryCodesResponse>('/api/auth/mfa/recovery-codes', {
-              token: proofToken,
+              token: proofToken.trim() === '' ? undefined : proofToken,
+              recoveryCode: proofRecoveryCode.trim() === '' ? undefined : proofRecoveryCode,
             }).then((result) => {
               if (result.ok) {
                 setProof(false)
                 setProofToken('')
+                setProofRecoveryCode('')
                 setRecoveryCodes(result.data.recoveryCodes)
               } else {
                 setError(errorMessage(result.error, 'Kode itu tidak cocok.'))
@@ -480,11 +490,22 @@ function MfaSection({ mandatory }: { mandatory: boolean }) {
             onChange={setProofToken}
             inputMode="numeric"
             autoComplete="one-time-code"
-            required
             disabled={busy}
             error={tokenInvalid ? 'Kode berisi 6 angka.' : undefined}
           />
-          <Button type="submit" disabled={busy || tokenInvalid}>
+          <Field
+            id="recovery-proof-code"
+            label="Atau kode pemulihan"
+            value={proofRecoveryCode}
+            onChange={setProofRecoveryCode}
+            autoComplete="one-time-code"
+            disabled={busy}
+            hint="Isi salah satu saja. Kode pemulihan memakai huruf dan angka, misalnya ABCD7."
+          />
+          <Button
+            type="submit"
+            disabled={busy || tokenInvalid || (proofToken === '' && proofRecoveryCode === '')}
+          >
             {busy ? 'Memproses' : 'Buat kode baru'}
           </Button>
         </form>
@@ -501,16 +522,21 @@ function MfaSection({ mandatory }: { mandatory: boolean }) {
     <Section
       title="Verifikasi dua langkah"
       description={
-        mandatory
+        status?.mandatory
           ? 'Wajib untuk Owner dan Admin 30 hari setelah akun dibuat.'
           : 'Menambahkan kode dari aplikasi autentikator setiap kali Anda masuk.'
       }
     >
       {error ? <Alert kind="error">{error}</Alert> : null}
+      {status?.blocked ? (
+        <Alert kind="error">
+          Data workspace terkunci sampai verifikasi dua langkah aktif di akun ini.
+        </Alert>
+      ) : null}
       <div className={styles.state}>
-        <p className={styles.stateTitle}>{enabled ? 'Aktif' : 'Belum aktif'}</p>
+        <p className={styles.stateTitle}>{status?.enabled ? 'Aktif' : 'Belum aktif'}</p>
         <p className={styles.stateBody}>
-          {enabled
+          {status?.enabled
             ? 'Kode dari aplikasi autentikator diminta setiap kali Anda masuk.'
             : 'Belum ada aplikasi autentikator yang terhubung ke akun ini.'}
         </p>
@@ -521,7 +547,7 @@ function MfaSection({ mandatory }: { mandatory: boolean }) {
           onClick={() => {
             setBusy(true)
             setError(null)
-            if (enabled) {
+            if (status?.enabled) {
               setProof(true)
               setBusy(false)
               return
@@ -536,7 +562,7 @@ function MfaSection({ mandatory }: { mandatory: boolean }) {
             })
           }}
         >
-          {busy ? 'Memproses' : enabled ? 'Buat kode pemulihan baru' : 'Aktifkan verifikasi dua langkah'}
+          {busy ? 'Memproses' : status?.enabled ? 'Buat kode pemulihan baru' : 'Aktifkan verifikasi dua langkah'}
         </Button>
       </div>
     </Section>
