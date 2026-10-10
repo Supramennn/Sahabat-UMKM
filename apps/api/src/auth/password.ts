@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { hash as argonHash, verify as argonVerify } from '@node-rs/argon2'
 
 /**
@@ -34,11 +35,10 @@ export async function verifyPassword(storedHash: string, plain: string): Promise
 }
 
 /**
- * Bandingkan dua hash dengan waktu yang relatif tetap, supaya serangan waktu
- * tidak bisa memberitahu apakah pengguna itu terdaftar lewat perbedaan lama.
- */
-/**
  * Mengembalikan indeks hash yang cocok, atau -1 bila tidak ada yang cocok.
+ *
+ * Semua hash yang diberikan tetap diperiksa, bukan berhenti di yang pertama,
+ * supaya lama verifikasi tidak bergantung pada posisi hash yang cocok (PRD 9).
  *
  * Nilai dikembalikan sebagai indeks, bukan boolean, karena pemanggil perlu
  * membedakan "tidak cocok" dari "cocok di posisi pertama". Indeks 0 bernilai
@@ -53,6 +53,25 @@ export async function passwordMatchesAny(hashes: readonly string[], plain: strin
     }
   }
   return matched
+}
+
+/**
+ * Hash nyata dari nilai acak, dipakai saat email tidak ditemukan supaya jalur
+ * tersebut tetap membayar biaya Argon2id yang sama dengan akun yang ada.
+ *
+ * Hash yang diketik tangan pasti gagal diurai sebelum Argon2 dijalankan, jadi
+ * jalur email tak dikenal selesai dalam mikrodetik sementara akun yang ada
+ * membutuhkan puluhan milidetik. Selisih itu cukup untuk memetakan email yang
+ * terdaftar (PRD 9).
+ *
+ * Nilainya dihitung sekali lalu disimpan, karena hash-nya tidak pernah dipakai
+ * sebagai kata sandi siapa pun.
+ */
+let dummyHash: Promise<string> | null = null
+
+export function dummyPasswordHash(): Promise<string> {
+  dummyHash ??= hashPassword(randomBytes(32).toString('base64url'))
+  return dummyHash
 }
 
 export interface PasswordPolicyResult {

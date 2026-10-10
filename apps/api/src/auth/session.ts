@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { Database } from '@sahabat/db'
 import { hashForLookup, hashToken, tokenMatches } from './token.ts'
+import { loadMfaGate } from './mfa-policy.ts'
 import type { Role } from '@sahabat/shared'
 
 /**
@@ -245,11 +246,12 @@ export class AuthenticationError extends Error {
 
 export class AuthorizationError extends Error {
   readonly statusCode = 403
-  readonly code = 'tidak_diizinkan'
+  readonly code: string
 
-  constructor(message = 'Anda tidak punya izin untuk tindakan ini.') {
+  constructor(message = 'Anda tidak punya izin untuk tindakan ini.', code = 'tidak_diizinkan') {
     super(message)
     this.name = 'AuthorizationError'
+    this.code = code
   }
 }
 
@@ -268,6 +270,19 @@ export async function loadWorkspaceRole(
 
   if (!workspaceId) {
     throw new AuthorizationError('Pilih workspace terlebih dahulu.')
+  }
+
+  // PRD 9: Owner dan Admin wajib memakai verifikasi dua langkah setelah 30
+  // hari. Penegakan di sini, bukan di tampilan, karena setiap endpoint yang
+  // menyentuh data workspace melewati fungsi ini.
+  const gate = await loadMfaGate(db, session)
+  if (gate.blocked) {
+    throw new AuthorizationError(
+      gate.enabled
+        ? 'Masukkan kode verifikasi dua langkah lagi sebelum membuka data workspace.'
+        : 'Aktifkan verifikasi dua langkah di pengaturan akun sebelum membuka data workspace.',
+      'mfa_wajib_aktif',
+    )
   }
 
   const result = await db.query<{ role: Role }>(
