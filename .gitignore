@@ -23,6 +23,7 @@ npm-debug.log*
 
 # local object storage
 .minio/
+.object-storage/
 
 .DS_Store
 Thumbs.db

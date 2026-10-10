@@ -27,6 +27,8 @@ export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: ApiError 
  */
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
 
+export { API_BASE }
+
 async function request<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
   let response: Response
 
@@ -170,6 +172,7 @@ export type ProductSummary = {
   totalQuantity: number
   stockStatus: 'habis' | 'stok_rendah' | 'normal'
   stockStatusLabel: string
+  photoKey: string | null
 }
 
 export type ProductsResponse = {
@@ -267,3 +270,23 @@ export type AlertsResponse = { withinDays: number; alerts: StockAlert[] }
 export type Category = { id: number; name: string; productCount: number }
 
 export type CategoriesResponse = { categories: Category[] }
+
+export type ImportProblem = { rowNumber: number; message: string }
+
+export type ImportPreview = {
+  totalRows: number
+  validRows: number
+  problemRows: number
+  problems: ImportProblem[]
+  sample: Array<{ rowNumber: number; sku: string; name: string; unitCode: string }>
+  maxRowsPerImport: number
+  exceedsRowLimit: boolean
+}
+
+export type ImportResult = {
+  replayed: boolean
+  imported: number
+  skipped: number
+  categoriesCreated: number
+  skippedRows: Array<{ rowNumber: number; sku: string; message: string }>
+}

@@ -104,13 +104,21 @@ TEST_DATABASE_URL=postgres://sahabat:sahabat@127.0.0.1:5432/sahabat_umkm npm run
 
 Berkas `packages/db/test-postgres/stock-concurrency.test.ts` menguji alur lengkapnya:
 dua transaksi memanggil `recordMovement` untuk produk, lokasi, dan stok yang sama.
-Yang diperiksa bukan hanya penguncian tingkat baris, tetapi juga bahwa saldo akhir
-selalu sama dengan penjumlahan ledger.
+Yang diperiksa bukan hanya penguncian tingkat baris, tetapi juga bahwa:
+satu berhasil satu ditolak saat stok terakhir diambil bersamaan, lima permintaan
+perebut dua barang menghasilkan tepat dua transaksi berhasil, pesan penolakan menyebut
+produk dan lokasi, dan saldo akhir selalu sama dengan penjumlahan ledger.
 
-Statusnya per 9 Oktober 2026: tes konkurensi itu belum pernah dijalankan, karena
-mesin pengembangan ini tidak punya PostgreSQL yang berfungsi. Laporan Fase 0
-mencatatnya sebagai pekerjaan yang belum selesai, bukan sebagai lulus. Job
-`postgres-concurrency` di CI menjalankannya terhadap layanan PostgreSQL sungguhan.
+Statusnya per 10 Oktober 2026: tes ini sudah dijalankan dan lulus terhadap
+PostgreSQL sungguhan lewat `npm run test:postgres:local`, yang menyalakan klaster
+PostgreSQL tertanam tanpa Docker. Hasilnya 6 tes lulus. Jalankan juga di CI pada job
+`postgres-concurrency`.
+
+Ketika tes ini pertama kali dijalankan, terungkap bahwa berkas penguncian yang lama
+tidak pernah dijalankan sejak fase 0 dan salah: ia membuka transaksi kedua di dalam
+transaksi pertama yang masih memegang kunci, sehingga mengunci dirinya sendiri dan
+selalu berakhir dengan batas waktu. Tesnya ditulis ulang memakai dua instance
+Database yang benar-benar berbeda.
 
 ## Konfigurasi
 

@@ -86,6 +86,9 @@ export default function ProductsPage() {
           <a className={styles.paginationLink} href="/stok/input">
             Catat stok
           </a>
+          <a className={styles.paginationLink} href="/stok/impor">
+            Impor barang
+          </a>
           <a className={styles.paginationLink} href="/stok/produk/baru">
             Tambah barang
           </a>
@@ -140,10 +143,13 @@ export default function ProductsPage() {
         <div className={styles.state}>
           <p className={styles.stateTitle}>Belum ada barang</p>
           <p className={styles.stateBody}>
-            Tambahkan barang satu per satu, atau impor dari berkas CSV saat-fitur impor
-            tersedia. Saldo stok terisi sendiri setelah barang masuk dicatat.
+            Tambahkan barang satu per satu, atau impor dari berkas CSV. Saldo stok terisi
+            sendiri setelah barang masuk dicatat.
           </p>
           <div className={styles.emptyActions}>
+            <a className={styles.paginationLink} href="/stok/impor">
+              Impor dari CSV
+            </a>
             <a className={styles.paginationLink} href="/stok/produk/baru">
               Tambah barang pertama
             </a>

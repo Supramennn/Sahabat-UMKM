@@ -31,24 +31,28 @@ describe.skipIf(!usingRealPostgres())('penguncian saldo stok (PRD 6.2)', () => {
     await db.close()
   })
 
+  let sequence = 0
+
   async function seed(quantity: number): Promise<{
     workspaceId: number
     productId: number
     locationId: number
     userId: number
   }> {
+    sequence += 1
     const user = await db.query<{ id: number }>(
       `insert into users (email, password_hash, name, email_verified_at)
-       values ('konkurensi@contoh.test', 'hash', 'Konkurensi', now())
+       values ($1, 'hash', 'Konkurensi', now())
        returning id`,
+      [`konkurensi-${sequence}@contoh.test`],
     )
     const userId = user.rows[0]!.id
 
     const workspace = await db.query<{ id: number }>(
       `insert into workspaces (slug, name, owner_id)
-       values ('konkurensi', 'Toko Konkurensi', $1)
+       values ($1, 'Toko Konkurensi', $2)
        returning id`,
-      [userId],
+      [`konkurensi-${sequence}`, userId],
     )
     const workspaceId = workspace.rows[0]!.id
 
@@ -134,10 +138,11 @@ describe.skipIf(!usingRealPostgres())('penguncian saldo stok (PRD 6.2)', () => {
     )
     expect(saldo.rows[0]!.quantity).toBe('0.0000')
 
-    const movements = await db.query<{ total: string }>(
-      "select count(*)::int as total from stock_movements where kind = 'keluar'",
+    const movements = await db.query<{ total: number }>(
+      "select count(*)::int as total from stock_movements where product_id = $1 and kind = 'keluar'",
+      [context.productId],
     )
-    expect(movements.rows[0]!.total).toBe('1')
+    expect(Number(movements.rows[0]!.total)).toBe(1)
   })
 
   it('tidak pernah menghasilkan saldo negatif walau lima permintaan berebut dua barang', async () => {

@@ -30,6 +30,11 @@ export default defineConfig({
           environment: 'node',
           testTimeout: 30_000,
           hookTimeout: 60_000,
+          // TEST_DATABASE_URL menunjuk satu database, bukan satu per berkas, dan
+          // salah satu berkas membersihkan skema public di akhir. Kalau keduanya
+          // jalan bersamaan, salah satunya menghapus objek yang sedang dipakai
+          // yang lain.
+          fileParallelism: false,
         },
       },
     ],

@@ -21,6 +21,7 @@ export const moduleNav: NavItem[] = [
   { href: '/stok', label: 'Stok', short: 'Stok' },
   { href: '/stok/input', label: 'Catat stok', short: 'Catat' },
   { href: '/stok/peringatan', label: 'Perlu perhatian', short: 'Perhatian' },
+  { href: '/stok/impor', label: 'Impor barang', short: 'Impor' },
   { href: '/stok/riwayat', label: 'Riwayat stok', short: 'Riwayat' },
   { href: '/stok/opname', label: 'Stok opname', short: 'Opname' },
   { href: '/stok/lokasi', label: 'Lokasi', short: 'Lokasi' },

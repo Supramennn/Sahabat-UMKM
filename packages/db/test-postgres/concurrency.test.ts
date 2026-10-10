@@ -8,63 +8,91 @@ import { closeTestDatabase, usingRealPostgres } from '../src/test-harness.ts'
  * dengan dua koneksi PostgreSQL sungguhan, karena PGlite berjalan sebagai satu
  * koneksi.
  *
- * Yang diuji di sini adalah mekanisme yang akan diandalkan ledger stok: penguncian
- * baris benar-benar menahan transaksi kedua sampai transaksi pertama selesai.
+ * Berkas ini menguji mekanisme pengunciannya secara terpisah dari alur stok, yang
+ * diuji di stock-concurrency.test.ts.
+ *
+ * Catatan: berkas ini sama sekali belum pernah dijalankan sampai September 2026,
+ * karena mesin pengembangan tidak punya PostgreSQL. Ketika akhirnya dijalankan,
+ * tes pertamanya terbukti salah: ia membuka transaksi kedua di dalam transaksi
+ * pertama yang masih memegang kunci, jadi ia mengunci dirinya sendiri dan selalu
+ * berakhir dengan batas waktu. Tesnya ditulis ulang supaya dua transaksi berjalan
+ * di dua koneksi berbeda.
  */
 
 const connectionString = process.env.TEST_DATABASE_URL
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 describe.skipIf(!usingRealPostgres())('penguncian baris pada dua koneksi', () => {
   let db: Database
+  let koneksiKedua: Database
 
   beforeAll(async () => {
     db = createPostgresDatabase(connectionString!, 5)
+    koneksiKedua = createPostgresDatabase(connectionString!, 1)
+
     await db.exec(`
-      create table lock_probe (
+      create table if not exists lock_probe (
         id bigint primary key,
         n bigint not null
       )
     `)
+    await db.query('delete from lock_probe')
     await db.query('insert into lock_probe (id, n) values (1, 1)')
   })
 
   afterAll(async () => {
     await db.exec('drop table if exists lock_probe')
+    await koneksiKedua.close()
     await db.close()
   })
 
   it('menahan transaksi kedua sampai transaksi pertama selesai', async () => {
-    const first = await db.transaction(async (tx) => {
-      await tx.query('select n from lock_probe where id = 1 for update')
+    const urutan: string[] = []
 
-      // Transaksi kedua dibuat lewat instance terpisah agar benar-benar koneksi
-      // berbeda, bukan sekadar permintaan lain pada koneksi yang sama.
-      const second = await db.transaction(async (secondTx) => {
-        await secondTx.query('select n from lock_probe where id = 1 for update')
-        return secondTx.query<{ n: number }>('select n from lock_probe where id = 1')
+    // Dua instance Database berarti dua kumpulan koneksi, jadi kedua transaksi ini
+    // benar-benar berjalan bersamaan di koneksi yang berbeda.
+    const pertama = db
+      .transaction(async (tx) => {
+        await tx.lockRow('select n from lock_probe where id = 1 for update')
+        await sleep(300)
       })
+      .then(() => urutan.push('pertama'))
 
-      return second
-    }).catch((error: unknown) => error as Error)
+    await sleep(50)
 
-    // Aksi terakhir di dalam transaksi pertama adalah melepas kunci, jadi setelah
-    // transaksi selesai, transaksi kedua harus bisa memperoleh kunci dan membaca
-    // nilai yang sama.
-    expect(first).toMatchObject({ rows: [{ n: 1 }] })
+    const kedua = koneksiKedua
+      .transaction(async (tx) => {
+        await tx.lockRow('select n from lock_probe where id = 1 for update')
+      })
+      .then(() => urutan.push('kedua'))
+
+    await Promise.all([pertama, kedua])
+
+    // Kunci baru dilepas setelah transaksi pertama selesai, jadi transaksi kedua
+    // tidak mungkin lebih dulu. Inilah yang mencegah dua orang menghabiskan stok
+    // terakhir pada saat bersamaan.
+    expect(urutan).toEqual(['pertama', 'kedua'])
   })
 
-  it('membiarkan dua transaksi menaikkan nilai secara berurutan tanpa kehilangan perubahan', async () => {
-    const increment = async () =>
-      db.transaction(async (tx) => {
-        const current = await tx.lockRow<{ n: number }>('select n from lock_probe where id = 1 for update')
-        await new Promise((resolve) => setTimeout(resolve, 20))
-        await tx.query('update lock_probe set n = $1 where id = 1', [current.rows[0]!.n + 1])
+  it('membiarkan beberapa transaksi menaikkan nilai secara berurutan tanpa kehilangan perubahan', async () => {
+    const increment = (database: Database) =>
+      database.transaction(async (tx) => {
+        const current = await tx.lockRow<{ n: string }>(
+          'select n from lock_probe where id = 1 for update',
+        )
+        await sleep(20)
+        await tx.query('update lock_probe set n = $1 where id = 1', [
+          Number(current.rows[0]!.n) + 1,
+        ])
       })
 
-    await Promise.all([increment(), increment(), increment()])
+    await Promise.all([increment(db), increment(koneksiKedua), increment(db)])
 
-    const hasil = await db.query<{ n: number }>('select n from lock_probe where id = 1')
-    expect(hasil.rows[0]!.n).toBe(4)
+    const hasil = await db.query<{ n: string }>('select n from lock_probe where id = 1')
+    expect(Number(hasil.rows[0]!.n)).toBe(4)
   })
 })
 
@@ -73,11 +101,7 @@ describe('pengujian konkurensi', () => {
     expect(usingRealPostgres()).toBe(false)
   })
 
-  it.skipIf(usingRealPostgres())('menjelaskan cara menjalankannya', () => {
-    const pesan =
-      'Setel TEST_DATABASE_URL ke database pengujian, lalu jalankan npm run test:postgres. ' +
-      'Kriteria PRD 6.2 tentang dua pengguna mengeluarkan stok terakhir tidak dapat dibuktikan tanpa itu.'
-    expect(pesan).toContain('TEST_DATABASE_URL')
+  it('menjelaskan cara menjalankannya', () => {
     expect(closeTestDatabase).toBeTypeOf('function')
   })
 })

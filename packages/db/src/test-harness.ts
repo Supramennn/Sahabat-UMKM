@@ -6,7 +6,9 @@ import { migrate } from './migrate.ts'
  *
  * Default-nya PGlite sehingga `npm test` jalan tanpa server database. Setel
  * TEST_DATABASE_URL untuk menguji terhadap PostgreSQL sungguhan, yang diperlukan
- * oleh tes konkurensi dua koneksi (PRD 6.2).
+ * oleh tes konkurensi dua koneksi (PRD 6.2). Untuk menjalankan tes itu tanpa
+ * Docker, pakai `npm run test:postgres:local`, yang menyalakan klaster PostgreSQL
+ * tertanam di `.pgdata` lalu menjalankan proyek postgres di dalamnya.
  */
 export async function createTestDatabase(): Promise<Database> {
   const connectionString = process.env.TEST_DATABASE_URL

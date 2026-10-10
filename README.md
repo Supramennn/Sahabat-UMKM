@@ -71,7 +71,9 @@ Tiga job berjalan sendiri di `.github/workflows`:
 | `e2e` | Uji aksesibilitas Playwright di ponsel dan desktop |
 
 Tes konkurensi butuh dua koneksi PostgreSQL, jadi tidak bisa berjalan di PGlite.
-Job `verify` sengaja tidak memorinya.
+Job `verify` sengaja tidak memorinya. Di mesin tanpa Docker, `npm run
+test:postgres:local` menyalakan klaster PostgreSQL tertanam lalu menjalankan tes
+yang sama.
 
 ## Perintah
 
@@ -82,6 +84,7 @@ Job `verify` sengaja tidak memorinya.
 | `npm run test:e2e` | Uji aksesibilitas Playwright di ponsel dan desktop. Butuh API dan frontend sudah berjalan |
 | `npx tsx scripts/dev-api.mts` | Jalankan API dengan database PGlite dalam memori, untuk pemeriksaan manual tanpa PostgreSQL |
 | `npm run test:postgres` | Tes yang butuh PostgreSQL sungguhan, setel `TEST_DATABASE_URL` |
+| `npm run test:postgres:local` | Jalankan tes PostgreSQL sungguhan tanpa Docker, memakai klaster tertanam di `.pgdata` |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript di seluruh workspace |
 | `npm run verify` | lint, typecheck, dan tes |
@@ -108,7 +111,7 @@ docs/
 | Modul | Halaman | PRD |
 | --- | --- | --- |
 | Akun | masuk, buat akun, verifikasi email, lupa dan atur ulang kata sandi, pengaturan akun | 6.1, 9 |
-| Stok | barang, tambah barang, detail barang, input stok, riwayat, perlu perhatian, lokasi, kategori, stok opname | 6.2 |
+| Stok | barang, tambah barang, detail barang dan foto, input stok, riwayat, perlu perhatian, impor CSV, lokasi, kategori, stok opname | 6.2, 6.8 |
 
 Modul stok memakai satu jalur pencatatan, `recordMovement` di
 `apps/api/src/stock/movements.ts`. Tidak ada endpoint lain yang boleh menulis ke
