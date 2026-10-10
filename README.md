@@ -112,7 +112,11 @@ docs/
 | --- | --- | --- |
 | Akun | masuk, buat akun, verifikasi email, lupa dan atur ulang kata sandi, pengaturan akun | 6.1, 9 |
 | Stok | barang, tambah barang, detail barang dan foto, input stok, riwayat, perlu perhatian, impor CSV, lokasi, kategori, stok opname | 6.2, 6.8 |
-| Pembelian | ringkasan, supplier, purchase order dan detailnya, penerimaan, pembayaran supplier | 6.3 |
+| Pembelian | ringkasan, supplier, purchase order dan detailnya, penerimaan, retur pembelian, pembayaran supplier | 6.3 |
+
+Halaman `/po/<token>` adalah tampilan publik purchase order. Halamannya tidak punya
+sesi, tidak boleh diindeks mesin pencari, dan hanya bisa dibuka selama tautannya
+berlaku.
 
 Modul stok memakai satu jalur pencatatan, `recordMovement` di
 `apps/api/src/stock/movements.ts`. Tidak ada endpoint lain yang boleh menulis ke

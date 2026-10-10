@@ -22,6 +22,10 @@ const HALAMAN = [
   { path: '/pembelian/po', nama: 'daftar PO' },
   { path: '/pembelian/supplier', nama: 'supplier' },
   { path: '/pembelian/pembayaran', nama: 'pembayaran supplier' },
+  { path: '/pembelian/penerimaan', nama: 'penerimaan barang' },
+  { path: '/stok/peringatan', nama: 'peringatan stok' },
+  { path: '/stok/impor', nama: 'impor barang' },
+  { path: '/pembelian/retur', nama: 'retur pembelian' },
 ]
 
 test.describe('halaman autentikasi', () => {
@@ -182,5 +186,22 @@ test.describe('keadaan data', () => {
 
     await expect(page.getByText('Halaman ini belum bisa dibuka')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('h1')).toHaveCount(1)
+  })
+
+  // A-11: halaman publik tidak punya sesi, dan tidak boleh diindeks mesin pencari.
+  test('tautan baca-saja yang tidak berlaku menjelaskan tanpa meminta masuk', async ({ page }) => {
+    await page.goto('/po/token-yang-tidak-pernah-dibuat-123456')
+
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(/tidak berlaku/i, {
+      timeout: 15_000,
+    })
+    // Tidak ada permalink ke halaman masuk: penerima tautan bukan pengguna aplikasi.
+    await expect(page.locator('a[href="/masuk"]')).toHaveCount(0)
+  })
+
+  test('tautan baca-saja tidak meminta mesin pencari mengindeksnya', async ({ page }) => {
+    await page.goto('/po/token-yang-tidak-pernah-dibuat-123456')
+
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/)
   })
 })

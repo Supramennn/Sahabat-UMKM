@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useApp } from '../../components/app-context'
 import { AppShell } from '../../components/shell'
-import { ErrorState } from '../../components/ui'
-import { apiGet, errorMessage, type StockAlert, type AlertsResponse } from '../../../lib/api'
-import { badgeClass, formatQty } from '../bagian'
+import { Alert, ErrorState } from '../../components/ui'
+import { apiGet, errorMessage, type AlertsResponse, type StockAlert } from '../../../lib/api'
+import { formatQty } from '../bagian'
 import styles from '../stok.module.css'
 
 /**
@@ -13,19 +14,33 @@ import styles from '../stok.module.css'
  * per produk. Batas minimum ada di setiap barang, sedangkan jendela kedaluwarsa
  * belum ditetapkan PRD, jadi dipilih pengguna dari 7, 30, dan 90 hari.
  *
- * Daftar ini juga jadi bahan awal untuk membuat PO dari stok rendah (PRD 6.3), jadi
- * keadaan kosongnya menjelaskan langkah berikutnya, bukan hanya menampilkan nol.
+ * PRD 6.3: daftar ini juga jadi bahan awal untuk membuat purchase order langsung
+ * dari stok rendah. Jumlah usulannya bisa diubah, dan satu barang yang muncul di
+ * beberapa lokasi digabung supaya PO tidak memuat barang yang sama dua kali,
+ * yang ditolak server.
  */
 
 const JENDELA_HARI = [7, 30, 90] as const
 
+interface Usulan {
+  productId: number
+  productName: string
+  sku: string
+  unitCode: string
+  /** Batas minimum, dipakai sebagai jumlah usulan awal. */
+  saran: number
+  /** Nama lokasi yang membuat barang ini masuk daftar. */
+  lokasi: string[]
+}
 export default function StockAlertsPage() {
   const app = useApp()
+  const router = useRouter()
 
   const [alerts, setAlerts] = useState<StockAlert[] | null>(null)
   const [withinDays, setWithinDays] = useState<number>(30)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dipilih, setDipilih] = useState<Record<number, string>>({})
 
   useEffect(() => {
     let berhenti = false
@@ -48,6 +63,49 @@ export default function StockAlertsPage() {
       berhenti = true
     }
   }, [app.workspaceId, withinDays])
+
+  // Satu barang bisa muncul di beberapa lokasi, jadi usulannya digabung per
+  // barang. Server menolak barang yang sama muncul dua kali dalam satu PO.
+  const usulan = useMemo<Usulan[]>(() => {
+    const gabungan = new Map<number, Usulan>()
+
+    for (const item of alerts ?? []) {
+      const ada = gabungan.get(item.productId)
+      if (ada) {
+        ada.lokasi.push(item.locationName)
+        continue
+      }
+
+      gabungan.set(item.productId, {
+        productId: item.productId,
+        productName: item.productName,
+        sku: item.sku,
+        unitCode: item.unitCode,
+        // Barang yang kosong stok dan tidak punya batas minimum tetap butuh usulan,
+        // jadi diambil dari satu sak atau satu pcs.
+        saran: item.minStock && item.minStock > 0 ? item.minStock : 1,
+        lokasi: [item.locationName],
+      })
+    }
+
+    return [...gabungan.values()]
+  }, [alerts])
+
+  useEffect(() => {
+    setDipilih(Object.fromEntries(usulan.map((item) => [item.productId, item.saran.toString()])))
+  }, [usulan])
+
+  const terpilih = usulan.filter((item) => (dipilih[item.productId] ?? '') !== '')
+  const totalDipilih = terpilih.length
+
+  function buatPO() {
+    // Usulan dikirim lewat segmen URL supaya alamatnya bisa ditandai dan dibuka
+    // ulang tanpa kehilangan isi.
+    const segmen = terpilih
+      .map((item) => `${item.productId}:${dipilih[item.productId]}`)
+      .join(';')
+    router.push(`/pembelian/po/baru?items=${encodeURIComponent(segmen)}`)
+  }
 
   return (
     <AppShell
@@ -92,42 +150,68 @@ export default function StockAlertsPage() {
         </div>
       ) : null}
 
-      {!loading && alerts && alerts.length > 0 ? (
-        <ul className={styles.list}>
-          {alerts.map((item) => (
-            <li key={`${item.productId}-${item.locationId}`} className={styles.card}>
-              <span className={styles.cardRow}>
-                <span className={styles.cardName}>{item.productName}</span>
-                <span className={`${styles.badge} ${badgeClass(item.status)}`}>
-                  {item.statusLabel}
+      {!loading && usulan.length > 0 ? (
+        <>
+          <p className={styles.cardMeta}>
+            {totalDipilih > 0
+              ? `${totalDipilih} barang dipilih untuk di-usulkan dalam PO. Jumlahnya masih bisa diubah.`
+              : 'Kosongkan jumlah untuk barang yang tidak mau dipesan.'}
+          </p>
+
+          <ul className={styles.list}>
+            {usulan.map((item) => (
+              <li key={item.productId} className={styles.card}>
+                <span className={styles.cardRow}>
+                  <span className={styles.cardName}>{item.productName}</span>
+                  <span className={styles.cardMeta}>{item.sku}</span>
                 </span>
-              </span>
-              <span className={styles.cardMeta}>
-                {item.locationName} · {formatQty(item.quantity)} {item.unitCode}
-                {item.minStock !== null ? ` dari batas minimum ${formatQty(item.minStock)}` : ''}
-              </span>
-              <ul className={styles.reasonList}>
-                {item.reasons.map((reason) => (
-                  <li key={reason} className={styles.reason}>
-                    {ALASAN[reason] ?? reason}
-                  </li>
-                ))}
-                {item.earliestExpiry ? (
-                  <li className={styles.reason}>
-                    Kedaluwarsa pertama {item.earliestExpiry}
-                  </li>
-                ) : null}
-              </ul>
-            </li>
-          ))}
-        </ul>
+
+                <span className={styles.cardMeta}>
+                  {item.lokasi.join(', ')} · {item.unitCode}
+                </span>
+
+                <div className={styles.filterGroup}>
+                  <label className={styles.label} htmlFor={`usulan-${item.productId}`}>
+                    Jumlah yang dipesan (batas minimum {formatQty(item.saran)})
+                  </label>
+                  <input
+                    className={styles.input}
+                    id={`usulan-${item.productId}`}
+                    inputMode="decimal"
+                    value={dipilih[item.productId] ?? ''}
+                    onChange={(event) =>
+                      setDipilih({ ...dipilih, [item.productId]: event.target.value })
+                    }
+                  />
+                </div>
+
+                <span className={styles.cardMeta}>
+                  {(dipilih[item.productId] ?? '') === ''
+                    ? 'Tidak ikut dipesan. Kosongkan kolomnya.'
+                    : `${formatQty(Number(dipilih[item.productId]))} ${item.unitCode} akan masuk PO.`}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <div className={styles.emptyActions}>
+            <button
+              type="button"
+              className={styles.submit}
+              disabled={totalDipilih === 0}
+              onClick={buatPO}
+            >
+              Buat PO dari {totalDipilih} barang terpilih
+            </button>
+          </div>
+
+          {totalDipilih > 0 ? (
+            <Alert kind="info">
+              Harga beli per barang belum diisi, jadi isi di halaman PO sebelum menyimpan.
+            </Alert>
+          ) : null}
+        </>
       ) : null}
     </AppShell>
   )
-}
-
-const ALASAN: Record<string, string> = {
-  stok_habis: 'Stok habis',
-  stok_rendah: 'Sudah menyentuh batas minimum',
-  hampir_kedaluwarsa: 'Hampir kedaluwarsa',
 }

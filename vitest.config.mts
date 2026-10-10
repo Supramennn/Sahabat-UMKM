@@ -11,7 +11,11 @@ export default defineConfig({
       {
         test: {
           name: 'unit',
-          include: ['packages/*/test/**/*.test.ts', 'apps/api/test/**/*.test.ts'],
+          include: [
+            'packages/*/test/**/*.test.ts',
+            'apps/api/test/**/*.test.ts',
+            'apps/web/test/**/*.test.ts',
+          ],
           environment: 'node',
           // Setiap berkas tes memakai PGlite sendiri, jadi penyiapan skema perlu
           // waktu lebih dari default 10 detik ketika banyak berkas berjalan

@@ -14,7 +14,7 @@ import {
   type SuppliersResponse,
 } from '../../../../lib/api'
 import { PurchasingShell } from '../../pembelian-shell'
-import { rupiah } from '../../bagian'
+import { parseUsulan, rupiah } from '../../bagian'
 import styles from '../../pembelian.module.css'
 
 /**
@@ -36,7 +36,7 @@ interface BarisPO {
 export default function NewPurchaseOrderPage({
   searchParams,
 }: {
-  searchParams: Promise<{ productId?: string; quantity?: string }>
+  searchParams: Promise<{ items?: string }>
 }) {
   const app = useApp()
   const router = useRouter()
@@ -48,9 +48,7 @@ export default function NewPurchaseOrderPage({
   const [locationId, setLocationId] = useState('')
   const [expectedOn, setExpectedOn] = useState('')
   const [note, setNote] = useState('')
-  const [baris, setBaris] = useState<BarisPO[]>([
-    { productId: '', quantity: '1', unitPrice: '', discountAmount: '' },
-  ])
+  const [baris, setBaris] = useState<BarisPO[]>([barisKosong()])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -75,21 +73,20 @@ export default function NewPurchaseOrderPage({
     })
   }, [app.workspaceId])
 
-  // PRD 6.3: PO bisa dibuat dari daftar stok rendah dengan jumlah usulan, dan
-  // jumlah itu tetap bisa diubah sebelum disimpan.
+  // PRD 6.3: PO bisa dibuat langsung dari daftar stok rendah, dengan jumlah
+  // usulan per barang yang tetap bisa diubah sebelum disimpan.
+  //
+  // Usulan dikirim sebagai segmen URL, bukan di state halaman peringatan, supaya
+  // alamatnya bisa ditandai, dikirim ulang, dan dibuka lagi tanpa kehilangan isi.
   useEffect(() => {
     let batal = false
 
     void searchParams.then((params) => {
-      if (batal || !params.productId) return
-      setBaris([
-        {
-          productId: params.productId,
-          quantity: params.quantity ?? '1',
-          unitPrice: '',
-          discountAmount: '',
-        },
-      ])
+      if (batal || !params.items) return
+      const usulan = parseUsulan(params.items)
+      if (usulan.length > 0) {
+        setBaris(usulan)
+      }
     })
 
     return () => {
@@ -275,12 +272,7 @@ export default function NewPurchaseOrderPage({
           <button
             type="button"
             className={styles.linkButton}
-            onClick={() =>
-              setBaris([
-                ...baris,
-                { productId: '', quantity: '1', unitPrice: '', discountAmount: '' },
-              ])
-            }
+            onClick={() => setBaris([...baris, barisKosong()])}
           >
             Tambah barang
           </button>
@@ -338,4 +330,9 @@ function rupiahToNumber(text: string): number {
   if (bersih === '') return 0
   const nilai = Number(bersih)
   return Number.isFinite(nilai) ? nilai : 0
+}
+
+/** Baris PO kosong, dipakai saat menambah baris atau menerima usulan dari URL. */
+function barisKosong(productId = '', quantity = '1'): BarisPO {
+  return { productId, quantity, unitPrice: '', discountAmount: '' }
 }

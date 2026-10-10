@@ -18,10 +18,12 @@
     "@sahabat/shared": "*",
     "fastify": "^5.2.0",
     "otplib": "^13.5.0",
+    "pdfkit": "^0.20.2",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@types/pdfkit": "^0.17.6",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

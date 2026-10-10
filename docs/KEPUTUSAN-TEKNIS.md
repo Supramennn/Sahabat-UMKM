@@ -4,7 +4,7 @@ Status: aktif. Sumber kebenaran produk tetap `docs/PRD-Sahabat-UMKM.md`. Dokumen
 keputusan yang PRD delegasikan ke tim, beserta alasannya, supaya setiap fase bisa merujuk
 nomor yang sama.
 
-Terakhir diperbarui: 9 Oktober 2026.
+Terakhir diperbarui: 10 Oktober 2026.
 
 ## 1. Keputusan yang sudah dikunci
 
@@ -23,6 +23,8 @@ Terakhir diperbarui: 9 Oktober 2026.
 | K-11 | PostgreSQL dan CI | Menyiapkan PostgreSQL sungguhan untuk mesin ini dan CI untuk menjalankan tes konkurensi | Persetujuan pemilik produk, 9 Okt 2026 |
 | K-12 | Bentuk angka jumlah dan harga pokok | Jumlah barang `numeric(18,4)` dalam satuan, bukan rupiah penuh. Rata-rata bergerak disimpan `numeric(18,4)` dan nilai persediaan dibulatkan ke rupiah penuh per nilai akhir | PRD 6.2, PRD 7 |
 | K-13 | Pemisahan izin penyesuaian stok | `stock.adjustments` dipisah dari `stock.movements`. Staf boleh mencatat barang masuk dan keluar, tetapi penyesuaian dan persetujuan hasil opname hanya untuk Owner dan Admin | PRD 8 |
+| K-14 | Pembagian purchase order | Token acak 32 byte, hanya hash-nya yang disimpan. Masa berlaku bawaan 30 hari dan bisa diubah Owner lewat parameter, dibatasi 1 sampai 365 hari. Tautan dicabut otomatis saat dibuatkan yang baru, jadi selalu ada tepat satu alamat hidup per PO | PRD 6.3, A-11 |
+| K-15 | PDF purchase order | pdfkit dengan font bawaan Helvetica. Huruf di luar WinAnsi diganti tanda tanya, bukan mencari font, supaya berkas selalu bisa dibuat dan tidak bergantung pada font yang ada di server | PRD 6.3 |
 
 ### Alasan K-12
 
@@ -49,6 +51,48 @@ keduanya berbeda sifat: barang keluar adalah peristiwa nyata, penyesuaian adalah
 koreksi catatan tanpa barang yang bergerak. Kalau keduanya memakai izin yang sama,
 staf bisa mengoreksi saldo tanpa ada yang bertanggung jawab. Penyesuaian dan
 persetujuan hasil opname karena itu memakai izin terpisah.
+
+### Alasan K-14
+
+A-11 menetapkan tautan baca-saja dengan token acak, masa berlaku, dan pencatatan
+pembukaan. Yang belum disebut adalah tiga hal berikut, dan ketiganya diputuskan di
+sini:
+
+1. **Yang disimpan hanya hash token.** Tabel ini menyimpan cukup data sensitif untuk
+   jadi sasaran. Menyimpan tokennya berarti siapa pun yang membaca isi tabel, atau
+   salinan-cadangannya, bisa membuka setiap PO yang sedang dibagikan. Yang disimpan
+   adalah SHA-256 tokennya, jadi isi tabel tidak cukup untuk membuka tautan apa pun.
+
+2. **Masa berlaku 30 hari bisa diubah, tetapi dibatasi 1 sampai 365 hari.** A-11
+   menyebut 30 hari dan menyebut bisa diubah Owner tanpa memberi batas atas. Tanpa
+   batas atas, tautan bisa dibuat berlaku beberapa tahun dan berhenti menjadi
+   expiration. Batas satu tahun masih panjang untuk dokumen yang isinya bisa
+   berubah, dan masih cukup untuk supplier yang memesan jarang.
+
+3. **Membuat tautan baru mencabut yang lama.** Kalau dua tautan bisa hidup
+   bersamaan, mencabut satu tidak menutup jalur masuk yang lain, dan pemilik tidak
+   bisa memastikan hanya satu alamat yang beredar. Satu tautan hidup per PO
+   membuat mencabut benar-benar mencabut.
+
+Setiap pembukaan menambah penghitung dan menyimpan alamat IP-nya, jadi pemilik bisa
+melihat tautannya sudah dipakai meskipun tidak ada yang mengeluh.
+
+### Alasan K-15
+
+PRD 6.3 meminta PO bisa diunduh sebagai PDF tanpa menentukan caranya. Pustaka PDF
+dibuat karena menulis berkas PDF dari awal berarti mengelola offset xref, kompresi
+aliran, dan pengukuran lebar huruf sendiri; ketiganya salah satu saja membuat berkas
+rusak tanpa pesan galat yang jelas.
+
+Font bawaan Helvetica dipakai, bukan font dari sistem. Alasannya, isi PDF purchase
+order adalah data bisnis: nomor PO, nama barang, dan rupiah. Tidak ada alasan untuk
+menyematkan font di dalam berkas itu.
+
+Konsekuensinya, huruf di luar WinAnsi tidak punya tempat. Nama barang dari impor CSV
+bisa saja memuat aksara non-Latin, jadi teks dibersihkan lebih dulu: huruf di luar
+WinAnsi diganti tanda tanya, karakter kontrol diganti spasi. Tanpa itu, satu nama
+aneh membuat permintaan unduhan gagal seluruhnya, dan pengguna tidak pernah melihat
+PO-nya.
 
 ### Alasan K-02
 

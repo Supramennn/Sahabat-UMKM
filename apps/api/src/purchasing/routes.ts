@@ -34,9 +34,10 @@ import {
  *    dua kali tidak menambah stok dua kali (PRD 9).
  */
 
-interface WorkspaceContext {
+export interface WorkspaceContext {
   workspaceId: number
   role: Role
+  userId: number
 }
 
 export function registerPurchasingRoutes(app: FastifyInstance, deps: { db: Database }): void {
@@ -1463,7 +1464,8 @@ async function catatRevisi(
 /**
  * A-08: alokasi FIFO berdasarkan jatuh tempo lalu nomor PO. Jumlah yang dialokasikan
  * tidak pernah melebihi sisa utang PO itu, jadi pembayaran yang lebih besar dari
- * utang hanya Kissed untuk sisa dan sisanya tercatat sebagai tanpa alokasi.
+ * utang hanya membayar PO yang bisa dilunasi, dan sisanya tercatat sebagai
+ * pembayaran yang belum dialokasikan.
  */
 async function allocatePaymentFifo(
   tx: Transaction,
@@ -1513,11 +1515,11 @@ function hashBody(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(value), 'utf8').digest('hex')
 }
 
-function paramsOf(request: FastifyRequest): Record<string, string> {
+export function paramsOf(request: FastifyRequest): Record<string, string> {
   return (request.params ?? {}) as Record<string, string>
 }
 
-function idFrom(raw: unknown): number {
+export function idFrom(raw: unknown): number {
   const value = Number(raw)
   if (!Number.isInteger(value) || value <= 0) {
     throw new StockError('data_tidak_valid', 'Alamat tidak valid.', 400)
@@ -1525,13 +1527,13 @@ function idFrom(raw: unknown): number {
   return value
 }
 
-async function requireCapability(
+export async function requireCapability(
   db: Database,
   request: FastifyRequest,
   capability: Parameters<typeof can>[1],
 ): Promise<WorkspaceContext> {
   const workspaceId = idFrom(paramsOf(request).workspaceId)
-  const { workspaceId: id, role } = await loadWorkspaceRole(db, request, workspaceId)
+  const { workspaceId: id, role, userId } = await loadWorkspaceRole(db, request, workspaceId)
 
   if (!can(role, capability)) {
     throw new AuthorizationError('Anda tidak punya izin untuk tindakan ini.')
@@ -1551,5 +1553,5 @@ async function requireCapability(
     }
   }
 
-  return { workspaceId: id, role }
+  return { workspaceId: id, role, userId }
 }

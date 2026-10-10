@@ -16,6 +16,7 @@ export const purchasingNav: NavItem[] = [
   { href: '/pembelian/po', label: 'Purchase Order', short: 'PO' },
   { href: '/pembelian/penerimaan', label: 'Penerimaan', short: 'Terima' },
   { href: '/pembelian/supplier', label: 'Supplier', short: 'Supplier' },
+  { href: '/pembelian/retur', label: 'Retur pembelian', short: 'Retur' },
   { href: '/pembelian/pembayaran', label: 'Pembayaran', short: 'Bayar' },
   { href: '/stok', label: 'Kembali ke stok', short: 'Stok' },
 ]

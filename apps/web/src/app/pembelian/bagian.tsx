@@ -1,5 +1,6 @@
 'use client'
 
+import { formatRupiah } from '@sahabat/shared'
 import styles from './pembelian.module.css'
 
 /**
@@ -24,10 +25,14 @@ export function badgeFor(status: string): string {
   return `${styles.badge} ${styles.badgeNeutral}`
 }
 
-/** Format rupiah PRD 10: Rp1.250.000 tanpa spasi setelah Rp. */
+/**
+ * Format rupiah PRD 10: Rp1.250.000 tanpa spasi setelah Rp.
+ *
+ * Langsung memakai formatter yang sama dengan modul lain, supaya dua tampilan
+ * tidak bisa menampilkan nominal yang berbeda untuk angka yang sama.
+ */
 export function rupiah(amount: number): string {
-  const digits = Math.abs(Math.trunc(amount)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return `${amount < 0 ? '-' : ''}Rp${digits}`
+  return formatRupiah(amount)
 }
 
 /** Jumlah barang boleh pecahan, jadi pemisah desimalnya koma seperti di Indonesia. */
@@ -36,4 +41,36 @@ export function formatQty(value: number): string {
   const [bagianBulat, bagianDesimal] = bulat.split('.')
   const denganPemisah = (bagianBulat ?? '0').replace(/\B(?=(\d{3})+(?!\d))/g, '.')
   return bagianDesimal ? `${denganPemisah},${bagianDesimal}` : denganPemisah
+}
+
+export interface BarisUsulan {
+  productId: string
+  quantity: string
+  unitPrice: string
+  discountAmount: string
+}
+
+/**
+ * Usulan dari daftar stok rendah (PRD 6.3) dikirim sebagai pasangan id dan jumlah
+ * yang dipisahkan tanda titik koma, misalnya `12:10;15:4`.
+ *
+ * Bentuk yang salah diabaikan satu per satu, bukan membuat halaman gagal dibuka:
+ * dokumen ini dibuat dari daftar yang bisa jadi berbeda bila barangnya sudah
+ * berubah statusnya.
+ */
+export function parseUsulan(raw: string): BarisUsulan[] {
+  return raw
+    .split(';')
+    .map((segmen) => segmen.trim())
+    .filter((segmen) => segmen !== '')
+    .map((segmen) => {
+      const [productId = '', quantity = '1'] = segmen.split(':')
+      return {
+        productId: productId.trim(),
+        quantity: quantity.trim() === '' ? '1' : quantity.trim(),
+        unitPrice: '',
+        discountAmount: '',
+      }
+    })
+    .filter((item) => item.productId !== '')
 }

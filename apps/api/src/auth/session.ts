@@ -264,7 +264,7 @@ export async function loadWorkspaceRole(
   db: Database,
   request: FastifyRequest,
   requiredWorkspaceId?: number,
-): Promise<{ workspaceId: number; role: Role }> {
+): Promise<{ workspaceId: number; role: Role; userId: number }> {
   const session = requireSession(request)
   const workspaceId = requiredWorkspaceId ?? session.workspaceId
 
@@ -299,7 +299,7 @@ export async function loadWorkspaceRole(
   }
 
   request.workspaceRole = row.role
-  return { workspaceId, role: row.role }
+  return { workspaceId, role: row.role, userId: session.userId }
 }
 
 export { hashForLookup, hashToken, tokenMatches }

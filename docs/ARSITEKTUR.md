@@ -88,6 +88,22 @@ mengambil nomor dan nomor per tahun tidak bisa diketahui tanpa menghitung ulang 
 nol. Baris urutan dikunci saat nomor diambil supaya dua dokumen yang dibuat bersamaan
 tidak mendapat nomor sama.
 
+## Pembagian purchase order
+
+Tautan baca-saja dibaca lewat `purchase_order_shares`, yang hanya menyimpan SHA-256
+tokennya. Isi tabel yang bocor karena itu tidak cukup untuk membuka tautan mana pun.
+
+Dua jalur, dan keduanya lewat modul yang sama:
+
+- `GET /api/public/purchase-orders/:token` dilayani tanpa sesi. Token yang dicabut,
+  kedaluwarsa, dan tidak ada sama-sama mendapat jawaban yang sama, supaya jawabannya
+  tidak memberi petunjuk apakah token itu pernah ada.
+- `GET /api/workspaces/:workspaceId/purchase-orders/:orderId/pdf` dilayani untuk
+  anggota workspace.
+
+Halaman web `/po/<token>` diambil di server dengan `cache: 'no-store'` dan
+`metadata.robots` berisi `noindex`, sesuai A-11.
+
 ## Uang dan waktu
 
 - Uang adalah `BIGINT` rupiah penuh tanpa pecahan, pembulatan setengah ke atas per
