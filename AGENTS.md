@@ -49,11 +49,15 @@ dan keputusan yang dibutuhkan.
 
 ## Status fase
 
-Fase 0 fondasi, Fase 1 autentikasi dan UI, dan Fase 2 stok selesai. Berikutnya
-Fase 3: pembelian (supplier, PO, penerimaan bertahap).
+Fase 0 fondasi, Fase 1 autentikasi dan UI, Fase 2 stok, dan Fase 3 pembelian
+selesai. Berikutnya Fase 4: penjualan dan pelanggan (PRD 6.4).
 
 Cara menjalankan semuanya tercantum di README.md. Perintah yang dipakai sebelum
-menyerahkan hasil: npm run verify, npm run test:contrast, dan npm run test:e2e.
+menyerahkan hasil: npm run verify, npm run test:contrast, npm run test:postgres:local,
+dan npm run test:e2e.
+
+Tes konkurensi bisa dijalankan tanpa Docker lewat `npm run test:postgres:local`,
+yang menyalakan klaster PostgreSQL tertanam di `.pgdata`.
 
 <!-- antislop:start -->
 ## antislop

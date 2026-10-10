@@ -112,10 +112,13 @@ docs/
 | --- | --- | --- |
 | Akun | masuk, buat akun, verifikasi email, lupa dan atur ulang kata sandi, pengaturan akun | 6.1, 9 |
 | Stok | barang, tambah barang, detail barang dan foto, input stok, riwayat, perlu perhatian, impor CSV, lokasi, kategori, stok opname | 6.2, 6.8 |
+| Pembelian | ringkasan, supplier, purchase order dan detailnya, penerimaan, pembayaran supplier | 6.3 |
 
 Modul stok memakai satu jalur pencatatan, `recordMovement` di
 `apps/api/src/stock/movements.ts`. Tidak ada endpoint lain yang boleh menulis ke
-`stock_movements` atau `stock_balances`.
+`stock_movements` atau `stock_balances`, dan penerimaan barang pada modul pembelian
+ikut memakainya, jadi stok yang masuk dari PO dan stok yang dicatat manual melewati
+mekanisme penguncian yang sama.
 
 ## Aturan yang berlaku di semua fase
 

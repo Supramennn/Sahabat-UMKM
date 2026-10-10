@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Matriks izin dari PRD 8. Setiap endpoint memeriksa tabel ini di server.
  * Menyembunyikan tombol di tampilan bukan kontrol keamanan (PRD 8).
  *

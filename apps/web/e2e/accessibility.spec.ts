@@ -18,6 +18,10 @@ const HALAMAN = [
   { path: '/stok', nama: 'daftar barang' },
   { path: '/stok/input', nama: 'input stok' },
   { path: '/stok/riwayat', nama: 'riwayat stok' },
+  { path: '/pembelian', nama: 'ringkasan pembelian' },
+  { path: '/pembelian/po', nama: 'daftar PO' },
+  { path: '/pembelian/supplier', nama: 'supplier' },
+  { path: '/pembelian/pembayaran', nama: 'pembayaran supplier' },
 ]
 
 test.describe('halaman autentikasi', () => {
@@ -170,6 +174,13 @@ test.describe('keadaan data', () => {
     await expect(page.getByText('Halaman ini belum bisa dibuka')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('a[href="/masuk"]')).toBeVisible()
     // Judul utama tetap ada walau datanya gagal dimuat (PRD 10).
+    await expect(page.locator('h1')).toHaveCount(1)
+  })
+
+  test('halaman pembelian tanpa sesi menjelaskan apa yang terjadi', async ({ page }) => {
+    await page.goto('/pembelian/po')
+
+    await expect(page.getByText('Halaman ini belum bisa dibuka')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('h1')).toHaveCount(1)
   })
 })

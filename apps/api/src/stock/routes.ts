@@ -1,4 +1,4 @@
-﻿import type { FastifyInstance, FastifyRequest } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
 import type { Database, Sql } from '@sahabat/db'
 import { can, deriveStockStatus, derivedStockStatusLabels, grantFor } from '@sahabat/shared'
 import { AuthorizationError, loadWorkspaceRole, requireSession } from '../auth/session.ts'

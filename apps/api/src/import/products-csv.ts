@@ -1,4 +1,4 @@
-﻿import { createHash } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { MAX_QUANTITY_DECIMALS } from '@sahabat/shared'
 import { unitCodes } from '../stock/schemas.ts'

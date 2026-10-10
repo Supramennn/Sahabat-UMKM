@@ -74,7 +74,19 @@ sudah habis tidak dipakai untuk peringatan kedaluwarsa.
 
 Fungsi `recordMovement` di `apps/api/src/stock/movements.ts` adalah satu-satunya
 pembuat baris ledger. Modul lain tidak boleh menulis langsung ke
-`stock_movements` atau `stock_balances`.
+`stock_movements` atau `stock_balances`. Modul pembelian memakainya juga untuk
+penerimaan barang, retur, dan penyesuaian hasil stok opname, sehingga barang yang
+masuk dari purchase order dan barang yang dicatat manual melewati penguncian yang
+sama.
+
+## Nomor dokumen
+
+Nomor purchase order, penerimaan, retur, dan pembayaran diambil dari tabel
+`document_sequences` yang kuncinya `(workspace_id, kind, year)`. Sequence bawaan
+PostgreSQL tidak dipakai: sequence bersifat global, jadi dua workspace saling
+mengambil nomor dan nomor per tahun tidak bisa diketahui tanpa menghitung ulang dari
+nol. Baris urutan dikunci saat nomor diambil supaya dua dokumen yang dibuat bersamaan
+tidak mendapat nomor sama.
 
 ## Uang dan waktu
 

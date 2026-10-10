@@ -1,4 +1,4 @@
-﻿import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import type { Database } from '@sahabat/db'
 import { closeTestDatabase, createTestDatabase } from '@sahabat/db/test-harness'

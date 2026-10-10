@@ -269,6 +269,83 @@ export type AlertsResponse = { withinDays: number; alerts: StockAlert[] }
 
 export type Category = { id: number; name: string; productCount: number }
 
+export type Supplier = {
+  id: number
+  name: string
+  contactName: string | null
+  phone: string | null
+  email: string | null
+  address: string | null
+  paymentTermDays: number | null
+  note: string | null
+  archived: boolean
+  outstanding: number
+}
+
+export type SuppliersResponse = { suppliers: Supplier[] }
+
+export type PurchaseOrder = {
+  id: number
+  number: string
+  status: string
+  statusLabel: string
+  orderedOn: string
+  expectedOn: string | null
+  totalAmount: number
+  receivedTotal: number
+  orderedTotal: number
+  note: string | null
+  supplierId: number
+  supplierName: string
+  locationId: number
+  locationName: string
+  createdByName: string
+}
+
+export type PurchaseOrderItem = {
+  id: number
+  productId: number
+  productName: string
+  sku: string
+  unitCode: string
+  quantity: number
+  unitPrice: number
+  discountAmount: number
+  lineTotal: number
+  receivedQuantity: number
+  outstanding: number
+  note: string | null
+}
+
+export type PurchaseOrderDetail = {
+  order: PurchaseOrder
+  items: PurchaseOrderItem[]
+  receipts: Array<{ receiptId: number; number: string; receivedOn: string; receivedByName: string }>
+  revisions: Array<{ revisionNumber: number; reason: string; changedByName: string }>
+}
+
+export type GoodsReceipt = {
+  receiptId: number
+  number: string
+  receivedOn: string
+  supplierName: string
+  locationName: string
+  purchaseOrderId: number | null
+  orderNumber: string | null
+}
+
+export type SupplierDebt = {
+  supplierId: number
+  supplierName: string
+  purchaseOrderId: number | null
+  orderNumber: string | null
+  dueOn: string | null
+  receivedValue: number
+  paidValue: number
+  outstanding: number
+  overdueDays: number | null
+}
+
 export type CategoriesResponse = { categories: Category[] }
 
 export type ImportProblem = { rowNumber: number; message: string }
