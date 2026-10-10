@@ -1,6 +1,6 @@
 ﻿import type { FastifyInstance, FastifyRequest } from 'fastify'
 import type { Database, Sql } from '@sahabat/db'
-import { can, deriveStockStatus, derivedStockStatusLabels } from '@sahabat/shared'
+import { can, deriveStockStatus, derivedStockStatusLabels, grantFor } from '@sahabat/shared'
 import { AuthorizationError, loadWorkspaceRole, requireSession } from '../auth/session.ts'
 import { writeAudit } from '../auth/audit.ts'
 import { asNumber, directionForKind, recordMovement, StockError } from './movements.ts'
@@ -9,6 +9,7 @@ import {
   createLocationSchema,
   createMovementSchema,
   createProductSchema,
+  expiryAlertsQuerySchema,
   listBalancesQuerySchema,
   listMovementsQuerySchema,
   listProductsQuerySchema,
@@ -501,7 +502,7 @@ export function registerStockRoutes(app: FastifyInstance, deps: StockDeps): void
     // Owner dan Admin saja. Staf tetap boleh mencatat barang masuk dan keluar.
     const isAdjustment =
       input.kind === 'penyesuaian_naik' || input.kind === 'penyesuaian_turun'
-    if (isAdjustment && !can(context.role, 'stock.adjustments')) {
+    if (isAdjustment && grantFor(context.role, 'stock.adjustments') !== 'manage') {
       throw new AuthorizationError('Penyesuaian stok hanya bisa dibuat Owner dan Admin.')
     }
 
@@ -604,6 +605,89 @@ export function registerStockRoutes(app: FastifyInstance, deps: StockDeps): void
           status,
           statusLabel: derivedStockStatusLabels[status],
           earliestExpiry: row.earliest_expiry,
+        }
+      }),
+    })
+  })
+
+  /**
+   * PRD 6.2: peringatan stok rendah dan hampir kedaluwarsa memakai batas yang
+   * diatur per produk. Daftar ini menggabungkan keduanya dan mengurutkan yang paling
+   * mendesak lebih dulu, supaya pemilik bisa langsung tahu apa yang harus dibeli.
+   */
+  app.get('/api/workspaces/:workspaceId/stock/alerts', async (request, reply) => {
+    const context = await requireRole(db, request, 'reports.stock')
+    const query = expiryAlertsQuerySchema.parse(request.query ?? {})
+
+    const filters = ['b.workspace_id = $1', 'p.status <> $2']
+    const params: unknown[] = [context.workspaceId, 'diarsipkan']
+
+    if (query.locationId) {
+      params.push(query.locationId)
+      filters.push(`b.location_id = $${params.length}`)
+    }
+
+    params.push(query.withinDays)
+
+    const rows = await db.query<AlertRow>(
+      `select p.id as product_id, p.name as product_name, p.sku, p.unit_code, p.min_stock,
+              b.location_id, l.name as location_name, b.quantity,
+              to_char(
+                (select min(sl.expires_at)
+                   from stock_lots sl
+                  where sl.product_id = b.product_id
+                    and sl.location_id = b.location_id
+                    and sl.workspace_id = b.workspace_id
+                    and sl.quantity_remaining > 0
+                    and sl.expires_at is not null),
+                'YYYY-MM-DD'
+              ) as earliest_expiry
+         from stock_balances b
+         join products p on p.id = b.product_id and p.workspace_id = b.workspace_id
+         join locations l on l.id = b.location_id and l.workspace_id = b.workspace_id
+        where ${filters.join(' and ')}
+          and (
+            b.quantity = 0
+            or (p.min_stock is not null and b.quantity <= p.min_stock)
+            or (select min(sl.expires_at)
+                  from stock_lots sl
+                 where sl.product_id = b.product_id
+                   and sl.location_id = b.location_id
+                   and sl.workspace_id = b.workspace_id
+                   and sl.quantity_remaining > 0
+                   and sl.expires_at is not null)
+                <= (current_date + make_interval(days => $${params.length}))
+          )
+        order by earliest_expiry asc nulls last, p.name asc
+        limit ${MAX_PAGE}`,
+      params,
+    )
+
+    return reply.code(200).send({
+      withinDays: query.withinDays,
+      alerts: rows.rows.map((row) => {
+        const quantity = asNumber(row.quantity)
+        const minStock = row.min_stock === null ? null : asNumber(row.min_stock)
+        const status = deriveStockStatus(quantity, minStock)
+
+        const reasons: string[] = []
+        if (status === 'habis') reasons.push('stok_habis')
+        if (status === 'stok_rendah') reasons.push('stok_rendah')
+        if (row.earliest_expiry !== null) reasons.push('hampir_kedaluwarsa')
+
+        return {
+          productId: row.product_id,
+          productName: row.product_name,
+          sku: row.sku,
+          unitCode: row.unit_code,
+          locationId: row.location_id,
+          locationName: row.location_name,
+          quantity,
+          minStock,
+          status,
+          statusLabel: derivedStockStatusLabels[status],
+          earliestExpiry: row.earliest_expiry,
+          reasons,
         }
       }),
     })
@@ -975,6 +1059,7 @@ interface BalanceListRow {
   earliest_expiry: string | null
 }
 
+type AlertRow = BalanceListRow
 function productRow(row: ProductListRow): Record<string, unknown> {
   const quantity = asNumber(row.total_quantity)
   const minStock = row.min_stock === null ? null : asNumber(row.min_stock)

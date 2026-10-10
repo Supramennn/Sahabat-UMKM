@@ -108,7 +108,7 @@ docs/
 | Modul | Halaman | PRD |
 | --- | --- | --- |
 | Akun | masuk, buat akun, verifikasi email, lupa dan atur ulang kata sandi, pengaturan akun | 6.1, 9 |
-| Stok | barang, tambah barang, detail barang, input stok, riwayat, lokasi, kategori, stok opname | 6.2 |
+| Stok | barang, tambah barang, detail barang, input stok, riwayat, perlu perhatian, lokasi, kategori, stok opname | 6.2 |
 
 Modul stok memakai satu jalur pencatatan, `recordMovement` di
 `apps/api/src/stock/movements.ts`. Tidak ada endpoint lain yang boleh menulis ke

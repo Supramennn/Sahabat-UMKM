@@ -247,6 +247,23 @@ export type Location = {
 
 export type LocationsResponse = { locations: Location[] }
 
+export type StockAlert = {
+  productId: number
+  productName: string
+  sku: string
+  unitCode: string
+  locationId: number
+  locationName: string
+  quantity: number
+  minStock: number | null
+  status: 'habis' | 'stok_rendah' | 'normal'
+  statusLabel: string
+  earliestExpiry: string | null
+  reasons: string[]
+}
+
+export type AlertsResponse = { withinDays: number; alerts: StockAlert[] }
+
 export type Category = { id: number; name: string; productCount: number }
 
 export type CategoriesResponse = { categories: Category[] }

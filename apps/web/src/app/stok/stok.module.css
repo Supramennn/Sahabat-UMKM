@@ -220,6 +220,23 @@
   font-size: 0.875rem;
 }
 
+.reasonList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reason {
+  padding: 2px var(--space-sm);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-badge);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+}
+
 .state {
   padding: var(--space-lg);
   background: var(--surface);

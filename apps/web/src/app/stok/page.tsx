@@ -80,6 +80,9 @@ export default function ProductsPage() {
       title="Barang"
       actions={
         <>
+          <a className={styles.paginationLink} href="/stok/peringatan">
+            Perlu perhatian
+          </a>
           <a className={styles.paginationLink} href="/stok/input">
             Catat stok
           </a>

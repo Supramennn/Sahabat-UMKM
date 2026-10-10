@@ -19,6 +19,10 @@ import styles from '../stok.module.css'
  * yaitu produk, jumlah, dan alasan. Lokasi pakai lokasi bawaan dan baru dibuka
  * lewat tombol Ganti, supaya tiga isian itu tetap muat di layar pertama.
  *
+ * Referensi dan catatan hanya muncul untuk penyesuaian, karena barang masuk dan
+ * keluar umumnya tidak punya nomor dokumen, sedangkan koreksi selalu perlu alasan
+ * yang bisa ditelusuri.
+ *
  * Bidang angka memakai inputMode numeric supaya papan angka muncul di ponsel, dan
  * tidak ada daftar panjang yang menutupi keyboard.
  */
@@ -33,7 +37,16 @@ const REASONS = [
   { value: 'salah_catat', label: 'Salah catat' },
 ] as const
 
-type Mode = 'masuk' | 'keluar'
+type Mode = 'masuk' | 'keluar' | 'penyesuaian_naik' | 'penyesuaian_turun'
+
+const MODE_LABEL: Record<Mode, string> = {
+  masuk: 'Stok masuk',
+  keluar: 'Stok keluar',
+  penyesuaian_naik: 'Penyesuaian naik',
+  penyesuaian_turun: 'Penyesuaian turun',
+}
+
+const ALASAN_PENYESUAIAN = ['rusak', 'kadaluwarsa', 'hilang', 'salah_catat'] as const
 
 export default function StockInputPage() {
   const app = useApp()
@@ -48,6 +61,9 @@ export default function StockInputPage() {
   const [quantity, setQuantity] = useState('')
   const [reason, setReason] = useState('pembelian')
   const [unitCost, setUnitCost] = useState('')
+  const [reference, setReference] = useState('')
+  const [note, setNote] = useState('')
+  const [expiresAt, setExpiresAt] = useState('')
   const [locationId, setLocationId] = useState('')
   const [showLocation, setShowLocation] = useState(false)
 
@@ -91,10 +107,14 @@ export default function StockInputPage() {
     }
   }, [app.workspaceId])
 
-  const alasanUmum = useMemo(
-    () => (mode === 'masuk' ? REASONS.slice(0, 2) : REASONS.slice(1, 5)),
-    [mode],
-  )
+  const alasanUmum = useMemo(() => {
+    if (mode === 'penyesuaian_naik' || mode === 'penyesuaian_turun') {
+      return REASONS.filter((item) => (ALASAN_PENYESUAIAN as readonly string[]).includes(item.value))
+    }
+    return REASONS.slice(0, 2)
+  }, [mode])
+
+  const bolehMenyesuaikan = app.role === 'owner' || app.role === 'admin'
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
@@ -111,6 +131,9 @@ export default function StockInputPage() {
         quantity,
         reasonCode: reason,
         unitCost: mode === 'masuk' && unitCost !== '' ? unitCost : undefined,
+        reference: reference === '' ? null : reference,
+        note: note === '' ? null : note,
+        expiresAt: mode === 'masuk' && expiresAt !== '' ? expiresAt : null,
         idempotencyKey: kunciIdempotensi(),
       },
     )
@@ -147,29 +170,43 @@ export default function StockInputPage() {
           <fieldset className={styles.fieldset}>
             <legend className={styles.label}>Jenis catatan</legend>
             <div className={styles.segment}>
-              <button
-                type="button"
-                className={mode === 'masuk' ? styles.segmentActive : styles.segmentButton}
-                aria-pressed={mode === 'masuk'}
-                onClick={() => {
-                  setMode('masuk')
-                  setReason('pembelian')
-                }}
-              >
-                Stok masuk
-              </button>
-              <button
-                type="button"
-                className={mode === 'keluar' ? styles.segmentActive : styles.segmentButton}
-                aria-pressed={mode === 'keluar'}
-                onClick={() => {
-                  setMode('keluar')
-                  setReason('penjualan')
-                }}
-              >
-                Stok keluar
-              </button>
+              {(['masuk', 'keluar'] as const).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className={mode === item ? styles.segmentActive : styles.segmentButton}
+                  aria-pressed={mode === item}
+                  onClick={() => {
+                    setMode(item)
+                    setReason(item === 'masuk' ? 'pembelian' : 'penjualan')
+                    setReference('')
+                    setNote('')
+                  }}
+                >
+                  {MODE_LABEL[item]}
+                </button>
+              ))}
             </div>
+            {bolehMenyesuaikan ? (
+              <div className={styles.segment}>
+                {(['penyesuaian_naik', 'penyesuaian_turun'] as const).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    className={mode === item ? styles.segmentActive : styles.segmentButton}
+                    aria-pressed={mode === item}
+                    onClick={() => {
+                      setMode(item)
+                      setReason('rusak')
+                      setReference('')
+                      setNote('')
+                    }}
+                  >
+                    {MODE_LABEL[item]}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </fieldset>
 
           {error ? <Alert kind="error">{error}</Alert> : null}
@@ -247,6 +284,54 @@ export default function StockInputPage() {
               rata-rata.
             </p>
           </div>
+
+          {mode === 'masuk' ? (
+            <div className={styles.filterGroup}>
+              <label className={styles.label} htmlFor="kedaluwarsa">
+                Tanggal kedaluwarsa (opsional)
+              </label>
+              <input
+                className={styles.input}
+                id="kedaluwarsa"
+                type="date"
+                value={expiresAt}
+                onChange={(event) => setExpiresAt(event.target.value)}
+              />
+              <p className={styles.hint}>
+                Diisi untuk barang yang ada tanggal kedaluwarsanya, misalnya makanan dan
+                minuman.
+              </p>
+            </div>
+          ) : null}
+
+          {mode === 'penyesuaian_naik' || mode === 'penyesuaian_turun' ? (
+            <>
+              <div className={styles.filterGroup}>
+                <label className={styles.label} htmlFor="referensi">
+                  Nomor referensi atau dokumen
+                </label>
+                <input
+                  className={styles.input}
+                  id="referensi"
+                  value={reference}
+                  onChange={(event) => setReference(event.target.value)}
+                  placeholder="Contoh: nota gudang No. 12"
+                />
+              </div>
+              <div className={styles.filterGroup}>
+                <label className={styles.label} htmlFor="catatan">
+                  Keterangan
+                </label>
+                <input
+                  className={styles.input}
+                  id="catatan"
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  placeholder="Apa yang sebenarnya terjadi"
+                />
+              </div>
+            </>
+          ) : null}
 
           <div className={styles.filterGroup}>
             <span className={styles.label}>

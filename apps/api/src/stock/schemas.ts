@@ -203,6 +203,16 @@ export const listBalancesQuerySchema = z.object({
     .transform((value) => value === 'true'),
 })
 
+/**
+ * Jendela kedaluwarsa dalam hari. PRD 6.2 menyebut peringatan hampir kedaluwarsa
+ * tanpa memberi angka, jadi jumlahnya diminta dari pengguna, bukan ditebak di
+ * server: angka yang salah akan menampilkan barang yang belum perlu diproses.
+ */
+export const expiryAlertsQuerySchema = z.object({
+  locationId: z.coerce.number().int().positive().optional(),
+  withinDays: z.coerce.number().int().min(1).max(365).default(30),
+})
+
 export const startCountSchema = z.object({
   locationId: z.coerce.number().int().positive(),
   note: z.string().trim().max(500).nullable().optional(),

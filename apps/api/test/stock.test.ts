@@ -686,6 +686,135 @@ describe('tanggal kedaluwarsa per penerimaan (PRD 6.2, A-05)', () => {
   })
 })
 
+describe('peringatan stok (PRD 6.2)', () => {
+  it('menyebut barang habis, stok rendah, dan hampir kedaluwarsa', async () => {
+    const context = await setupWorkspace('Peringatan')
+
+    const habis = await createProduct(context, { name: 'Gula Pasir', minStock: '5' })
+    const rendah = await createProduct(context, { name: 'Susu UHT', minStock: '10' })
+    const kedaluwarsa = await createProduct(context, { name: 'Susu Kental Manis' })
+    const aman = await createProduct(context, { name: 'Beras 5 kg', minStock: '2' })
+
+    await recordStock(context, {
+      productId: habis,
+      locationId: context.locationId,
+      kind: 'masuk',
+      quantity: '3',
+      unitCost: '15000',
+      reasonCode: 'pembelian',
+    })
+    // Saldo nol muncul setelah barang benar-benar keluar, supaya menguji keadaan
+    // habis dan bukan sekadar saldo yang belum pernah disentuh.
+    await recordStock(context, {
+      productId: habis,
+      locationId: context.locationId,
+      kind: 'keluar',
+      quantity: '3',
+      reasonCode: 'penjualan',
+    })
+    await recordStock(context, {
+      productId: rendah,
+      locationId: context.locationId,
+      kind: 'masuk',
+      quantity: '4',
+      unitCost: '5000',
+      reasonCode: 'pembelian',
+    })
+    await recordStock(context, {
+      productId: kedaluwarsa,
+      locationId: context.locationId,
+      kind: 'masuk',
+      quantity: '6',
+      unitCost: '30000',
+      reasonCode: 'pembelian',
+      expiresAt: tanggalNanti(5),
+    })
+    await recordStock(context, {
+      productId: aman,
+      locationId: context.locationId,
+      kind: 'masuk',
+      quantity: '20',
+      unitCost: '60000',
+      reasonCode: 'pembelian',
+      expiresAt: tanggalNanti(300),
+    })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/workspaces/${context.workspaceId}/stock/alerts?withinDays=30`,
+      headers: { cookie: context.cookie },
+    })
+
+    const alerts = response.json().alerts as Array<{
+      productName: string
+      reasons: string[]
+    }>
+
+    const nama = alerts.map((item) => item.productName)
+    expect(nama).toContain('Gula Pasir')
+    expect(nama).toContain('Susu UHT')
+    expect(nama).toContain('Susu Kental Manis')
+    expect(nama).not.toContain('Beras 5 kg')
+
+    expect(alerts.find((item) => item.productName === 'Gula Pasir')?.reasons).toContain('stok_habis')
+    expect(alerts.find((item) => item.productName === 'Susu UHT')?.reasons).toContain('stok_rendah')
+    expect(alerts.find((item) => item.productName === 'Susu Kental Manis')?.reasons).toContain(
+      'hampir_kedaluwarsa',
+    )
+  })
+
+  it('hanya menampilkan kedaluwarsa di dalam jendela yang diminta', async () => {
+    const context = await setupWorkspace('Jendela')
+    const productId = await createProduct(context)
+
+    await recordStock(context, {
+      productId,
+      locationId: context.locationId,
+      kind: 'masuk',
+      quantity: '5',
+      unitCost: '10000',
+      reasonCode: 'pembelian',
+      expiresAt: tanggalNanti(60),
+    })
+
+    const pendek = await app.inject({
+      method: 'GET',
+      url: `/api/workspaces/${context.workspaceId}/stock/alerts?withinDays=7`,
+      headers: { cookie: context.cookie },
+    })
+    expect(pendek.json().alerts).toHaveLength(0)
+
+    const panjang = await app.inject({
+      method: 'GET',
+      url: `/api/workspaces/${context.workspaceId}/stock/alerts?withinDays=90`,
+      headers: { cookie: context.cookie },
+    })
+    expect((panjang.json().alerts as unknown[]).length).toBeGreaterThan(0)
+  })
+
+  it('tidak menampilkan barang workspace lain', async () => {
+    const asing = await setupWorkspace('PeringatanAsing')
+    const productId = await createProduct(asing)
+    await recordStock(asing, {
+      productId,
+      locationId: asing.locationId,
+      kind: 'masuk',
+      quantity: '1',
+      unitCost: '10000',
+      reasonCode: 'pembelian',
+    })
+
+    const pencoba = await setupWorkspace('PeringatanPencoba')
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/workspaces/${pencoba.workspaceId}/stock/alerts`,
+      headers: { cookie: pencoba.cookie },
+    })
+
+    expect(response.json().alerts).toHaveLength(0)
+  })
+})
+
 describe('stok opname (PRD 6.2)', () => {
   it('membuat selisih menjadi transaksi penyesuaian setelah disetujui', async () => {
     const context = await setupWorkspace('Opname')
@@ -1037,4 +1166,11 @@ async function balanceOf(db: Database, productId: number): Promise<string> {
     [productId],
   )
   return result.rows[0]?.quantity ?? '0.0000'
+}
+
+/** Tanggal kalender beberapa hari dari sekarang, untuk menguji jendela kedaluwarsa. */
+function tanggalNanti(hari: number): string {
+  const date = new Date()
+  date.setDate(date.getDate() + hari)
+  return date.toISOString().slice(0, 10)
 }

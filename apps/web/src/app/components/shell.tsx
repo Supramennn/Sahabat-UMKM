@@ -19,9 +19,11 @@ export interface NavItem {
 
 export const moduleNav: NavItem[] = [
   { href: '/stok', label: 'Stok', short: 'Stok' },
+  { href: '/stok/input', label: 'Catat stok', short: 'Catat' },
+  { href: '/stok/peringatan', label: 'Perlu perhatian', short: 'Perhatian' },
   { href: '/stok/riwayat', label: 'Riwayat stok', short: 'Riwayat' },
-  { href: '/stok/lokasi', label: 'Lokasi', short: 'Lokasi' },
   { href: '/stok/opname', label: 'Stok opname', short: 'Opname' },
+  { href: '/stok/lokasi', label: 'Lokasi', short: 'Lokasi' },
   { href: '/pengaturan/akun', label: 'Pengaturan akun', short: 'Akun' },
 ]
 
