@@ -78,6 +78,10 @@ export function apiPatch<T>(path: string, body: unknown): Promise<ApiResult<T>> 
   return request<T>(path, { method: 'PATCH', body: JSON.stringify(body) })
 }
 
+export function apiPut<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+  return request<T>(path, { method: 'PUT', body: JSON.stringify(body) })
+}
+
 export function apiDelete<T>(path: string): Promise<ApiResult<T>> {
   return request<T>(path, { method: 'DELETE' })
 }
@@ -135,3 +139,114 @@ export type DevicesResponse = {
 }
 
 export type MessageResponse = { message: string }
+
+export type WorkspaceResponse = {
+  workspace: {
+    id: number
+    name: string
+    slug: string
+    businessType: string | null
+    timezone: string
+    currency: string
+    status: string
+    createdAt: string
+  }
+  role: string
+  settings: { approvalRequired: boolean; approvalThresholdAmount: number | null }
+}
+
+export type ProductSummary = {
+  id: number
+  sku: string
+  name: string
+  unitCode: string
+  status: string
+  categoryId: number | null
+  categoryName: string | null
+  referencePurchasePrice: number | null
+  sellingPrice: number | null
+  averageCost: number
+  minStock: number | null
+  totalQuantity: number
+  stockStatus: 'habis' | 'stok_rendah' | 'normal'
+  stockStatusLabel: string
+}
+
+export type ProductsResponse = {
+  products: ProductSummary[]
+  pagination: { limit: number; offset: number; total: number }
+}
+
+export type StockBalance = {
+  productId: number
+  productName: string
+  sku: string
+  unitCode: string
+  locationId: number
+  locationName: string
+  quantity: number
+  minStock: number | null
+  status: 'habis' | 'stok_rendah' | 'normal'
+  statusLabel: string
+  earliestExpiry: string | null
+}
+
+export type StockMovement = {
+  id: number
+  kind: string
+  kindLabel: string
+  quantity: number
+  unitCost: number | null
+  balanceBefore: number
+  balanceAfter: number
+  reasonCode: string
+  reference: string | null
+  note: string | null
+  occurredOn: string
+  productId: number
+  productName: string
+  unitCode: string
+  locationId: number
+  locationName: string
+  actorName: string | null
+}
+
+export type StockCount = {
+  countId: number
+  locationId: number
+  locationName: string
+  status: string
+  startedAt?: string
+  note: string | null
+  countedItems?: number
+  totalItems?: number
+}
+
+export type StockCountDetail = {
+  count: StockCount
+  items: Array<{
+    itemId: number
+    productId: number
+    productName: string
+    sku: string
+    unitCode: string
+    systemQuantity: number
+    countedQuantity: number
+    variance: number | null
+    counted: boolean
+  }>
+}
+
+export type Location = {
+  id: number
+  name: string
+  code: string | null
+  archived: boolean
+  isDefault: boolean
+}
+
+export type LocationsResponse = { locations: Location[] }
+
+export type Category = { id: number; name: string; productCount: number }
+
+export type CategoriesResponse = { categories: Category[] }

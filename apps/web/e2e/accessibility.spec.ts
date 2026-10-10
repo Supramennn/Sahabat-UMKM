@@ -15,6 +15,9 @@ const HALAMAN = [
   { path: '/atur-ulang-kata-sandi', nama: 'atur ulang kata sandi' },
   { path: '/verifikasi-email', nama: 'verifikasi email' },
   { path: '/masuk/verifikasi', nama: 'verifikasi MFA' },
+  { path: '/stok', nama: 'daftar barang' },
+  { path: '/stok/input', nama: 'input stok' },
+  { path: '/stok/riwayat', nama: 'riwayat stok' },
 ]
 
 test.describe('halaman autentikasi', () => {
@@ -159,5 +162,14 @@ test.describe('keadaan data', () => {
     // ditunjukkan ke teks yang benar-benar ditulis halaman ini.
     await expect(page.getByText('Pengaturan akun tidak bisa dimuat')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('a[href="/masuk"]')).toBeVisible()
+  })
+
+  test('halaman stok tanpa sesi menjelaskan apa yang terjadi', async ({ page }) => {
+    await page.goto('/stok')
+
+    await expect(page.getByText('Halaman ini belum bisa dibuka')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('a[href="/masuk"]')).toBeVisible()
+    // Judul utama tetap ada walau datanya gagal dimuat (PRD 10).
+    await expect(page.locator('h1')).toHaveCount(1)
   })
 })

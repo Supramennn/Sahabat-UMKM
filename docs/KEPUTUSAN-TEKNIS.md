@@ -21,6 +21,34 @@ Terakhir diperbarui: 9 Oktober 2026.
 | K-09 | Cakupan UI Fase 1 | Seluruh halaman autentikasi plus halaman pengaturan akun. Pemilih workspace belum termasuk Fase 1 | Persetujuan pemilik produk, 9 Okt 2026 |
 | K-10 | MFA | Dibangun pada Fase 1, bukan ditunda ke Fase 8 | Persetujuan pemilik produk, 9 Okt 2026 |
 | K-11 | PostgreSQL dan CI | Menyiapkan PostgreSQL sungguhan untuk mesin ini dan CI untuk menjalankan tes konkurensi | Persetujuan pemilik produk, 9 Okt 2026 |
+| K-12 | Bentuk angka jumlah dan harga pokok | Jumlah barang `numeric(18,4)` dalam satuan, bukan rupiah penuh. Rata-rata bergerak disimpan `numeric(18,4)` dan nilai persediaan dibulatkan ke rupiah penuh per nilai akhir | PRD 6.2, PRD 7 |
+| K-13 | Pemisahan izin penyesuaian stok | `stock.adjustments` dipisah dari `stock.movements`. Staf boleh mencatat barang masuk dan keluar, tetapi penyesuaian dan persetujuan hasil opname hanya untuk Owner dan Admin | PRD 8 |
+
+### Alasan K-12
+
+Bagian 3 menetapkan uang disimpan sebagai rupiah penuh. Itu berlaku untuk nilai
+yang dinyatakan dalam rupiah: harga beli, harga jual, dan nilai persediaan. Jumlah
+barang tidak bisa ikut aturan itu, karena 1,5 kg atau 0,25 liter adalah satuan yang
+sah, dan memaksa jumlah menjadi bilangan bulat membuat catatan timbangan tidak cocok
+dengan timbangan.
+
+Kolom jumlah memakai `numeric(18,4)`. Presisi lebih dari empat angka desimal
+ditolak di server, bukan dipotong, karena selisih yang hilang diam-diam akan muncul
+sebagai selisih stok opname yang tidak bisa dijelaskan.
+
+Rata-rata bergerak per satuan bisa pecahan rupiah: tiga barang seharga Rp10.000
+dengan satu barang seharga Rp11.000 menghasilkan Rp10.666,6667 per satuan. Nilai itu
+disimpan penuh di `product_costs`, sedangkan nilai persediaan yang ditampilkan dan
+laba kotor dibulatkan ke rupiah penuh per nilai akhir.
+
+### Alasan K-13
+
+PRD 8 memberi staf izin "input stok dan penjualan" dan "stok opname: hitung saja".
+Tabel itu tidak membedakan barang masuk dan keluar dari penyesuaian, padahal
+keduanya berbeda sifat: barang keluar adalah peristiwa nyata, penyesuaian adalah
+koreksi catatan tanpa barang yang bergerak. Kalau keduanya memakai izin yang sama,
+staf bisa mengoreksi saldo tanpa ada yang bertanggung jawab. Penyesuaian dan
+persetujuan hasil opname karena itu memakai izin terpisah.
 
 ### Alasan K-02
 

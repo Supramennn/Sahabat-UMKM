@@ -49,7 +49,8 @@ dan keputusan yang dibutuhkan.
 
 ## Status fase
 
-Fase 0 fondasi, Fase 1 autentikasi dan UI selesai. Berikutnya Fase 2: stok.
+Fase 0 fondasi, Fase 1 autentikasi dan UI, dan Fase 2 stok selesai. Berikutnya
+Fase 3: pembelian (supplier, PO, penerimaan bertahap).
 
 Cara menjalankan semuanya tercantum di README.md. Perintah yang dipakai sebelum
 menyerahkan hasil: npm run verify, npm run test:contrast, dan npm run test:e2e.

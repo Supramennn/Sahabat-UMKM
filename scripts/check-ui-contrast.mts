@@ -41,6 +41,23 @@ const pairings: Pairing[] = [
   { name: 'cincin fokus di atas latar aplikasi', foreground: '#0b7a6b', background: '#f7f9fc', minimum: NON_TEXT },
   { name: 'teks utama di atas latar aplikasi', foreground: '#17212f', background: '#f7f9fc', minimum: NORMAL_TEXT },
   { name: 'teks sekunder di atas kartu', foreground: '#475569', background: '#ffffff', minimum: NORMAL_TEXT },
+
+  // Modul stok. Semua warna di sini sudah ada di token PRD 10; yang diperiksa
+  // adalah pasangan yang benar-benar dipakai, termasuk bilah atas yang gelap.
+  { name: 'bilah atas, nama aplikasi', foreground: '#ffffff', background: '#172b4d', minimum: NORMAL_TEXT },
+  { name: 'bilah atas, nama workspace', foreground: '#dbe3f0', background: '#172b4d', minimum: NORMAL_TEXT },
+  { name: 'lencana stok normal, teks', foreground: '#15803d', background: '#ffffff', minimum: NORMAL_TEXT },
+  { name: 'lencana stok normal, batas', foreground: '#15803d', background: '#ffffff', minimum: NON_TEXT },
+  { name: 'lencana stok rendah, teks', foreground: '#b45309', background: '#ffffff', minimum: NORMAL_TEXT },
+  { name: 'lencana stok rendah, batas', foreground: '#b45309', background: '#ffffff', minimum: NON_TEXT },
+  { name: 'lencana habis, teks', foreground: '#b91c1c', background: '#ffffff', minimum: NORMAL_TEXT },
+  { name: 'lencana habis, batas', foreground: '#b91c1c', background: '#ffffff', minimum: NON_TEXT },
+  { name: 'kartu saldo, batas', foreground: '#8a94a6', background: '#ffffff', minimum: NON_TEXT },
+  { name: 'tombol simpan, teks', foreground: '#ffffff', background: '#0b7a6b', minimum: NORMAL_TEXT },
+  { name: 'tombol simpan, keadaan mati', foreground: '#ffffff', background: '#69748a', minimum: NORMAL_TEXT },
+  { name: 'tombol pilihan aktif, teks', foreground: '#ffffff', background: '#172b4d', minimum: NORMAL_TEXT },
+  { name: 'bilah bawah ponsel, teks', foreground: '#475569', background: '#ffffff', minimum: NORMAL_TEXT },
+  { name: 'bilah bawah ponsel, teks aktif', foreground: '#0b7a6b', background: '#ffffff', minimum: NORMAL_TEXT },
 ]
 
 let gagal = 0

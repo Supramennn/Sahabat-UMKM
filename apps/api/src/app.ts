@@ -8,6 +8,8 @@ import { ZodError } from 'zod'
 import { registerMfaRoutes } from './auth/mfa-routes.ts'
 import { registerAuthRoutes, type AuthDeps } from './auth/routes.ts'
 import { AuthenticationError, AuthorizationError, registerSessionLoader } from './auth/session.ts'
+import { registerStockRoutes } from './stock/routes.ts'
+import { StockError } from './stock/movements.ts'
 import { createLogEmailProvider, type EmailProvider } from './services/email.ts'
 
 export interface BuildOptions {
@@ -95,6 +97,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     }
     registerAuthRoutes(app, deps)
     registerMfaRoutes(app, deps)
+    registerStockRoutes(app, { db: options.db })
   }
 
   app.get('/health', async () => ({ status: 'ok' }))
@@ -118,6 +121,16 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
 
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return reply.code(error.statusCode).send({ error: error.code, message: error.message })
+    }
+
+    // Galat stok sudah berbentuk pesan yang bisa ditampilkan: nama produk,
+    // lokasi, dan saldo yang tersedia (PRD 6.2).
+    if (error instanceof StockError) {
+      return reply.code(error.statusCode).send({
+        error: error.code,
+        message: error.message,
+        details: error.details,
+      })
     }
 
     const status = statusOf(error)

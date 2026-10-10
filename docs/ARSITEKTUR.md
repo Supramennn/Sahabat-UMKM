@@ -44,13 +44,44 @@ tes otomatis harus mencoba membaca objek milik workspace lain lalu gagal (PRD 9,
 
 PRD 6.2 dan 13 menyatakan riwayat tidak dapat diubah atau dihapus. Migrasi 0001
 membuat trigger yang menolak UPDATE dan DELETE pada `audit_logs` dan menyediakan
-fungsi `reject_row_mutation()` untuk tabel lain yang butuh aturan sama, terutama
-ledger stok pada Fase 2.
+fungsi `reject_row_mutation()` untuk tabel lain yang butuh aturan sama. Migrasi
+0003 menerapkannya pada `stock_movements`, jadi koreksi stok selalu menjadi baris
+baru.
+
+## Ledger stok
+
+Migrasi 0003 membuat `stock_movements` sebagai satu-satunya jalan masuk perubahan
+stok. Tiga aturan membuatnya tidak bisa disalahgunakan:
+
+1. Tiap baris menyimpan `direction` ('tambah' atau 'kurang') dan `quantity` yang
+   selalu positif. Arah tidak ditebak dari jenis gerak, karena selisih opname bisa
+   naik atau turun dan kueri penjumlahan saldo harus bisa membacanya tanpa
+   menebak.
+2. Tiap baris menyimpan `balance_before` dan `balance_after`, jadi penelusuran
+   saldo tidak perlu menghitung ulang seluruh riwayat.
+3. Trigger menolak UPDATE dan DELETE.
+
+Saldo disimpan di `stock_balances`, bukan dihitung dari penjumlahan ledger saat
+dibaca. Pembaruan saldo, baris ledger, lot, dan rata-rata bergerak terjadi di satu
+transaksi yang sama. Baris saldo dikunci dengan `select ... for update`, dan baris
+dibuat lebih dulu kalau belum ada, karena `for update` tidak mengunci baris yang
+belum ada.
+
+`stock_lots` menyimpan tanggal kedaluwarsa per penerimaan. A-05 menetapkan 1.0 tidak
+mengalokasikan FEFO: barang keluar diambil dari lot terlama lebih dulu, dan tanggal
+yang ditampilkan adalah yang paling awal dari lot yang masih bersaldo. Lot yang
+sudah habis tidak dipakai untuk peringatan kedaluwarsa.
+
+Fungsi `recordMovement` di `apps/api/src/stock/movements.ts` adalah satu-satunya
+pembuat baris ledger. Modul lain tidak boleh menulis langsung ke
+`stock_movements` atau `stock_balances`.
 
 ## Uang dan waktu
 
 - Uang adalah `BIGINT` rupiah penuh tanpa pecahan, pembulatan setengah ke atas per
-  baris. Lihat `KEPUTUSAN-TEKNIS.md` bagian 3.
+  nilai akhir. Lihat `KEPUTUSAN-TEKNIS.md` bagian 3.
+- Jumlah barang dan harga pokok bergerak adalah `numeric(18,4)`, karena keduanya
+  boleh pecahan. Lihat `KEPUTUSAN-TEKNIS.md` bagian 1, K-12.
 - Waktu disimpan sebagai `timestamptz` dalam UTC.
 - Tanggal kalender dan periode laporan dihitung menurut zona waktu workspace, supaya
   "hari" pada laporan sama dengan hari yang dilihat pengguna. Fungsi
@@ -67,14 +98,19 @@ Batasnya: PGlite memakai satu koneksi, jadi ia tidak dapat menguji dua koneksi
 berjalan bersamaan. Kriteria PRD 6.2 yang menuntut dua pengguna mengeluarkan stok
 terakhir pada saat bersamaan hanya bisa diuji terhadap PostgreSQL sungguhan. Tes itu
 berada di proyek `postgres` dan dijalankan lewat:
-
 ```bash
 TEST_DATABASE_URL=postgres://sahabat:sahabat@127.0.0.1:5432/sahabat_umkm npm run test:postgres
 ```
 
+Berkas `packages/db/test-postgres/stock-concurrency.test.ts` menguji alur lengkapnya:
+dua transaksi memanggil `recordMovement` untuk produk, lokasi, dan stok yang sama.
+Yang diperiksa bukan hanya penguncian tingkat baris, tetapi juga bahwa saldo akhir
+selalu sama dengan penjumlahan ledger.
+
 Statusnya per 9 Oktober 2026: tes konkurensi itu belum pernah dijalankan, karena
 mesin pengembangan ini tidak punya PostgreSQL yang berfungsi. Laporan Fase 0
-mencatatnya sebagai pekerjaan yang belum selesai, bukan sebagai lulus.
+mencatatnya sebagai pekerjaan yang belum selesai, bukan sebagai lulus. Job
+`postgres-concurrency` di CI menjalankannya terhadap layanan PostgreSQL sungguhan.
 
 ## Konfigurasi
 

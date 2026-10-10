@@ -18,6 +18,9 @@
   --danger: #b91c1c;
   --border-strong: #6e7a8a;
   --border-subtle: #8a94a6;
+  /* Latar tombol yang belum bisa dipakai. Tetap di atas 4,5:1 dengan teks putih
+   * supaya tidak hilang artinya, hanya terlihat berbeda dari keadaan aktif. */
+  --disabled-background: #69748a;
   --focus-ring: #0b7a6b;
 
   --radius-control: 6px;

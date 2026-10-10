@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Matriks izin dari PRD 8. Setiap endpoint memeriksa tabel ini di server.
  * Menyembunyikan tombol di tampilan bukan kontrol keamanan (PRD 8).
  *
@@ -29,6 +29,7 @@ export const capabilities = [
   'products.manage',
   'locations.manage',
   'stock.movements',
+  'stock.adjustments',
   'stock.opname',
   'suppliers.manage',
   'purchase_orders.create',
@@ -50,6 +51,14 @@ export type Capability = (typeof capabilities)[number]
 export type Grant = 'manage' | 'count' | 'view' | 'purchase' | 'partial' | 'none'
 
 /**
+ * stock.adjustments dipisah dari stock.movements karena keduanya tidak sama.
+ * Staf boleh mencatat barang yang benar-benar keluar (PRD 8), tapi penyesuaian
+ * mengubah catatan tanpa barang yang bergerak, jadi hanya Owner dan Admin.
+ * Menyetujui hasil opname memakai izin yang sama, karena hasilnya adalah
+ * penyesuaian.
+ */
+
+/**
  * B-02: Viewer boleh melihat PO, jadi ia boleh melihat harga beli supplier.
  * Karena itu Viewer tidak menerima laporan pembelian, utang supplier, dan
  * laba kotor, walaupun tabel PRD 8 menulis "Sesuai izin" untuk laporan keuangan.
@@ -62,6 +71,7 @@ export const grants: Record<Role, Record<Capability, Grant>> = {
     'products.manage': 'manage',
     'locations.manage': 'manage',
     'stock.movements': 'manage',
+    'stock.adjustments': 'manage',
     'stock.opname': 'manage',
     'suppliers.manage': 'manage',
     'purchase_orders.create': 'manage',
@@ -85,6 +95,7 @@ export const grants: Record<Role, Record<Capability, Grant>> = {
     'products.manage': 'manage',
     'locations.manage': 'manage',
     'stock.movements': 'manage',
+    'stock.adjustments': 'manage',
     'stock.opname': 'manage',
     'suppliers.manage': 'manage',
     'purchase_orders.create': 'manage',
@@ -110,6 +121,7 @@ export const grants: Record<Role, Record<Capability, Grant>> = {
     'products.manage': 'view',
     'locations.manage': 'view',
     'stock.movements': 'none',
+    'stock.adjustments': 'none',
     'stock.opname': 'none',
     'suppliers.manage': 'manage',
     'purchase_orders.create': 'manage',
@@ -133,6 +145,7 @@ export const grants: Record<Role, Record<Capability, Grant>> = {
     'products.manage': 'none',
     'locations.manage': 'none',
     'stock.movements': 'manage',
+    'stock.adjustments': 'none',
     'stock.opname': 'count',
     'suppliers.manage': 'none',
     'purchase_orders.create': 'none',
@@ -156,6 +169,7 @@ export const grants: Record<Role, Record<Capability, Grant>> = {
     'products.manage': 'view',
     'locations.manage': 'view',
     'stock.movements': 'none',
+    'stock.adjustments': 'none',
     'stock.opname': 'none',
     'suppliers.manage': 'view',
     'purchase_orders.create': 'none',

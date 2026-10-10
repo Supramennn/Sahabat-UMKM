@@ -82,7 +82,6 @@ Job `verify` sengaja tidak memorinya.
 | `npm run test:e2e` | Uji aksesibilitas Playwright di ponsel dan desktop. Butuh API dan frontend sudah berjalan |
 | `npx tsx scripts/dev-api.mts` | Jalankan API dengan database PGlite dalam memori, untuk pemeriksaan manual tanpa PostgreSQL |
 | `npm run test:postgres` | Tes yang butuh PostgreSQL sungguhan, setel `TEST_DATABASE_URL` |
-| `npm run test:e2e` | Uji ujung ke ujung dengan Playwright |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript di seluruh workspace |
 | `npm run verify` | lint, typecheck, dan tes |
@@ -97,12 +96,23 @@ apps/
 packages/
   db/             migrasi SQL, klien, harness pengujian
   design-tokens/  token warna PRD 10 dan perhitungan kontras
-  shared/         matriks izin PRD 8 dan format Rupiah dan tanggal
+  shared/         matriks izin PRD 8, format Rupiah dan tanggal, perhitungan stok
 docs/
   PRD-Sahabat-UMKM.md
   KEPUTUSAN-TEKNIS.md
   ARSITEKTUR.md
 ```
+
+## Modul yang sudah jadi
+
+| Modul | Halaman | PRD |
+| --- | --- | --- |
+| Akun | masuk, buat akun, verifikasi email, lupa dan atur ulang kata sandi, pengaturan akun | 6.1, 9 |
+| Stok | barang, tambah barang, detail barang, input stok, riwayat, lokasi, kategori, stok opname | 6.2 |
+
+Modul stok memakai satu jalur pencatatan, `recordMovement` di
+`apps/api/src/stock/movements.ts`. Tidak ada endpoint lain yang boleh menulis ke
+`stock_movements` atau `stock_balances`.
 
 ## Aturan yang berlaku di semua fase
 
