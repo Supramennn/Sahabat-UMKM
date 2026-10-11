@@ -391,20 +391,39 @@ function registerOrderRoutes(app: FastifyInstance, db: Database): void {
         throw new StockError('tidak_ditemukan', 'PO tidak ditemukan.', 404)
       }
 
-      if (row.status !== 'draft' && row.status !== 'diajukan') {
+      if (row.status !== 'draft' && row.status !== 'diajukan' && row.status !== 'disetujui') {
         throw new StockError(
           'po_tidak_bisa_diubah',
           `PO berstatus ${orderStatusLabels[row.status] ?? row.status} tidak bisa diubah. Buat PO baru atau revisi yang tercatat.`,
         )
       }
 
-      // PRD 6.3: PO yang sudah pernah diajukan tidak boleh diubah tanpa alasan
-      // yang tercatat, supaya jejaknya bisa ditelusuri.
-      const perluCatatan = row.status === 'diajukan' && input.items !== undefined
+      // PRD 6.3: PO yang sudah diajukan atau disetujui tidak boleh diubah tanpa
+      // alasan yang tercatat, supaya jejaknya bisa ditelusuri. PO yang disetujui
+      // kembali ke status diajukan setelah direvisi agar melewati persetujuan lagi.
+      const sedangDisetujui = row.status === 'disetujui'
+      const adaPerubahan =
+        input.items !== undefined ||
+        input.note !== undefined ||
+        input.expectedOn !== undefined ||
+        input.locationId !== undefined
+      const perluCatatan =
+        (row.status === 'diajukan' && input.items !== undefined) ||
+        (sedangDisetujui && adaPerubahan)
       if (perluCatatan && !input.revisionReason) {
         throw new StockError(
           'catatan_revisi_wajib',
-          'PO yang sudah diajukan harus punya catatan alasan kalau barangnya diubah.',
+          'PO yang sudah diajukan atau disetujui harus punya catatan alasan kalau isinya diubah.',
+        )
+      }
+
+      // Lokasi tujuan mengikat barang yang sudah dipesan ke gudang tertentu, jadi
+      // PO yang sudah disetujui tidak boleh dipindah diam-diam (trigger database
+      // juga menolaknya).
+      if (sedangDisetujui && input.locationId !== undefined && input.locationId !== row.location_id) {
+        throw new StockError(
+          'lokasi_tidak_bisa_diubah',
+          'Lokasi tujuan PO yang sudah disetujui tidak bisa diubah. Batalkan PO lalu buat yang baru.',
         )
       }
 
@@ -416,29 +435,42 @@ function registerOrderRoutes(app: FastifyInstance, db: Database): void {
           orderId,
         ])
 
-        if (row.status === 'diajukan') {
+        if (row.status === 'diajukan' || sedangDisetujui) {
           await catatRevisi(tx, context.workspaceId, orderId, input.revisionReason!, session.userId, [
             { total, note: input.note ?? row.note },
           ])
         }
-        return
+      } else {
+        const sets: string[] = []
+        const params: unknown[] = [orderId, context.workspaceId]
+        for (const [column, value] of Object.entries({
+          location_id: input.locationId,
+          expected_on: input.expectedOn,
+          note: input.note,
+        })) {
+          if (value === undefined) continue
+          params.push(value)
+          sets.push(`${column} = $${params.length}`)
+        }
+        if (sets.length > 0) {
+          await tx.query(
+            `update purchase_orders set ${sets.join(', ')} where id = $1 and workspace_id = $2`,
+            params,
+          )
+        }
+
+        if (sedangDisetujui) {
+          await catatRevisi(tx, context.workspaceId, orderId, input.revisionReason!, session.userId, [
+            { total: row.total_amount, note: input.note ?? row.note },
+          ])
+        }
       }
 
-      const sets: string[] = []
-      const params: unknown[] = [orderId, context.workspaceId]
-      for (const [column, value] of Object.entries({
-        location_id: input.locationId,
-        expected_on: input.expectedOn,
-        note: input.note,
-      })) {
-        if (value === undefined) continue
-        params.push(value)
-        sets.push(`${column} = $${params.length}`)
-      }
-      if (sets.length > 0) {
+      if (sedangDisetujui) {
         await tx.query(
-          `update purchase_orders set ${sets.join(', ')} where id = $1 and workspace_id = $2`,
-          params,
+          `update purchase_orders set status = 'diajukan', approved_by = null, approved_at = null
+            where id = $1 and workspace_id = $2`,
+          [orderId, context.workspaceId],
         )
       }
     })

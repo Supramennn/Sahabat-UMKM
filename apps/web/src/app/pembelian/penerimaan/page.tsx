@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useApp } from '../../components/app-context'
 import { Alert } from '../../components/ui'
 import {
@@ -9,17 +9,19 @@ import {
   errorMessage,
   type GoodsReceipt,
   type PurchaseOrder,
+  type PurchaseOrderDetail,
 } from '../../../lib/api'
 import { PurchasingShell } from '../pembelian-shell'
-import { rupiah } from '../bagian'
+import { formatQty, kunciIdempotensi, parseJumlah, rupiah } from '../bagian'
 import styles from '../pembelian.module.css'
 
 /**
- * PRD 5: Pembelian > Penerimaan. Daftar penerimaan dan pencatatan penerimaan baru
- * untuk PO yang sudah disetujui.
+ * PRD 6.3: Pembelian > Penerimaan. Mencatat penerimaan barang untuk PO yang sudah
+ * disetujui, dengan jumlah per barang sehingga pengiriman bertahap dan pengiriman
+ * yang datang sebagian tetap tercatat apa adanya.
  *
- * Penerimaan hanya bisa untuk PO berstatus Disetujui atau Diterima Sebagian,
- * karena barang yang tidak pernah dipesan tidak boleh masuk lewat jalur ini.
+ * Stok hanya bertambah sebesar jumlah yang benar-benar diterima. PO yang barangnya
+ * belum datang seluruhnya muncul lagi di daftar sampai sisanya nol.
  */
 
 export default function GoodsReceiptsPage() {
@@ -28,44 +30,110 @@ export default function GoodsReceiptsPage() {
   const [receipts, setReceipts] = useState<GoodsReceipt[] | null>(null)
   const [orders, setOrders] = useState<PurchaseOrder[]>([])
   const [orderId, setOrderId] = useState('')
+  const [detail, setDetail] = useState<PurchaseOrderDetail | null>(null)
+  const [jumlah, setJumlah] = useState<Record<number, string>>({})
+  const [note, setNote] = useState('')
+  const [kunci, setKunci] = useState(() => kunciIdempotensi('terima'))
   const [loading, setLoading] = useState(true)
+  const [loadingDetail, setLoadingDetail] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    void apiGet<{ orders: PurchaseOrder[] }>(
-      `/api/workspaces/${app.workspaceId}/purchase-orders?limit=100&status=disetujui`,
-    ).then((result) => {
-      if (result.ok) setOrders(result.data.orders)
-    })
+  const muatDaftar = useCallback(async () => {
+    const [daftar, penerimaan] = await Promise.all([
+      Promise.all([
+        apiGet<{ orders: PurchaseOrder[] }>(
+          `/api/workspaces/${app.workspaceId}/purchase-orders?limit=100&status=disetujui`,
+        ),
+        apiGet<{ orders: PurchaseOrder[] }>(
+          `/api/workspaces/${app.workspaceId}/purchase-orders?limit=100&status=diterima_sebagian`,
+        ),
+      ]),
+      apiGet<{ receipts: GoodsReceipt[] }>(
+        `/api/workspaces/${app.workspaceId}/goods-receipts`,
+      ),
+    ])
 
-    void apiGet<{ receipts: GoodsReceipt[] }>(
-      `/api/workspaces/${app.workspaceId}/goods-receipts`,
-    ).then((result) => {
-      if (result.ok) {
-        setReceipts(result.data.receipts)
-        setError(null)
-      } else {
-        setError(errorMessage(result.error, 'Daftar penerimaan tidak bisa dimuat.'))
-      }
-      setLoading(false)
-    })
+    const [disetujui, sebagian] = daftar
+    if (disetujui.ok && sebagian.ok) {
+      setOrders([...disetujui.data.orders, ...sebagian.data.orders])
+    }
+
+    if (penerimaan.ok) {
+      setReceipts(penerimaan.data.receipts)
+      setError(null)
+    } else {
+      setError(errorMessage(penerimaan.error, 'Daftar penerimaan tidak bisa dimuat.'))
+    }
+    setLoading(false)
   }, [app.workspaceId])
+
+  useEffect(() => {
+    void muatDaftar()
+  }, [muatDaftar])
+
+  const muatDetail = useCallback(
+    async (id: string) => {
+      if (id === '') {
+        setDetail(null)
+        return
+      }
+      setLoadingDetail(true)
+      const hasil = await apiGet<PurchaseOrderDetail>(
+        `/api/workspaces/${app.workspaceId}/purchase-orders/${id}`,
+      )
+      setLoadingDetail(false)
+
+      if (!hasil.ok) {
+        setDetail(null)
+        setError(errorMessage(hasil.error, 'Rincian PO tidak bisa dimuat.'))
+        return
+      }
+
+      setDetail(hasil.data)
+      setJumlah(
+        Object.fromEntries(
+          hasil.data.items
+            .filter((item) => item.outstanding > 0)
+            .map((item) => [item.id, String(item.outstanding)]),
+        ),
+      )
+      setKunci(kunciIdempotensi('terima'))
+    },
+    [app.workspaceId],
+  )
+
+  useEffect(() => {
+    setSuccess(null)
+    void muatDetail(orderId)
+  }, [orderId, muatDetail])
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
-    const order = orders.find((item) => String(item.id) === orderId)
-    if (!order) {
+    if (!detail) {
       setError('Pilih PO yang barangnya sedang datang.')
       return
     }
 
-    const jawaban = window.prompt(
-      `Berapa total yang diterima dari ${order.supplierName}?\nJumlahnya boleh lebih kecil dari total PO kalau pengiriman bertahap.`,
-      '',
-    )
-    if (jawaban === null || jawaban.trim() === '') return
+    const items: Array<{ productId: number; quantity: number }> = []
+    for (const item of detail.items) {
+      if (item.outstanding <= 0) continue
+      const nilai = parseJumlah(jumlah[item.id] ?? '')
+      if (nilai === null) continue
+      if (nilai > item.outstanding) {
+        setError(
+          `Jumlah ${item.productName} melebihi sisa PO (${formatQty(item.outstanding)} ${item.unitCode}).`,
+        )
+        return
+      }
+      items.push({ productId: item.productId, quantity: nilai })
+    }
+
+    if (items.length === 0) {
+      setError('Isi jumlah yang benar-benar diterima untuk minimal satu barang.')
+      return
+    }
 
     setBusy(true)
     setError(null)
@@ -74,9 +142,10 @@ export default function GoodsReceiptsPage() {
     const hasil = await apiPost<{ number: string }>(
       `/api/workspaces/${app.workspaceId}/goods-receipts`,
       {
-        purchaseOrderId: order.id,
-        items: [{ productId: Number(order.id), quantity: jawaban }],
-        idempotencyKey: `terima-${order.id}-${Date.now().toString(36)}`,
+        purchaseOrderId: detail.order.id,
+        note: note || null,
+        items,
+        idempotencyKey: kunci,
       },
     )
 
@@ -87,11 +156,10 @@ export default function GoodsReceiptsPage() {
       return
     }
 
-    setSuccess(`Penerimaan ${hasil.data.number} tersimpan.`)
-    const refresh = await apiGet<{ receipts: GoodsReceipt[] }>(
-      `/api/workspaces/${app.workspaceId}/goods-receipts`,
-    )
-    if (refresh.ok) setReceipts(refresh.data.receipts)
+    setSuccess(`Penerimaan ${hasil.data.number} tersimpan dan stok sudah bertambah.`)
+    setNote('')
+    await muatDaftar()
+    await muatDetail(orderId)
   }
 
   return (
@@ -119,7 +187,52 @@ export default function GoodsReceiptsPage() {
               ))}
             </select>
           </div>
-          <button type="submit" className={styles.submit} disabled={busy || orderId === ''}>
+
+          {loadingDetail ? <p role="status">Memuat rincian PO.</p> : null}
+
+          {detail
+            ? detail.items
+                .filter((item) => item.outstanding > 0)
+                .map((item) => (
+                  <div key={item.id} className={styles.itemRow}>
+                    <span className={styles.cardName}>{item.productName}</span>
+                    <span className={styles.cardMeta}>
+                      Sisa {formatQty(item.outstanding)} {item.unitCode}
+                    </span>
+                    <div className={styles.filterGroup}>
+                      <label className={styles.label} htmlFor={`terima-${item.id}`}>
+                        Jumlah diterima ({item.unitCode})
+                      </label>
+                      <input
+                        className={styles.input}
+                        id={`terima-${item.id}`}
+                        inputMode="decimal"
+                        value={jumlah[item.id] ?? ''}
+                        onChange={(event) =>
+                          setJumlah({ ...jumlah, [item.id]: event.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                ))
+            : null}
+
+          {detail ? (
+            <div className={styles.filterGroup}>
+              <label className={styles.label} htmlFor="catatan-terima">
+                Catatan (opsional)
+              </label>
+              <input
+                className={styles.input}
+                id="catatan-terima"
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder="Nomor surat jalan atau kondisi barang"
+              />
+            </div>
+          ) : null}
+
+          <button type="submit" className={styles.submit} disabled={busy || !detail}>
             {busy ? 'Menyimpan' : 'Catat penerimaan'}
           </button>
         </form>

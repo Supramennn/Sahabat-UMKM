@@ -127,7 +127,7 @@ export const updateOrderSchema = z.object({
   expectedOn: optionalDateSchema,
   note: z.string().trim().max(500).nullable().optional(),
   items: z.array(orderItemSchema).min(1).max(500).optional(),
-  /** Wajib saat PO sudah disetujui: PRD 6.3 minta catatan alasan untuk revisi. */
+  /** Wajib saat PO sudah diajukan atau disetujui: PRD 6.3 minta catatan alasan revisi. */
   revisionReason: z.string().trim().max(300).nullable().optional(),
 })
 

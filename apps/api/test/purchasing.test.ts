@@ -331,7 +331,7 @@ describe('alur status dan persetujuan PO (PRD 6.3, B-03)', () => {
     expect(kedua.statusCode).toBe(409)
   })
 
-  it('menolak perubahan pada PO yang sudah disetujui', async () => {
+  it('mewajibkan catatan alasan saat PO yang sudah disetujui direvisi', async () => {
     const toko = await setupToko()
     const po = await buatPO(toko)
     const orderId = po.body.orderId as number
@@ -339,15 +339,84 @@ describe('alur status dan persetujuan PO (PRD 6.3, B-03)', () => {
     await kirim(toko, `/purchase-orders/${orderId}/submit`)
     await kirim(toko, `/purchase-orders/${orderId}/approve`, {}, toko.secondMemberCookie)
 
-    const response = await kirim(
+    const tanpaCatatan = await kirim(
       toko,
       `/purchase-orders/${orderId}`,
       { items: [{ productId: toko.productId, quantity: '99', unitPrice: '60000' }] },
       toko.cookie,
       'PATCH',
     )
+    expect(tanpaCatatan.statusCode).toBe(409)
+    expect(tanpaCatatan.body.error).toBe('catatan_revisi_wajib')
+  })
 
+  it('menerima revisi bernomor pada PO yang sudah disetujui dan mengembalikannya ke persetujuan', async () => {
+    const toko = await setupToko()
+    const po = await buatPO(toko)
+    const orderId = po.body.orderId as number
+
+    await kirim(toko, `/purchase-orders/${orderId}/submit`)
+    await kirim(toko, `/purchase-orders/${orderId}/approve`, {}, toko.secondMemberCookie)
+
+    const revisi = await kirim(
+      toko,
+      `/purchase-orders/${orderId}`,
+      {
+        items: [{ productId: toko.productId, quantity: '99', unitPrice: '60000' }],
+        revisionReason: 'Jumlah diperbarui setelah supplier mengonfirmasi.',
+      },
+      toko.cookie,
+      'PATCH',
+    )
+    expect(revisi.statusCode).toBe(200)
+
+    const detail = await kirim(toko, `/purchase-orders/${orderId}`, {}, toko.cookie, 'GET')
+    expect(detail.body.order).toMatchObject({ status: 'diajukan' })
+    expect((detail.body.items as Array<Record<string, unknown>>)[0]!.quantity).toBe(99)
+    const revisions = detail.body.revisions as Array<Record<string, unknown>>
+    expect(revisions).toHaveLength(1)
+    expect(revisions[0]!.revisionNumber).toBe(1)
+    expect(String(revisions[0]!.reason)).toContain('supplier')
+
+    // Revisi mengubah isi, jadi PO harus disetujui lagi sebelum barangnya diterima.
+    const terima = await kirim(toko, '/goods-receipts', {
+      purchaseOrderId: orderId,
+      items: [{ productId: toko.productId, quantity: '1' }],
+      idempotencyKey: 'terima-sebelum-setuju-ulang',
+    })
+    expect(terima.statusCode).toBe(409)
+
+    const setujuiUlang = await kirim(
+      toko,
+      `/purchase-orders/${orderId}/approve`,
+      {},
+      toko.secondMemberCookie,
+    )
+    expect(setujuiUlang.statusCode).toBe(200)
+  })
+
+  it('menolak memindahkan lokasi PO yang sudah disetujui', async () => {
+    const toko = await setupToko()
+    const po = await buatPO(toko)
+    const orderId = po.body.orderId as number
+
+    await kirim(toko, `/purchase-orders/${orderId}/submit`)
+    await kirim(toko, `/purchase-orders/${orderId}/approve`, {}, toko.secondMemberCookie)
+
+    const lokasiLain = await db.query<{ id: number }>(
+      'insert into locations (workspace_id, name) values ($1, $2) returning id',
+      [toko.workspaceId, 'Gudang Cadangan'],
+    )
+
+    const response = await kirim(
+      toko,
+      `/purchase-orders/${orderId}`,
+      { locationId: lokasiLain.rows[0]!.id, revisionReason: 'Pindah gudang.' },
+      toko.cookie,
+      'PATCH',
+    )
     expect(response.statusCode).toBe(409)
+    expect(response.body.error).toBe('lokasi_tidak_bisa_diubah')
   })
 
   it('mewajibkan catatan alasan saat PO yang sudah diajukan diubah', async () => {

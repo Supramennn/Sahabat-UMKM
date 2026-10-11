@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { badgeFor, formatQty, parseUsulan, rupiah } from '../src/app/pembelian/bagian'
+import { badgeFor, formatQty, kunciIdempotensi, parseJumlah, parseUsulan, rupiah } from '../src/app/pembelian/bagian'
 
 /**
  * Bagian yang dipakai bersama di modul pembelian.
@@ -42,6 +42,31 @@ describe('status PO ditulis sebagai teks dan warna', () => {
 
   it('menyebut status yang tidak dikenal sebagai netral, bukan sebagai gagal', () => {
     expect(badgeFor('entah')).toContain('badgeNeutral')
+  })
+})
+
+describe('jumlah yang diketik saat penerimaan (PRD 6.3)', () => {
+  it('menerima bilangan bulat dan desimal dengan koma', () => {
+    expect(parseJumlah('12')).toBe(12)
+    expect(parseJumlah('4')).toBe(4)
+    expect(parseJumlah('1,5')).toBe(1.5)
+    expect(parseJumlah(' 2.5 ')).toBe(2.5)
+  })
+
+  it('menolak nilai kosong dan yang bukan angka', () => {
+    expect(parseJumlah('')).toBeNull()
+    expect(parseJumlah('dua')).toBeNull()
+    expect(parseJumlah('0')).toBeNull()
+    expect(parseJumlah('-3')).toBeNull()
+  })
+})
+
+describe('kunci idempotensi', () => {
+  it('memberi awal yang memuat namanya dan berbeda tiap panggilan', () => {
+    const satu = kunciIdempotensi('terima')
+    const dua = kunciIdempotensi('terima')
+    expect(satu.startsWith('terima-')).toBe(true)
+    expect(satu).not.toBe(dua)
   })
 })
 

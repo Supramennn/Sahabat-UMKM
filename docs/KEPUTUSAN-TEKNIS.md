@@ -25,6 +25,7 @@ Terakhir diperbarui: 10 Oktober 2026.
 | K-13 | Pemisahan izin penyesuaian stok | `stock.adjustments` dipisah dari `stock.movements`. Staf boleh mencatat barang masuk dan keluar, tetapi penyesuaian dan persetujuan hasil opname hanya untuk Owner dan Admin | PRD 8 |
 | K-14 | Pembagian purchase order | Token acak 32 byte, hanya hash-nya yang disimpan. Masa berlaku bawaan 30 hari dan bisa diubah Owner lewat parameter, dibatasi 1 sampai 365 hari. Tautan dicabut otomatis saat dibuatkan yang baru, jadi selalu ada tepat satu alamat hidup per PO | PRD 6.3, A-11 |
 | K-15 | PDF purchase order | pdfkit dengan font bawaan Helvetica. Huruf di luar WinAnsi diganti tanda tanya, bukan mencari font, supaya berkas selalu bisa dibuat dan tidak bergantung pada font yang ada di server | PRD 6.3 |
+| K-16 | Revisi PO yang sudah disetujui | Isi, catatan, dan perkiraan tanggal datang boleh direvisi lewat revisi bernomor dengan catatan alasan wajib. PO yang disetujui kembali ke status Diajukan supaya disetujui ulang. Supplier dan lokasi tujuan tidak bisa diubah lewat revisi. Koreksi harga beli pada PO yang sudah diterima belum termasuk dan menunggu penghitungan ulang rata-rata bergerak | PRD 6.3, KEPUTUSAN bagian 5 butir 3 |
 
 ### Alasan K-12
 
@@ -93,6 +94,27 @@ bisa saja memuat aksara non-Latin, jadi teks dibersihkan lebih dulu: huruf di lu
 WinAnsi diganti tanda tanya, karakter kontrol diganti spasi. Tanpa itu, satu nama
 aneh membuat permintaan unduhan gagal seluruhnya, dan pengguna tidak pernah melihat
 PO-nya.
+
+### Alasan K-16
+
+PRD 6.3 menyatakan PO yang sudah disetujui tidak bisa diubah, dan bahwa perubahannya
+lewat revisi bernomor dengan catatan alasan dan jejak audit. Yang belum disebut adalah
+apa yang terjadi pada statusnya setelah direvisi. Dua hal yang diputuskan di sini:
+
+1. **Revisi mengembalikan PO ke status Diajukan.** Kalau PO tetap berstatus Disetujui,
+   tanda tangan persetujuannya menempel pada isi yang sudah berbeda, dan jejaknya
+   menyesatkan: siapa pun yang melihat status akan mengira isi sekarang yang sudah
+   disetujui. Kembali ke Diajukan memaksa isi baru melewati persetujuan lagi. Aturan
+   approval yang menyala di workspace tetap berlaku.
+
+2. **Supplier dan lokasi tujuan tidak ikut direvisi.** Keduanya mengikat PO ke pihak
+   dan gudang tertentu; barang yang datang ke gudang yang salah bukan kesalahan
+   ketikan yang cukup diperbaiki lewat revisi. Trigger database juga menolaknya, jadi
+   pembatasan di aplikasi hanya membuat pesannya jelas, bukan satu-satunya penjaga.
+
+Catatan: koreksi harga beli pada PO yang sudah diterima (KEPUTUSAN bagian 5 butir 3)
+belum dibangun, karena menuntut penghitungan ulang rata-rata bergerak yang sudah
+dipakai laba kotor. Itu perubahan tersendiri, bukan bagian dari revisi ini.
 
 ### Alasan K-02
 

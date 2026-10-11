@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '../../components/app-context'
 import { Alert } from '../../components/ui'
-import { apiGet, apiPost, errorMessage, type SuppliersResponse } from '../../../lib/api'
+import { apiGet, apiPatch, apiPost, errorMessage, type Supplier, type SuppliersResponse } from '../../../lib/api'
 import { PurchasingShell } from '../pembelian-shell'
 import styles from '../pembelian.module.css'
 
@@ -92,6 +92,41 @@ export default function SuppliersPage() {
     router.refresh()
   }
 
+  async function gantiArsip(supplier: Supplier, arsip: boolean) {
+    if (
+      arsip &&
+      !window.confirm(
+        `Arsipkan supplier ${supplier.name}? Supplier yang diarsipkan tidak muncul saat membuat PO, tetapi riwayatnya tetap tersimpan.`,
+      )
+    ) {
+      return
+    }
+
+    setBusy(true)
+    setError(null)
+    setSuccess(null)
+
+    const result = await apiPatch<{ message: string }>(
+      `/api/workspaces/${app.workspaceId}/suppliers/${supplier.id}`,
+      { isArchived: arsip },
+    )
+
+    setBusy(false)
+
+    if (!result.ok) {
+      setError(errorMessage(result.error, 'Status supplier tidak bisa diubah.'))
+      return
+    }
+
+    setSuccess(
+      arsip
+        ? `Supplier ${supplier.name} diarsipkan.`
+        : `Supplier ${supplier.name} diaktifkan kembali.`,
+    )
+    await load()
+    router.refresh()
+  }
+
   return (
     <PurchasingShell
       activeHref="/pembelian/supplier"
@@ -124,7 +159,9 @@ export default function SuppliersPage() {
               <li key={supplier.id} className={styles.card}>
                 <span className={styles.cardRow}>
                   <span className={styles.cardName}>{supplier.name}</span>
-                  {supplier.outstanding > 0 ? (
+                  {supplier.archived ? (
+                    <span className={`${styles.badge} ${styles.badgeNeutral}`}>Diarsipkan</span>
+                  ) : supplier.outstanding > 0 ? (
                     <span className={`${styles.badge} ${styles.badgePending}`}>
                       Utang {formatRupiah(supplier.outstanding)}
                     </span>
@@ -142,6 +179,19 @@ export default function SuppliersPage() {
                     Termin {supplier.paymentTermDays} hari
                   </span>
                 ) : null}
+                {supplier.note ? (
+                  <span className={styles.cardMeta}>Catatan: {supplier.note}</span>
+                ) : null}
+                <span className={styles.actions}>
+                  <button
+                    type="button"
+                    className={styles.linkButton}
+                    disabled={busy}
+                    onClick={() => void gantiArsip(supplier, !supplier.archived)}
+                  >
+                    {supplier.archived ? 'Aktifkan kembali' : 'Arsipkan'}
+                  </button>
+                </span>
               </li>
             ))}
           </ul>
@@ -154,6 +204,7 @@ export default function SuppliersPage() {
                   <th scope="col">Supplier</th>
                   <th scope="col">Kontak</th>
                   <th scope="col">Termin</th>
+                  <th scope="col">Status</th>
                   <th scope="col" className={styles.numeric}>
                     Utang
                   </th>
@@ -169,6 +220,7 @@ export default function SuppliersPage() {
                     <td className={styles.muted}>
                       {supplier.paymentTermDays ? `${supplier.paymentTermDays} hari` : '-'}
                     </td>
+                    <td className={styles.muted}>{supplier.archived ? 'Diarsipkan' : 'Aktif'}</td>
                     <td className={styles.numeric}>{formatRupiah(supplier.outstanding)}</td>
                   </tr>
                 ))}

@@ -43,6 +43,29 @@ export function formatQty(value: number): string {
   return bagianDesimal ? `${denganPemisah},${bagianDesimal}` : denganPemisah
 }
 
+/**
+ * Jumlah yang diketik pengguna, dalam bentuk yang diterima server: koma sebagai
+ * pemisah desimal. Kosong dan nilai yang bukan angka positif dianggap tidak diisi,
+ * supaya baris tanpa jumlah tidak ikut terkirim sebagai nol.
+ */
+export function parseJumlah(text: string): number | null {
+  const bersih = text.trim().replace(/\s/g, '').replace(',', '.')
+  if (!/^\d+(\.\d+)?$/.test(bersih)) return null
+  const nilai = Number(bersih)
+  if (!Number.isFinite(nilai) || nilai <= 0) return null
+  return nilai
+}
+
+/**
+ * Kunci idempotensi untuk satu percobaan simpan. Halaman menyimpannya di state dan
+ * membuat kunci baru hanya setelah simpan berhasil, supaya percobaan ulang karena
+ * jaringan putus tidak menggandakan stok (PRD 6.3).
+ */
+export function kunciIdempotensi(prefix: string): string {
+  const acak = Math.random().toString(36).slice(2)
+  return `${prefix}-${Date.now().toString(36)}-${acak}`
+}
+
 export interface BarisUsulan {
   productId: string
   quantity: string

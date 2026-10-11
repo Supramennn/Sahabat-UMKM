@@ -5,7 +5,7 @@ import { useApp } from '../../../components/app-context'
 import { Alert, ErrorState } from '../../../components/ui'
 import { API_BASE, apiGet, apiPost, errorMessage, type PurchaseOrderDetail } from '../../../../lib/api'
 import { PurchasingShell } from '../../pembelian-shell'
-import { badgeFor, rupiah } from '../../bagian'
+import { badgeFor, kunciIdempotensi, rupiah } from '../../bagian'
 import styles from '../../pembelian.module.css'
 
 /**
@@ -38,6 +38,9 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [emailTujuan, setEmailTujuan] = useState('')
+  // Kunci tetap sampai penerimaan berhasil, supaya percobaan ulang karena jaringan
+  // putus tidak menggandakan stok.
+  const [kunciTerima, setKunciTerima] = useState(() => kunciIdempotensi('terima'))
 
   useEffect(() => {
     void params.then(({ id }) => setOrderId(id))
@@ -161,7 +164,7 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
       {
         purchaseOrderId: orderId,
         items: [{ productId: belum[0]!.productId, quantity: jawaban }],
-        idempotencyKey: `terima-${orderId}-${Date.now().toString(36)}`,
+        idempotencyKey: kunciTerima,
       },
     )
 
@@ -172,6 +175,7 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
       return
     }
 
+    setKunciTerima(kunciIdempotensi('terima'))
     setMessage(`Penerimaan ${result.data.number} tersimpan dan stok sudah bertambah.`)
     await load()
   }
@@ -275,6 +279,12 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
               >
                 Tutup PO
               </button>
+            ) : null}
+
+            {['draft', 'diajukan', 'disetujui'].includes(status) ? (
+              <a className={styles.linkButton} href={`/pembelian/po/${orderId}/revisi`}>
+                Ubah PO
+              </a>
             ) : null}
 
             {['draft', 'diajukan'].includes(status) ? (
