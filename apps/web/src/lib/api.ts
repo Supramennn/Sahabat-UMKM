@@ -367,3 +367,92 @@ export type ImportResult = {
   categoriesCreated: number
   skippedRows: Array<{ rowNumber: number; sku: string; message: string }>
 }
+
+/* Penjualan ----------------------------------------------------------- */
+
+export type Sale = {
+  id: number
+  number: string
+  isCancelled: boolean
+  soldOn: string
+  paymentMethod: string
+  totalAmount: number
+  totalCogs: number
+  grossProfit: number
+  note: string | null
+  cancelledReason: string | null
+  cancelledAt: string | null
+  createdAt: string
+  customerId: number | null
+  customerName: string | null
+  locationId: number
+  locationName: string
+  createdByName: string
+}
+
+export type SaleItem = {
+  id: number
+  productId: number
+  productName: string
+  sku: string
+  unitCode: string
+  quantity: number
+  unitPrice: number
+  discountAmount: number
+  lineTotal: number
+  unitCogs: number
+  lineCogs: number
+  lineGrossProfit: number
+  note: string | null
+}
+
+export type SaleDetail = {
+  sale: Sale
+  items: SaleItem[]
+}
+
+/* Pelanggan ----------------------------------------------------------- */
+
+export type Customer = {
+  id: number
+  name: string
+  phone: string | null
+  email: string | null
+  address: string | null
+  note: string | null
+  archived: boolean
+  createdAt: string
+}
+
+export type CustomersResponse = { customers: Customer[] }
+
+/* Pengeluaran --------------------------------------------------------- */
+
+export type Expense = {
+  id: number
+  categoryId: number
+  categoryName: string
+  description: string
+  amount: number
+  spentOn: string
+  reference: string | null
+  attachmentKey: string | null
+  createdAt: string
+  createdByName: string
+}
+
+export type ExpenseCategory = {
+  id: number
+  name: string
+  isActive: boolean
+  sortOrder: number
+}
+
+/* Metode pembayaran --------------------------------------------------- */
+
+export type PaymentMethod = {
+  id: number
+  name: string
+  isActive: boolean
+  sortOrder: number
+}

@@ -18,7 +18,13 @@
       }
     ],
     "incremental": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/components/*": ["src/app/components/*"],
+      "@/lib/*": ["src/lib/*"]
+    }
   },
   "include": [
     "next-env.d.ts",
