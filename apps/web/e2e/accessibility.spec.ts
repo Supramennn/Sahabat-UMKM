@@ -26,6 +26,10 @@ const HALAMAN = [
   { path: '/stok/peringatan', nama: 'peringatan stok' },
   { path: '/stok/impor', nama: 'impor barang' },
   { path: '/pembelian/retur', nama: 'retur pembelian' },
+  { path: '/penjualan', nama: 'daftar penjualan' },
+  { path: '/penjualan/baru', nama: 'catat penjualan' },
+  { path: '/penjualan/pelanggan', nama: 'pelanggan' },
+  { path: '/penjualan/impor', nama: 'impor penjualan' },
 ]
 
 test.describe('halaman autentikasi', () => {
@@ -185,6 +189,14 @@ test.describe('keadaan data', () => {
     await page.goto('/pembelian/po')
 
     await expect(page.getByText('Halaman ini belum bisa dibuka')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('h1')).toHaveCount(1)
+  })
+
+  test('halaman penjualan tanpa sesi menjelaskan apa yang terjadi', async ({ page }) => {
+    await page.goto('/penjualan/baru')
+
+    await expect(page.getByText('Halaman ini belum bisa dibuka')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('a[href="/masuk"]')).toBeVisible()
     await expect(page.locator('h1')).toHaveCount(1)
   })
 

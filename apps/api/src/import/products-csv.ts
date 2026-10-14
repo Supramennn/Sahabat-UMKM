@@ -56,7 +56,10 @@ export interface CsvParseResult {
  * Windows atau Unix. Parser-nya ditulis sendiri supaya tidak ada ketergantungan
  * baru hanya untuk memecah teks yang formatnya sederhana ini.
  */
-export function parseCsv(content: string): CsvParseResult {
+export function parseCsv(
+  content: string,
+  normalize: (header: string) => string = normalizeHeader,
+): CsvParseResult {
   // BOM sering muncul dari ekspor Excel dan akan menempel pada nama kolom pertama.
   const text = content.replace(/^\uFEFF/, '')
 
@@ -122,7 +125,7 @@ export function parseCsv(content: string): CsvParseResult {
     return { headers: [], rows: [], problems: [{ rowNumber: 1, message: 'Berkas kosong.' }] }
   }
 
-  const headers = headerRow.map((header) => normalizeHeader(header))
+  const headers = headerRow.map((header) => normalize(header))
   const problems: CsvParseResult['problems'] = []
   const parsed: ParsedRow[] = []
 

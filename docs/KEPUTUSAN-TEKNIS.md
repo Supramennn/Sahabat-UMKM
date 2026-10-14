@@ -25,6 +25,7 @@ Terakhir diperbarui: 10 Oktober 2026.
 | K-13 | Pemisahan izin penyesuaian stok | `stock.adjustments` dipisah dari `stock.movements`. Staf boleh mencatat barang masuk dan keluar, tetapi penyesuaian dan persetujuan hasil opname hanya untuk Owner dan Admin | PRD 8 |
 | K-14 | Pembagian purchase order | Token acak 32 byte, hanya hash-nya yang disimpan. Masa berlaku bawaan 30 hari dan bisa diubah Owner lewat parameter, dibatasi 1 sampai 365 hari. Tautan dicabut otomatis saat dibuatkan yang baru, jadi selalu ada tepat satu alamat hidup per PO | PRD 6.3, A-11 |
 | K-15 | PDF purchase order | pdfkit dengan font bawaan Helvetica. Huruf di luar WinAnsi diganti tanda tanya, bukan mencari font, supaya berkas selalu bisa dibuat dan tidak bergantung pada font yang ada di server | PRD 6.3 |
+| K-16 | Gaya frontend | CSS Modules di atas token warna PRD 10, bukan Tailwind. Token warna sudah dipakai di seluruh komponen dan sudah lolos `npm run test:contrast`. Memindahkan 20 halaman ke Tailwind adalah pekerjaan besar yang tidak menambah kemampuan produk, dan berisiko menurunkan kontras yang sekarang sudah terverifikasi | PRD 10, PRD 17 |
 
 ### Alasan K-12
 
@@ -93,6 +94,30 @@ bisa saja memuat aksara non-Latin, jadi teks dibersihkan lebih dulu: huruf di lu
 WinAnsi diganti tanda tanya, karakter kontrol diganti spasi. Tanpa itu, satu nama
 aneh membuat permintaan unduhan gagal seluruhnya, dan pengguna tidak pernah melihat
 PO-nya.
+
+### Alasan K-16
+
+K-02 mencantumkan Tailwind sebagai bagian stack, dan PRD 13 menyebut Tailwind sebagai
+usulan. Setelah Fase 0 sampai Fase 3, pilihan itu ditunda, lalu dicatat di sini
+supaya tidak menggantung.
+
+Alasannya bukan soal selera. Pertama, PRD 10 sudah menetapkan token warnanya sendiri dan
+`scripts/check-ui-contrast.mts` memeriksa setiap pasangan warna yang dipakai komponen
+itu. Dengan CSS Modules, nilai warna hanya ada di `packages/design-tokens` dan di satu
+berkas gaya per modul, sehingga hasil pemeriksaan benar-benar menggambarkan apa yang
+dirender. Dengan Tailwind, kelas warna bisa muncul di mana saja dalam JSX, dan
+pemeriksaan kontras berhenti jadi pemeriksaan token, bukan pemeriksaan tampilan.
+
+Kedua, pengerjaan berjalan per fase dan halaman baru lahir tiap fase. Dua sistem gaya
+yang hidup berdampingan membuat setiap halaman berikutnya punya dua pilihan yang sama
+salahnya, dan yang salah pilihnya tidak ketahuan sampai pemeriksaan kontras gagal.
+
+Ketiga, migrasi penuh baru dilakukan kalau ada alasan yang terlihat oleh pengguna.
+Ukuran berkas dan kecepatan render di Next.js pada kelasUtility berada di urutan yang
+sama dengan CSS Modules untuk tabel dan formulir seperti yang dipakai produk ini.
+
+Yang tetap dijaga: nama kelas, radius, spasi, dan warna hanya boleh diambil dari token
+yang sama. CSS Modules di sini bukan CSS bebas per halaman.
 
 ### Alasan K-02
 

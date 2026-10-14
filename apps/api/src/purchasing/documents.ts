@@ -14,13 +14,14 @@ import type { Transaction } from '@sahabat/db'
  * nomor terlanjur dikomunikasikan ke pengguna.
  */
 
-export type DocumentKind = 'po' | 'penerimaan' | 'retur' | 'pembayaran'
+export type DocumentKind = 'po' | 'penerimaan' | 'retur' | 'pembayaran' | 'penjualan'
 
 export const documentPrefixes: Record<DocumentKind, string> = {
   po: 'PO',
   penerimaan: 'GR',
   retur: 'PR',
   pembayaran: 'PAY',
+  penjualan: 'INV',
 }
 
 export async function allocateDocumentNumber(

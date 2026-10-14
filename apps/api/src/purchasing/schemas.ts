@@ -1,86 +1,17 @@
 import { z } from 'zod'
-import { MAX_QUANTITY_DECIMALS } from '@sahabat/shared'
+import {
+  dateSchema,
+  optionalDateSchema,
+  optionalRupiahField,
+  quantityField,
+  rupiahField,
+} from '../common/input.ts'
 
 /**
- * Skema pembelian (PRD 6.3). Jumlah dan nominal memakai bentuk teks lalu dikembalikan
- * sebagai angka, sama seperti modul stok, supaya angka dari keypad ponsel boleh memakai
- * koma sebagai pemisah ribuan tanpa diterima diam-diam sebagai harga salah.
+ * Skema pembelian (PRD 6.3). Bentuk angka dan tanggalnya berasal dari
+ * `common/input.ts`, sama seperti penjualan dan pengeluaran, supaya semua modul
+ * memperlakukan "12.500" dan tanggal YYYY-MM-DD dengan aturan yang sama.
  */
-
-function quantityFromText(text: string): number {
-  const normalized = text.trim().replace(/\s/g, '').replace(',', '.')
-  if (!/^\d+(\.\d+)?$/.test(normalized)) {
-    throw new Error(`Jumlah harus angka positif: ${text}`)
-  }
-  const value = Number(normalized)
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new Error(`Jumlah harus lebih besar dari nol: ${text}`)
-  }
-  const scaled = value * 10 ** MAX_QUANTITY_DECIMALS
-  if (Math.abs(scaled - Math.round(scaled)) > 1e-6) {
-    throw new Error(`Jumlah hanya boleh ${MAX_QUANTITY_DECIMALS} angka desimal: ${text}`)
-  }
-  return value
-}
-
-function rupiahFromText(text: string): number {
-  const normalized = text.trim().replace(/\s/g, '').replace(/\./g, '').replace(',', '.')
-  if (!/^\d+(\.\d+)?$/.test(normalized)) {
-    throw new Error(`Nominal harus angka: ${text}`)
-  }
-  const value = Number(normalized)
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new Error(`Nominal harus lebih besar dari nol: ${text}`)
-  }
-  return Math.round(value)
-}
-
-const quantityField = z.union([z.string(), z.number()]).transform((value, ctx) => {
-  try {
-    return quantityFromText(typeof value === 'number' ? String(value) : value)
-  } catch (error) {
-    ctx.addIssue({ code: 'custom', message: (error as Error).message })
-    return z.NEVER
-  }
-})
-
-const rupiahField = z.union([z.string(), z.number()]).transform((value, ctx) => {
-  try {
-    return rupiahFromText(typeof value === 'number' ? String(value) : value)
-  } catch (error) {
-    ctx.addIssue({ code: 'custom', message: (error as Error).message })
-    return z.NEVER
-  }
-})
-
-const optionalRupiahField = z
-  .union([z.string(), z.number(), z.null(), z.undefined()])
-  .transform((value, ctx) => {
-    if (value === null || value === undefined || value === '') {
-      return null
-    }
-    try {
-      return rupiahFromText(typeof value === 'number' ? String(value) : value)
-    } catch (error) {
-      ctx.addIssue({ code: 'custom', message: (error as Error).message })
-      return z.NEVER
-    }
-  })
-
-const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal harus format YYYY-MM-DD.')
-
-const optionalDateSchema = z
-  .union([z.string(), z.null(), z.undefined()])
-  .transform((value, ctx) => {
-    if (value === null || value === undefined || value === '') {
-      return null
-    }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      ctx.addIssue({ code: 'custom', message: 'Tanggal harus format YYYY-MM-DD.' })
-      return z.NEVER
-    }
-    return value
-  })
 
 export const createSupplierSchema = z.object({
   name: z.string().trim().min(2, 'Nama supplier minimal 2 karakter.').max(120),

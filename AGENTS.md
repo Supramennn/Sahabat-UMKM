@@ -49,8 +49,22 @@ dan keputusan yang dibutuhkan.
 
 ## Status fase
 
-Fase 0 fondasi, Fase 1 autentikasi dan UI, Fase 2 stok, dan Fase 3 pembelian
-selesai. Berikutnya Fase 4: penjualan dan pelanggan (PRD 6.4).
+Fase 0 fondasi, Fase 1 autentikasi dan UI, Fase 2 stok, Fase 3 pembelian, dan Fase 4
+penjualan selesai. Berikutnya Fase 5: pengeluaran operasional (PRD 6.5).
+
+Urutan fase yang tersisa, supaya tidak ada tumpang tindih:
+
+| Fase | Isi | PRD |
+| --- | --- | --- |
+| 5 | Pengeluaran operasional, kategori, lampiran | 6.5 |
+| 6 | Paket, batas paket, uji coba, langganan | 6.10, 16 |
+| 7 | Laporan dan ekspor | 6.6, 6.8 |
+| 8 | Dashboard | 6.7 |
+| 9 | Impor lengkap: XLSX, template, riwayat, pembatalan impor | 6.8 |
+| 10 | Notifikasi email dan di dalam aplikasi | 6.9 |
+| 11 | Penagihan dan faktur PDF | 6.10 |
+| 12 | Situs publik, pusat bantuan, status, kontak | 11, 15 |
+| 13 | PWA, antrean offline, daftar periksa aktivasi | 10, 12 |
 
 Cara menjalankan semuanya tercantum di README.md. Perintah yang dipakai sebelum
 menyerahkan hasil: npm run verify, npm run test:contrast, npm run test:postgres:local,

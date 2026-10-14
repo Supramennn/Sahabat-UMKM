@@ -194,6 +194,8 @@ export type StockBalance = {
   earliestExpiry: string | null
 }
 
+export type StockBalancesResponse = { balances: StockBalance[] }
+
 export type StockMovement = {
   id: number
   kind: string
@@ -366,4 +368,110 @@ export type ImportResult = {
   skipped: number
   categoriesCreated: number
   skippedRows: Array<{ rowNumber: number; sku: string; message: string }>
+}
+
+export type Sale = {
+  id: number
+  number: string
+  soldOn: string
+  locationName: string
+  customerName: string | null
+  paymentMethodLabel: string
+  totalAmount: number
+  costTotal: number
+  grossProfit: number
+  status: string
+  statusLabel: string
+  itemCount: number
+}
+
+export type SalesResponse = {
+  sales: Sale[]
+  pagination: { limit: number; offset: number; total: number }
+}
+
+export type SaleItem = {
+  id: number
+  productId: number
+  productName: string
+  sku: string
+  unitCode: string
+  quantity: number
+  unitPrice: number
+  discountAmount: number
+  lineTotal: number
+  unitCostSnapshot: number
+  costTotal: number
+  note: string | null
+}
+
+export type SaleDetail = {
+  sale: Sale & {
+    locationId: number
+    customerId: number | null
+    subtotal: number
+    discountTotal: number
+    cancelReason: string | null
+    cancelledAt: string | null
+    note: string | null
+    createdByName: string
+  }
+  items: SaleItem[]
+}
+
+export type CreatedSale = {
+  saleId: number
+  number: string
+  totalAmount: number
+  costTotal: number
+  grossProfit: number
+  replayed: boolean
+}
+
+export type CancelledSale = {
+  saleId: number
+  number: string
+  reversedMovements: number
+  replayed: boolean
+}
+
+export type Customer = {
+  id: number
+  name: string
+  phone: string | null
+  note: string | null
+  archived: boolean
+  saleCount: number
+  saleTotal: number
+}
+
+export type CustomersResponse = { customers: Customer[] }
+
+export type PaymentMethod = { id: number; name: string; archived: boolean }
+
+export type PaymentMethodsResponse = { paymentMethods: PaymentMethod[] }
+
+export type SalesImportPreview = {
+  totalRows: number
+  validRows: number
+  problemRows: number
+  problems: ImportProblem[]
+  sample: Array<{
+    rowNumber: number
+    soldOn: string
+    sku: string
+    quantity: number
+    unitPrice: number
+  }>
+  maxRowsPerImport: number
+  exceedsRowLimit: boolean
+}
+
+export type SalesImportResult = {
+  replayed: boolean
+  importJobId: number
+  imported: number
+  firstNumber: string | null
+  lastNumber: string | null
+  totalAmount: number
 }

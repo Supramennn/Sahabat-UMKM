@@ -10,9 +10,11 @@ import { registerAuthRoutes, type AuthDeps } from './auth/routes.ts'
 import { AuthenticationError, AuthorizationError, registerSessionLoader } from './auth/session.ts'
 import { registerStockRoutes } from './stock/routes.ts'
 import { registerImportRoutes } from './import/routes.ts'
+import { registerSalesImportRoutes } from './import/sales-routes.ts'
 import { registerMediaRoutes } from './media/routes.ts'
 import { registerPurchasingRoutes } from './purchasing/routes.ts'
 import { registerPurchaseOrderShareRoutes } from './purchasing/share.ts'
+import { registerSalesRoutes } from './sales/routes.ts'
 import { StockError } from './stock/movements.ts'
 import { createLogEmailProvider, type EmailProvider } from './services/email.ts'
 
@@ -103,9 +105,11 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     registerMfaRoutes(app, deps)
     registerStockRoutes(app, { db: options.db })
     registerImportRoutes(app, { db: options.db })
+    registerSalesImportRoutes(app, { db: options.db })
     registerMediaRoutes(app, { db: options.db })
     registerPurchasingRoutes(app, { db: options.db })
     registerPurchaseOrderShareRoutes(app, { db: options.db, webOrigin: origin, sendEmail: deps.sendEmail })
+    registerSalesRoutes(app, { db: options.db })
   }
 
   app.get('/health', async () => ({ status: 'ok' }))

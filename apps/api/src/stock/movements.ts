@@ -59,7 +59,9 @@ export function directionForKind(kind: MovementKind, difference?: number): Movem
 export const reasonCodes = {
   pembelian: 'pembelian',
   penjualan: 'penjualan',
+  pembatalanPenjualan: 'pembatalan_penjualan',
   retur: 'retur_pembelian',
+  returPembelian: 'retur_pembelian',
   rusak: 'rusak',
   kadaluwarsa: 'kadaluwarsa',
   hilang: 'hilang',

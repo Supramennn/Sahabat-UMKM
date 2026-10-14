@@ -16,11 +16,22 @@ pengerjaan atau setelah selesai. Jangan mulai UI sebelum ada jawaban.
 
 | Bagian | Pilihan |
 | --- | --- |
-| Frontend | Next.js 15, TypeScript, Tailwind (ditambahkan Fase 5) |
+| Frontend | Next.js 15, TypeScript, CSS Modules dengan token warna PRD 10 |
 | API | Fastify 5, TypeScript, Zod |
 | Database | PostgreSQL 16 |
 | Antrean | pg-boss |
 | Pengujian | Vitest, Playwright, Testing Library, axe-core |
+
+Perangkat tambahan untuk pengujian:
+
+| Perangkat | Kegunaan |
+| --- | --- |
+| `@axe-core/playwright` | Pemeriksaan axe pada halaman yang benar-benar dirender |
+| `@testing-library/react` | Uji komponen di jsdom: penomoran halaman, keadaan kosong, tombol pembatalan |
+| `@vitejs/plugin-react` | Mengubah JSX saat berkas komponen diuji, karena `jsx: preserve` milik Next.js tidak berlaku di Vitest |
+
+Tailwind tidak dipakai. Keputusan dan alasannya tercatat di K-16 pada
+`docs/KEPUTUSAN-TEKNIS.md`.
 
 ## Menjalankan secara lokal
 
@@ -113,6 +124,12 @@ docs/
 | Akun | masuk, buat akun, verifikasi email, lupa dan atur ulang kata sandi, pengaturan akun | 6.1, 9 |
 | Stok | barang, tambah barang, detail barang dan foto, input stok, riwayat, perlu perhatian, impor CSV, lokasi, kategori, stok opname | 6.2, 6.8 |
 | Pembelian | ringkasan, supplier, purchase order dan detailnya, penerimaan, retur pembelian, pembayaran supplier | 6.3 |
+| Penjualan | daftar penjualan, catat penjualan, detail dan pembatalan, pelanggan, impor CSV | 6.4, 6.8 |
+
+Penjualan memakai `recordMovement` yang sama dengan stok keluar, jadi penjualan yang
+menyentuh barang terakhir menghasilkan satu transaksi berhasil dan satu penolakan,
+sama seperti entri stok manual. Harga pokok disimpan sebagai snapshot di setiap baris
+penjualan (A-07), jadi laba kotor bulan lalu tidak berubah karena ada pembelian baru.
 
 Halaman `/po/<token>` adalah tampilan publik purchase order. Halamannya tidak punya
 sesi, tidak boleh diindeks mesin pencari, dan hanya bisa dibuka selama tautannya
