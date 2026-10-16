@@ -68,6 +68,8 @@ async function setupWorkspace(prefix = 'Toko'): Promise<Workspace> {
   const workspaceId = workspace.rows[0]!.id
 
   await db.query('insert into workspace_settings (workspace_id) values ($1)', [workspaceId])
+  await db.query(`insert into workspace_subscriptions (workspace_id, plan_code) values ($1, 'usaha')
+    on conflict (workspace_id) do update set plan_code = 'usaha'`, [workspaceId])
   await db.query('insert into memberships (workspace_id, user_id, role) values ($1, $2, $3)', [
     workspaceId,
     userId,
@@ -150,6 +152,28 @@ async function recordStock(
 }
 
 describe('produk, kategori, dan lokasi (PRD 6.2)', () => {
+  it('tidak mengaktifkan kembali produk melebihi batas paket Gratis', async () => {
+    const context = await setupWorkspace('BatasProduk')
+    await db.query(`update workspace_subscriptions set plan_code = 'gratis' where workspace_id = $1`, [context.workspaceId])
+    const productId = await createProduct(context)
+    await db.query(`update products set status = 'nonaktif' where workspace_id = $1 and id = $2`, [context.workspaceId, productId])
+    await db.query(
+      `insert into products (workspace_id, sku, name, unit_code)
+       select $1, 'BULK-' || n, 'Produk ' || n, 'pcs' from generate_series(1, 100) n`,
+      [context.workspaceId],
+    )
+    const response = await app.inject({
+      method: 'PATCH', url: `/api/workspaces/${context.workspaceId}/products/${productId}`,
+      headers: { cookie: context.cookie }, payload: { status: 'aktif' },
+    })
+    expect(response.statusCode).toBe(409)
+    expect(response.json().error).toBe('batas_paket')
+    const product = await db.query<{ status: string }>(
+      'select status from products where workspace_id = $1 and id = $2', [context.workspaceId, productId],
+    )
+    expect(product.rows[0]!.status).toBe('nonaktif')
+  })
+
   it('membuat produk dan sku unik per workspace', async () => {
     const context = await setupWorkspace('Sku')
     const productId = await createProduct(context, { sku: 'KOPI-001' })

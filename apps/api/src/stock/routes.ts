@@ -1,8 +1,9 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import type { Database, Sql } from '@sahabat/db'
-import { can, deriveStockStatus, derivedStockStatusLabels, grantFor } from '@sahabat/shared'
+import { can, deriveStockStatus, derivedStockStatusLabels, grantFor, planCatalog, planLimitMessage } from '@sahabat/shared'
 import { AuthorizationError, loadWorkspaceRole, requireSession } from '../auth/session.ts'
 import { writeAudit } from '../auth/audit.ts'
+import { effectivePlan, ensureFeature, ensurePlanCapacity, lockWorkspace } from '../plans/service.ts'
 import { asNumber, directionForKind, recordMovement, StockError } from './movements.ts'
 import {
   createCategorySchema,
@@ -96,6 +97,7 @@ export function registerStockRoutes(app: FastifyInstance, deps: StockDeps): void
     const input = createProductSchema.parse(request.body)
 
     const product = await db.transaction(async (tx) => {
+      await ensurePlanCapacity(tx, context.workspaceId, 'produk')
       await tx.query(
         `insert into products
            (workspace_id, category_id, sku, name, unit_code,
@@ -236,10 +238,32 @@ export function registerStockRoutes(app: FastifyInstance, deps: StockDeps): void
       sets.push(`category_id = $${params.length}`)
     }
 
-    const updated = await db.query(
-      `update products set ${sets.join(', ')} where workspace_id = $1 and id = $2`,
-      params,
-    )
+    const updated = await db.transaction(async (tx) => {
+      await lockWorkspace(tx, context.workspaceId)
+      if (input.status === 'aktif') {
+        const current = await tx.query<{ status: string }>(
+          'select status from products where workspace_id = $1 and id = $2',
+          [context.workspaceId, productId],
+        )
+        if (current.rows[0]?.status !== 'aktif') {
+          const plan = await effectivePlan(tx, context.workspaceId)
+          const cap = planCatalog[plan].activeProducts
+          const active = await tx.query<{ count: string }>(
+            `select count(*)::text as count from products where workspace_id = $1 and status = 'aktif'`,
+            [context.workspaceId],
+          )
+          if (Number(active.rows[0]?.count ?? 0) + 1 > cap) {
+            throw new StockError('batas_paket', planLimitMessage('produk', cap), 409, {
+              resource: 'produk', limit: cap, used: Number(active.rows[0]?.count ?? 0), requested: 1, plan,
+            })
+          }
+        }
+      }
+      return tx.query(
+        `update products set ${sets.join(', ')} where workspace_id = $1 and id = $2`,
+        params,
+      )
+    })
 
     if (updated.affected === 0) {
       return reply.code(404).send({ error: 'tidak_ditemukan', message: 'Produk tidak ditemukan.' })
@@ -369,10 +393,13 @@ export function registerStockRoutes(app: FastifyInstance, deps: StockDeps): void
     const context = await requireRole(db, request, 'locations.manage')
     const input = createLocationSchema.parse(request.body)
 
-    const created = await db.query<{ id: string }>(
-      'insert into locations (workspace_id, name, code) values ($1, $2, $3) returning id',
-      [context.workspaceId, input.name, input.code ?? null],
-    ).catch((error: unknown) => {
+    const created = await db.transaction(async (tx) => {
+      await ensurePlanCapacity(tx, context.workspaceId, 'lokasi')
+      return tx.query<{ id: string }>(
+        'insert into locations (workspace_id, name, code) values ($1, $2, $3) returning id',
+        [context.workspaceId, input.name, input.code ?? null],
+      )
+    }).catch((error: unknown) => {
       if (isUniqueViolation(error)) {
         throw new StockError(
           'lokasi_sudah_ada',
@@ -419,10 +446,33 @@ export function registerStockRoutes(app: FastifyInstance, deps: StockDeps): void
       return reply.code(400).send({ error: 'data_tidak_valid', message: 'Tidak ada yang diubah.' })
     }
 
-    const updated = await db.query(
-      `update locations set ${sets.join(', ')} where workspace_id = $1 and id = $2`,
-      params,
-    )
+    const updated = await db.transaction(async (tx) => {
+      await lockWorkspace(tx, context.workspaceId)
+      if (input.isArchived === false) {
+        const current = await tx.query<{ is_archived: boolean }>(
+          'select is_archived from locations where workspace_id = $1 and id = $2',
+          [context.workspaceId, locationId],
+        )
+        if (current.rows[0]?.is_archived) {
+          const plan = await effectivePlan(tx, context.workspaceId)
+          const limit = planCatalog[plan].locations
+          const count = await tx.query<{ count: string }>(
+            'select count(*)::text as count from locations where workspace_id = $1 and not is_archived',
+            [context.workspaceId],
+          )
+          const used = Number(count.rows[0]?.count ?? 0)
+          if (used + 1 > limit) {
+            throw new StockError('batas_paket', planLimitMessage('lokasi', limit), 409, {
+              resource: 'lokasi', limit, used, requested: 1, plan,
+            })
+          }
+        }
+      }
+      return tx.query(
+        `update locations set ${sets.join(', ')} where workspace_id = $1 and id = $2`,
+        params,
+      )
+    })
     if (updated.affected === 0) {
       return reply.code(404).send({ error: 'tidak_ditemukan', message: 'Lokasi tidak ditemukan.' })
     }
@@ -709,18 +759,15 @@ function registerCountRoutes(app: FastifyInstance, deps: StockDeps): void {
     const context = await requireRole(db, request, 'stock.opname')
     const input = startCountSchema.parse(request.body)
 
-    const open = await db.query<{ id: string }>(
-      `select id from stock_counts where workspace_id = $1 and location_id = $2 and status = 'draf'`,
-      [context.workspaceId, input.locationId],
-    )
-    const resumed = open.rows[0]
-    if (resumed) {
-      // Satu lokasi hanya boleh punya satu sesi terbuka. Membuka yang baru akan
-      // membuat dua orang menghitung angka yang berbeda.
-      return reply.code(200).send({ countId: Number(resumed.id), resumed: true })
-    }
+    const result = await db.transaction(async (tx) => {
+      await ensureFeature(tx, context.workspaceId, 'stocktake')
+      const open = await tx.query<{ id: string }>(
+        `select id from stock_counts where workspace_id = $1 and location_id = $2 and status = 'draf'`,
+        [context.workspaceId, input.locationId],
+      )
+      const resumed = open.rows[0]
+      if (resumed) return { countId: Number(resumed.id), resumed: true }
 
-    const created = await db.transaction(async (tx) => {
       const location = await tx.query(
         'select 1 from locations where id = $1 and workspace_id = $2 and not is_archived',
         [input.locationId, context.workspaceId],
@@ -755,10 +802,10 @@ function registerCountRoutes(app: FastifyInstance, deps: StockDeps): void {
         )
       }
 
-      return countId
+      return { countId: Number(countId), resumed: false }
     })
 
-    return reply.code(201).send({ countId: Number(created), resumed: false })
+    return reply.code(result.resumed ? 200 : 201).send(result)
   })
 
   app.get('/api/workspaces/:workspaceId/stock/counts', async (request, reply) => {
@@ -875,7 +922,9 @@ function registerCountRoutes(app: FastifyInstance, deps: StockDeps): void {
     const productId = idFrom(paramsOf(request).productId)
     const input = recordCountItemSchema.parse(request.body)
 
-    const updated = await db.query(
+    const updated = await db.transaction(async (tx) => {
+      await ensureFeature(tx, context.workspaceId, 'stocktake')
+      return tx.query(
       `update stock_count_items i
           set counted_quantity = $3, counted_at = now(), counted_by = $4
          from stock_counts c
@@ -886,7 +935,8 @@ function registerCountRoutes(app: FastifyInstance, deps: StockDeps): void {
           and c.status = 'draf'
           and c.workspace_id = $5`,
       [countId, productId, input.countedQuantity, session.userId, context.workspaceId],
-    )
+      )
+    })
 
     if (updated.affected === 0) {
       return reply.code(409).send({
@@ -906,6 +956,7 @@ function registerCountRoutes(app: FastifyInstance, deps: StockDeps): void {
     const countId = idFrom(paramsOf(request).countId)
 
     const result = await db.transaction(async (tx) => {
+      await ensureFeature(tx, context.workspaceId, 'stocktake')
       const count = await tx.query<{
         id: string
         workspace_id: string

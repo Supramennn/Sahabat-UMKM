@@ -30,6 +30,8 @@ export const moduleNav: NavItem[] = [
   { href: '/pembelian/pembayaran', label: 'Pembayaran', short: 'Bayar' },
   { href: '/penjualan', label: 'Penjualan', short: 'Jual' },
   { href: '/pengeluaran', label: 'Pengeluaran', short: 'Biaya' },
+  { href: '/laporan', label: 'Laporan', short: 'Lapor' },
+  { href: '/pengaturan/paket', label: 'Paket dan langganan', short: 'Paket' },
   { href: '/penjualan/baru', label: 'Catat penjualan', short: 'Jual' },
   { href: '/penjualan/pelanggan', label: 'Pelanggan', short: 'Pelanggan' },
   { href: '/penjualan/impor', label: 'Impor penjualan', short: 'Impor' },
@@ -105,7 +107,7 @@ export function AppShell({
       </div>
 
       <nav className={styles.bottomNav} aria-label="Menu utama ponsel">
-        {['/stok', '/pembelian', '/penjualan', '/pengeluaran'].map((href) => {
+        {['/stok', '/pembelian', '/penjualan', '/laporan', '/pengeluaran'].map((href) => {
           const item = moduleNav.find((candidate) => candidate.href === href)!
           return (
             <a

@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useApp } from '../components/app-context'
 import { Alert } from '../components/ui'
-import { apiGet, errorMessage, type PurchaseOrder, type SupplierDebt } from '../../lib/api'
+import { apiGet, errorMessage, type PurchaseOrder, type SupplierDebt, type SubscriptionResponse } from '../../lib/api'
 import { PurchasingShell } from './pembelian-shell'
 import { formatQty, rupiah } from './bagian'
 import styles from './pembelian.module.css'
+import { can } from '@sahabat/shared'
 
 /**
  * Pembelian dalam satu layar: PO yang menunggu keputusan, PO yang sedang berjalan,
@@ -16,11 +17,13 @@ import styles from './pembelian.module.css'
 
 export default function PurchasingOverviewPage() {
   const app = useApp()
+  const canSeeDebt = can(app.role, 'reports.debt')
 
   const [orders, setOrders] = useState<PurchaseOrder[] | null>(null)
   const [debts, setDebts] = useState<SupplierDebt[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [plan, setPlan] = useState<SubscriptionResponse['subscription']['plan'] | null>(null)
 
   useEffect(() => {
     void apiGet<{ orders: PurchaseOrder[] }>(
@@ -35,11 +38,15 @@ export default function PurchasingOverviewPage() {
       setLoading(false)
     })
 
-    void apiGet<{ debts: SupplierDebt[] }>(`/api/workspaces/${app.workspaceId}/supplier-debts`).then(
-      (result) => {
-        if (result.ok) setDebts(result.data.debts)
-      },
-    )
+    void apiGet<SubscriptionResponse>(`/api/workspaces/${app.workspaceId}/subscription`).then((result) => {
+      if (!result.ok) return
+      setPlan(result.data.subscription.plan)
+      if (result.data.subscription.plan !== 'gratis' && canSeeDebt) {
+        void apiGet<{ debts: SupplierDebt[] }>(`/api/workspaces/${app.workspaceId}/supplier-debts`).then(
+          (debtsResult) => { if (debtsResult.ok) setDebts(debtsResult.data.debts) },
+        )
+      }
+    })
   }, [app.workspaceId])
 
   const menunggu = (orders ?? []).filter((item) => item.status === 'diajukan')
@@ -62,6 +69,7 @@ export default function PurchasingOverviewPage() {
         <span className={`${styles.badge} ${styles.badgeNeutral}`}>
           Diterima sebagian {berjalan.length}
         </span>
+        {canSeeDebt && plan !== 'gratis' ? <>
         <span
           className={`${styles.badge} ${
             lewatTempo.length > 0 ? styles.badgeDanger : styles.badgeNeutral
@@ -72,6 +80,7 @@ export default function PurchasingOverviewPage() {
         <span className={`${styles.badge} ${totalUtang > 0 ? styles.badgePending : styles.badgeOk}`}>
           Total utang {rupiah(totalUtang)}
         </span>
+        </> : plan === 'gratis' ? <a className={styles.paginationLink} href="/pengaturan/paket">Utang supplier tersedia di paket Usaha · Lihat paket</a> : null}
       </div>
 
       {loading ? (

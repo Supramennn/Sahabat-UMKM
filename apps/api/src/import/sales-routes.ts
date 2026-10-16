@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import type { Database, Sql } from '@sahabat/db'
 import { z } from 'zod'
 import { writeAudit } from '../auth/audit.ts'
+import { ensureFeature } from '../plans/service.ts'
 import { idFrom, paramsOf, requireCapability } from '../purchasing/routes.ts'
 import { cancelSale, createSale } from '../sales/service.ts'
 import { todayInWorkspace, toDateString } from '../purchasing/documents.ts'
@@ -227,6 +228,7 @@ export function registerSalesImportRoutes(app: FastifyInstance, deps: { db: Data
     }
 
     const hasil: SalesImportBody & { replayed: boolean } = await db.transaction(async (tx) => {
+      await ensureFeature(tx, context.workspaceId, 'sales')
       const ulangan = await tx.query<{ response_body: SalesImportBody | null }>(
         `select response_body from idempotency_keys
           where workspace_id = $1 and operation = 'import.sales' and key = $2`,

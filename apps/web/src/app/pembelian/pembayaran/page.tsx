@@ -7,6 +7,7 @@ import {
   apiGet,
   apiPost,
   errorMessage,
+  type SubscriptionResponse,
   type Supplier,
   type SuppliersResponse,
   type SupplierDebt,
@@ -14,6 +15,7 @@ import {
 import { PurchasingShell } from '../pembelian-shell'
 import { rupiah } from '../bagian'
 import styles from '../pembelian.module.css'
+import { can } from '@sahabat/shared'
 
 /**
  * PRD 6.3: pencatatan pembayaran supplier dengan tanggal, jumlah, metode, dan
@@ -28,6 +30,7 @@ const METHODS = ['Transfer', 'Tunai', 'Kartu', 'Cek', 'Lainnya'] as const
 
 export default function SupplierPaymentsPage() {
   const app = useApp()
+  const enabled = can(app.role, 'reports.debt')
 
   const [debts, setDebts] = useState<SupplierDebt[] | null>(null)
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -42,6 +45,7 @@ export default function SupplierPaymentsPage() {
     null,
   )
   const [busy, setBusy] = useState(false)
+  const [plan, setPlan] = useState<SubscriptionResponse['subscription']['plan'] | null>(null)
 
   async function load() {
     const [daftarUtang, daftarSupplier] = await Promise.all([
@@ -65,7 +69,16 @@ export default function SupplierPaymentsPage() {
   }
 
   useEffect(() => {
-    void load()
+    void apiGet<SubscriptionResponse>(`/api/workspaces/${app.workspaceId}/subscription`).then((result) => {
+      if (result.ok) {
+        setPlan(result.data.subscription.plan)
+        if (enabled) void load()
+        else setLoading(false)
+      } else {
+        setError(errorMessage(result.error, 'Informasi paket tidak bisa dimuat.'))
+        setLoading(false)
+      }
+    })
   }, [app.workspaceId])
 
   async function onSubmit(event: FormEvent) {
@@ -104,6 +117,11 @@ export default function SupplierPaymentsPage() {
 
   return (
     <PurchasingShell activeHref="/pembelian/pembayaran" title="Pembayaran supplier">
+      {plan === 'gratis' ? <div className={styles.state}>
+        <p className={styles.stateTitle}>Pembayaran dan utang tersedia di paket Usaha</p>
+        <p className={styles.stateBody}>Data pembelian tetap tersimpan. Pilih paket Usaha untuk mencatat pembayaran dan melihat saldo utang supplier.</p>
+        <a className={styles.paginationLink} href="/pengaturan/paket">Lihat paket</a>
+      </div> : plan !== null && enabled ? <>
       {error ? <Alert kind="error">{error}</Alert> : null}
       {success ? <Alert kind="success">{success}</Alert> : null}
 
@@ -248,6 +266,7 @@ export default function SupplierPaymentsPage() {
           </ul>
         </>
       ) : null}
+      </> : loading ? <p role="status">Memuat paket dan pembayaran supplier.</p> : null}
     </PurchasingShell>
   )
 }

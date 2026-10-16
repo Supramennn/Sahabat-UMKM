@@ -4,6 +4,7 @@ import type { Database, Transaction } from '@sahabat/db'
 import { can, grantFor, roundRupiah, type Role } from '@sahabat/shared'
 import { AuthorizationError, loadWorkspaceRole, requireSession } from '../auth/session.ts'
 import { writeAudit } from '../auth/audit.ts'
+import { assertFeature, effectivePlan, ensureFeature, lockWorkspace } from '../plans/service.ts'
 import { StockError, recordMovement, asNumber } from '../stock/movements.ts'
 import { allocateDocumentNumber, toDateString, todayInWorkspace } from './documents.ts'
 import {
@@ -55,19 +56,25 @@ export function registerPurchasingRoutes(app: FastifyInstance, deps: { db: Datab
 function registerSupplierRoutes(app: FastifyInstance, db: Database): void {
   app.get('/api/workspaces/:workspaceId/suppliers', async (request, reply) => {
     const context = await requireCapability(db, request, 'suppliers.manage')
-
-    const suppliers = await db.query<SupplierRow>(
-      `select s.id, s.name, s.contact_name, s.phone, s.email, s.address,
-              s.payment_term_days, s.note, s.is_archived,
-              coalesce((select sum(e.amount) from supplier_debt_entries e
-                         where e.supplier_id = s.id and e.workspace_id = s.workspace_id), 0)
-                - coalesce((select sum(p.amount) from supplier_payments p
-                             where p.supplier_id = s.id and p.workspace_id = s.workspace_id), 0) as debt
-         from suppliers s
-        where s.workspace_id = $1
-        order by s.is_archived asc, s.name asc`,
-      [context.workspaceId],
-    )
+    const suppliers = await db.transaction(async (tx) => {
+      await lockWorkspace(tx, context.workspaceId)
+      const plan = await effectivePlan(tx, context.workspaceId)
+      const suppliers = await tx.query<SupplierRow>(
+        `select s.id, s.name, s.contact_name, s.phone, s.email, s.address,
+                s.payment_term_days, s.note, s.is_archived,
+                case when $2 then
+                  coalesce((select sum(e.amount) from supplier_debt_entries e
+                             where e.supplier_id = s.id and e.workspace_id = s.workspace_id), 0)
+                    - coalesce((select sum(p.amount) from supplier_payments p
+                                 where p.supplier_id = s.id and p.workspace_id = s.workspace_id), 0)
+                else null::bigint end as debt
+           from suppliers s
+          where s.workspace_id = $1
+          order by s.is_archived asc, s.name asc`,
+        [context.workspaceId, plan !== 'gratis'],
+      )
+      return suppliers
+    })
 
     return reply.code(200).send({
       suppliers: suppliers.rows.map(supplierRow),
@@ -977,6 +984,7 @@ function registerReturnRoutes(app: FastifyInstance, db: Database): void {
     const input = createReturnSchema.parse(request.body)
 
     const hasil = await db.transaction(async (tx) => {
+      await ensureFeature(tx, context.workspaceId, 'returns')
       const ulangan = await tx.query<{ response_body: { returnId: number; number: string } | null }>(
         `select response_body from idempotency_keys
           where workspace_id = $1 and operation = 'purchase_return.create' and key = $2
@@ -1140,6 +1148,7 @@ function registerPaymentRoutes(app: FastifyInstance, db: Database): void {
     const input = createPaymentSchema.parse(request.body)
 
     const hasil = await db.transaction(async (tx) => {
+      await ensureFeature(tx, context.workspaceId, 'returns')
       const paidOn = input.paidOn
         ? new Date(`${input.paidOn}T00:00:00.000Z`)
         : await todayInWorkspace(tx, context.workspaceId)
@@ -1202,51 +1211,47 @@ function registerPaymentRoutes(app: FastifyInstance, db: Database): void {
     return reply.code(201).send(hasil)
   })
 
-  /** Utang per supplier dan per PO, dengan umur utang untuk yang lewat jatuh tempo. */
   app.get('/api/workspaces/:workspaceId/supplier-debts', async (request, reply) => {
     const context = await requireCapability(db, request, 'reports.debt')
-
-    // Parameter $1 dipakai di dalam subkueri, bukan kolom dari kueri luar.
-    // PostgreSQL menolak subkueri yang merujuk kolom yang tidak dikelompokkan,
-    // dan error itu baru muncul saat kueri benar-benar dijalankan.
-    const rows = await db.query<{
-      supplier_id: number
-      supplier_name: string
-      purchase_order_id: number | null
-      order_number: string | null
-      due_on: string | null
-      debt: number
-      paid: number
-      overdue_days: number | null
-    }>(
-      `select e.supplier_id, s.name as supplier_name,
-              e.purchase_order_id, o.number as order_number,
-              case when s.payment_term_days is not null
-                   then to_char(min(e.entry_date + s.payment_term_days), 'YYYY-MM-DD')
-              end as due_on,
-              sum(e.amount) as debt,
-              coalesce((
-                select sum(a.amount) from supplier_payment_allocations a
-                 where a.workspace_id = $1 and a.purchase_order_id = e.purchase_order_id
-              ), 0) as paid,
-              case when s.payment_term_days is not null
-                   then greatest(
-                     0,
-                     (current_date - min(e.entry_date + s.payment_term_days))::int
-                   )
-              end as overdue_days
-         from supplier_debt_entries e
-         join suppliers s on s.id = e.supplier_id and s.workspace_id = e.workspace_id
-         left join purchase_orders o on o.id = e.purchase_order_id and o.workspace_id = e.workspace_id
-        where e.workspace_id = $1
-        group by e.supplier_id, s.name, e.purchase_order_id, o.number, s.payment_term_days
-       having sum(e.amount) - coalesce((
-                select sum(a.amount) from supplier_payment_allocations a
-                 where a.workspace_id = $1 and a.purchase_order_id = e.purchase_order_id
-              ), 0) <> 0
-        order by overdue_days desc nulls last, s.name asc`,
-      [context.workspaceId],
-    )
+    const rows = await db.transaction(async (tx) => {
+      await lockWorkspace(tx, context.workspaceId)
+      await assertFeature(tx, context.workspaceId, 'returns')
+      return tx.query<{
+        supplier_id: number
+        supplier_name: string
+        purchase_order_id: number | null
+        order_number: string | null
+        due_on: string | null
+        debt: number
+        paid: number
+        overdue_days: number | null
+      }>(
+        `select e.supplier_id, s.name as supplier_name,
+                e.purchase_order_id, o.number as order_number,
+                case when s.payment_term_days is not null
+                     then to_char(min(e.entry_date + s.payment_term_days), 'YYYY-MM-DD')
+                end as due_on,
+                sum(e.amount) as debt,
+                coalesce((
+                  select sum(a.amount) from supplier_payment_allocations a
+                   where a.workspace_id = $1 and a.purchase_order_id = e.purchase_order_id
+                ), 0) as paid,
+                case when s.payment_term_days is not null
+                     then greatest(0, (current_date - min(e.entry_date + s.payment_term_days))::int)
+                end as overdue_days
+           from supplier_debt_entries e
+           join suppliers s on s.id = e.supplier_id and s.workspace_id = e.workspace_id
+           left join purchase_orders o on o.id = e.purchase_order_id and o.workspace_id = e.workspace_id
+          where e.workspace_id = $1
+          group by e.supplier_id, s.name, e.purchase_order_id, o.number, s.payment_term_days
+         having sum(e.amount) - coalesce((
+                  select sum(a.amount) from supplier_payment_allocations a
+                   where a.workspace_id = $1 and a.purchase_order_id = e.purchase_order_id
+                ), 0) <> 0
+          order by overdue_days desc nulls last, s.name asc`,
+        [context.workspaceId],
+      )
+    })
 
     return reply.code(200).send({
       debts: rows.rows.map((row) => {
@@ -1266,6 +1271,7 @@ function registerPaymentRoutes(app: FastifyInstance, db: Database): void {
       }),
     })
   })
+
 }
 
 /* Helper --------------------------------------------------------------------- */
@@ -1280,7 +1286,7 @@ interface SupplierRow {
   payment_term_days: number | null
   note: string | null
   is_archived: boolean
-  debt: number
+  debt: number | null
 }
 
 interface OrderRow {
@@ -1338,7 +1344,7 @@ function supplierRow(row: SupplierRow): Record<string, unknown> {
     paymentTermDays: row.payment_term_days,
     note: row.note,
     archived: row.is_archived,
-    outstanding: asNumber(row.debt),
+    outstanding: row.debt === null ? null : asNumber(row.debt),
   }
 }
 

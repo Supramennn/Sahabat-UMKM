@@ -73,6 +73,8 @@ async function setupToko(approvalRequired = false): Promise<Toko> {
     workspaceId,
     approvalRequired,
   ])
+  await db.query(`insert into workspace_subscriptions (workspace_id, plan_code) values ($1, 'usaha')
+    on conflict (workspace_id) do update set plan_code = 'usaha'`, [workspaceId])
   await db.query('insert into memberships (workspace_id, user_id, role) values ($1, $2, $3)', [
     workspaceId,
     owner.rows[0]!.id,

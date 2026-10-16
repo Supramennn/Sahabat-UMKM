@@ -281,7 +281,7 @@ export type Supplier = {
   paymentTermDays: number | null
   note: string | null
   archived: boolean
-  outstanding: number
+  outstanding: number | null
 }
 
 export type SuppliersResponse = { suppliers: Supplier[] }
@@ -523,4 +523,30 @@ export type ExpenseDetailResponse = {
     sizeBytes: number
     url: string
   }>
+}
+
+export type SubscriptionResponse = {
+  subscription: {
+    plan: 'gratis' | 'usaha' | 'bisnis'
+    status: 'aktif' | 'uji_coba'
+    trialStartedAt: string | null
+    trialEndsAt: string | null
+    trialUsed: boolean
+  }
+  plans: Array<{
+    code: 'gratis' | 'usaha' | 'bisnis'
+    name: string
+    proposedMonthlyPrice: number
+    activeProducts: number
+    members: number
+    locations: number
+    sales: boolean
+    returns: boolean
+    stocktake: boolean
+    xlsxExport: boolean
+    multilevelApproval: boolean
+    auditLogDays: number
+  }>
+  pricingNote: string
+  billingEnabled: false
 }

@@ -17,6 +17,7 @@ import {
   updatePaymentMethodSchema,
 } from './schemas.ts'
 import { cancelSale, createSale } from './service.ts'
+import { ensureFeature } from '../plans/service.ts'
 
 /**
  * Endpoint penjualan dan pelanggan (PRD 6.4).
@@ -126,12 +127,15 @@ function registerCustomerRoutes(app: FastifyInstance, db: Database): void {
     const context = await requireCapability(db, request, 'sales.record')
     const input = createCustomerSchema.parse(request.body)
 
-    const created = await db.query<{ id: string }>(
-      `insert into customers (workspace_id, name, phone, note)
-       values ($1, $2, $3, $4)
-       returning id`,
-      [context.workspaceId, input.name, input.phone, input.note],
-    )
+    const created = await db.transaction(async (tx) => {
+      await ensureFeature(tx, context.workspaceId, 'sales')
+      return tx.query<{ id: string }>(
+        `insert into customers (workspace_id, name, phone, note)
+         values ($1, $2, $3, $4)
+         returning id`,
+        [context.workspaceId, input.name, input.phone, input.note],
+      )
+    })
 
     await writeAudit(db, {
       workspaceId: context.workspaceId,
@@ -150,7 +154,9 @@ function registerCustomerRoutes(app: FastifyInstance, db: Database): void {
     const customerId = idFrom(paramsOf(request).customerId)
     const input = updateCustomerSchema.parse(request.body)
 
-    const updated = await db.query<{ is_archived: boolean }>(
+    const updated = await db.transaction(async (tx) => {
+      await ensureFeature(tx, context.workspaceId, 'sales')
+      return tx.query<{ is_archived: boolean }>(
       `update customers
           set name = coalesce($3, name),
               phone = case when $4 then $5 else phone end,
@@ -169,6 +175,7 @@ function registerCustomerRoutes(app: FastifyInstance, db: Database): void {
         input.isArchived ?? null,
       ],
     )
+    })
 
     if (!updated.rows[0]) {
       throw new StockError('pelanggan_tidak_ditemukan', 'Pelanggan tidak ditemukan.', 404)
@@ -206,10 +213,13 @@ function registerPaymentMethodRoutes(app: FastifyInstance, db: Database): void {
     const context = await requireOwner(db, request)
     const input = createPaymentMethodSchema.parse(request.body)
 
-    const created = await db.query<{ id: string }>(
+    const created = await db.transaction(async (tx) => {
+      await ensureFeature(tx, context.workspaceId, 'sales')
+      return tx.query<{ id: string }>(
       `insert into payment_methods (workspace_id, name) values ($1, $2) returning id`,
       [context.workspaceId, input.name],
-    )
+      )
+    })
 
     await writeAudit(db, {
       workspaceId: context.workspaceId,
@@ -228,13 +238,16 @@ function registerPaymentMethodRoutes(app: FastifyInstance, db: Database): void {
     const methodId = idFrom(paramsOf(request).methodId)
     const input = updatePaymentMethodSchema.parse(request.body)
 
-    const updated = await db.query(
+    const updated = await db.transaction(async (tx) => {
+      await ensureFeature(tx, context.workspaceId, 'sales')
+      return tx.query(
       `update payment_methods
           set name = coalesce($3, name),
               is_archived = coalesce($4, is_archived)
         where id = $1 and workspace_id = $2`,
       [methodId, context.workspaceId, input.name ?? null, input.isArchived ?? null],
-    )
+      )
+    })
 
     if (updated.affected === 0) {
       throw new StockError('metode_tidak_ditemukan', 'Metode pembayaran tidak ditemukan.', 404)
@@ -337,6 +350,7 @@ function registerSaleRoutes(app: FastifyInstance, db: Database): void {
     const input = createSaleSchema.parse(request.body)
 
     const hasil = await db.transaction(async (tx) => {
+      await ensureFeature(tx, context.workspaceId, 'sales')
       const hariIni = input.soldOn ?? toDateString(await todayInWorkspace(tx, context.workspaceId))
 
       if (input.customerId) {
@@ -505,6 +519,7 @@ function registerSaleRoutes(app: FastifyInstance, db: Database): void {
     const input = cancelSaleSchema.parse(request.body ?? {})
 
     const hasil = await db.transaction(async (tx) => {
+      await ensureFeature(tx, context.workspaceId, 'sales')
       const hariIni = input.cancelledOn ?? toDateString(await todayInWorkspace(tx, context.workspaceId))
       return cancelSale(tx, {
         workspaceId: context.workspaceId,

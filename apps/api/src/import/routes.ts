@@ -4,6 +4,7 @@ import { AuthorizationError, loadWorkspaceRole } from '../auth/session.ts'
 import { writeAudit } from '../auth/audit.ts'
 import { StockError } from '../stock/movements.ts'
 import { can } from '@sahabat/shared'
+import { ensurePlanCapacity } from '../plans/service.ts'
 import {
   hashImportContent,
   importPreviewSchema,
@@ -202,6 +203,8 @@ export function registerImportRoutes(app: FastifyInstance, deps: { db: Database 
           })
           continue
         }
+
+        await ensurePlanCapacity(tx, context.workspaceId, 'produk')
 
         const inserted = await tx.query<{ id: number }>(
           `insert into products

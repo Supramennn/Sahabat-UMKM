@@ -33,6 +33,8 @@ const HALAMAN = [
   { path: '/pengeluaran', nama: 'daftar pengeluaran' },
   { path: '/pengeluaran/baru', nama: 'catat pengeluaran' },
   { path: '/pengeluaran/kategori', nama: 'kategori pengeluaran' },
+  { path: '/pengaturan/paket', nama: 'paket dan langganan' },
+  { path: '/laporan', nama: 'laporan usaha' },
 ]
 
 test.describe('halaman autentikasi', () => {

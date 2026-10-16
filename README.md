@@ -125,6 +125,34 @@ docs/
 | Stok | barang, tambah barang, detail barang dan foto, input stok, riwayat, perlu perhatian, impor CSV, lokasi, kategori, stok opname | 6.2, 6.8 |
 | Pembelian | ringkasan, supplier, purchase order dan detailnya, penerimaan, retur pembelian, pembayaran supplier | 6.3 |
 | Penjualan | daftar penjualan, catat penjualan, detail dan pembatalan, pelanggan, impor CSV | 6.4, 6.8 |
+| Pengeluaran | daftar, pencatatan, detail, kategori, lampiran foto/PDF | 6.5 |
+
+## Paket dan langganan
+
+Workspace dimulai pada paket Gratis. Katalog paket, batas produk aktif, anggota,
+lokasi, fitur penjualan, retur/utang, opname, dan uji coba 14 hari diterapkan di API;
+permintaan bersamaan untuk menambah pemakaian dibatasi dengan kunci workspace.
+Workspace baru mendapat baris langganan melalui migrasi database. Harga di katalog
+masih usulan PRD, pembayaran dan penagihan belum aktif, dan uji coba tidak memerlukan
+kartu. Setelah masa uji coba berakhir, workspace kembali ke Gratis tanpa menghapus
+datanya. Fitur yang tidak termasuk paket ditolak pada server, termasuk untuk sesi
+opname yang sudah terbuka. Penagihan produksi tetap ditahan sampai harga final,
+penjual dan rekening, kewajiban pajak, kebijakan refund, serta dokumen hukum pada
+`docs/KEPUTUSAN-TEKNIS.md` dikonfirmasi.
+
+Fase 6 selesai: migrasi dan katalog paket, aktivasi uji coba, downgrade otomatis,
+pemeriksaan batas dan fitur di server, serta pengaturan paket. Verifikasi terakhir
+lulus: `npm run verify` (352 tes lulus, 8 dilewati), `npm run test:contrast` (33
+pasangan lolos), `npm run test:postgres:local` (9 lulus, 1 dilewati), build produksi,
+dan `npm run test:e2e` (128 lulus di ponsel dan desktop). Billing belum tersedia;
+harga yang ditampilkan tetap usulan PRD, bukan harga final.
+
+Fase 7 menambahkan laporan posisi stok dan nilai persediaan, ledger pergerakan stok,
+hasil stok opname, pembelian dan retur, utang supplier, penjualan per produk/lokasi,
+laba kotor, pengeluaran operasional, serta ringkasan bulanan. Halaman laporan menyediakan
+filter tanggal, lokasi, atau supplier yang relevan, definisi metrik, cetak, CSV, dan
+XLSX. Akses laporan dan ekspor diperiksa kembali di API per workspace dan peran;
+ekspor XLSX hanya tersedia mulai paket Usaha. Laporan tidak menampilkan laba bersih.
 
 Penjualan memakai `recordMovement` yang sama dengan stok keluar, jadi penjualan yang
 menyentuh barang terakhir menghasilkan satu transaksi berhasil dan satu penolakan,

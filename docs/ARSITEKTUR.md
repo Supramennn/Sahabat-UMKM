@@ -3,6 +3,27 @@
 Menjelaskan keputusan yang sudah dijalankan di Fase 0. Untuk keputusan yang masih
 usulan dan belum dikunci, lihat `docs/KEPUTUSAN-TEKNIS.md`.
 
+## Paket workspace
+
+Migrasi `0009_subscriptions.sql` membuat langganan Gratis otomatis saat workspace
+baru dibuat, sekaligus mengisi workspace yang sudah ada. `apps/api/src/plans/service.ts`
+menyimpan aturan paket dan mengambil kunci baris workspace sebelum memeriksa kuota
+atau fitur, sehingga pergantian paket dan penambahan pemakaian tidak saling mendahului.
+Masa uji coba yang kedaluwarsa diturunkan saat paket dibaca atau operasi berfitur
+dijalankan. Pembayaran produksi sengaja belum aktif sampai keputusan usaha dan hukum
+pada `docs/KEPUTUSAN-TEKNIS.md` diselesaikan. Fase 6 telah diverifikasi dengan lint,
+typecheck, 352 tes unit/integrasi, tes PostgreSQL lokal, pemeriksaan kontras, build
+produksi, dan 128 tes E2E. Detail hasil dan batasan billing dicatat di `README.md`.
+
+## Laporan dan ekspor
+
+`apps/api/src/reports/service.ts` membangun sembilan laporan dari tabel bisnis, dengan
+workspace dan izin per laporan diperiksa oleh `apps/api/src/reports/routes.ts`. CSV
+dan XLSX memakai hasil query dan filter yang sama; paket Gratis mendapat CSV, sedangkan
+ekspor XLSX melewati pemeriksaan fitur paket Usaha. Halaman `apps/web/src/app/laporan`
+menampilkan definisi metrik, filter yang sesuai laporan, tampilan cetak, serta keadaan
+memuat, kosong, dan galat.
+
 ## Bentuk sistem
 
 Modular monolith, sesuai PRD 13. Dua proses yang berjalan terpisah:
@@ -103,6 +124,18 @@ Dua jalur, dan keduanya lewat modul yang sama:
 
 Halaman web `/po/<token>` diambil di server dengan `cache: 'no-store'` dan
 `metadata.robots` berisi `noindex`, sesuai A-11.
+
+## Pengeluaran dan lampiran
+
+Pengeluaran dan kategorinya terikat workspace. Foreign key komposit memastikan
+kategori, purchase order opsional, dan lampiran tidak bisa menunjuk ke workspace
+lain. Satu PO hanya boleh ditautkan ke satu pengeluaran, dengan indeks unik di
+database sebagai perlindungan akhir dari pencatatan ganda.
+
+Catatan pengeluaran dan lampiran bersifat append-only. Lampiran dibatasi jumlah dan
+ukuran, jenisnya diperiksa dari byte berkas, dan unduhan memerlukan izin workspace.
+Nama berkas pengguna hanya disimpan untuk tampilan, tidak dipakai sebagai kunci
+penyimpanan.
 
 ## Uang dan waktu
 

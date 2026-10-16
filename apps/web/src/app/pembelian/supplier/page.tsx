@@ -124,7 +124,9 @@ export default function SuppliersPage() {
               <li key={supplier.id} className={styles.card}>
                 <span className={styles.cardRow}>
                   <span className={styles.cardName}>{supplier.name}</span>
-                  {supplier.outstanding > 0 ? (
+                  {supplier.outstanding === null ? (
+                    <span className={`${styles.badge} ${styles.badgeNeutral}`}>Utang tersedia di paket Usaha</span>
+                  ) : supplier.outstanding > 0 ? (
                     <span className={`${styles.badge} ${styles.badgePending}`}>
                       Utang {formatRupiah(supplier.outstanding)}
                     </span>
@@ -169,7 +171,9 @@ export default function SuppliersPage() {
                     <td className={styles.muted}>
                       {supplier.paymentTermDays ? `${supplier.paymentTermDays} hari` : '-'}
                     </td>
-                    <td className={styles.numeric}>{formatRupiah(supplier.outstanding)}</td>
+                    <td className={styles.numeric}>
+                      {supplier.outstanding === null ? 'Tersedia di paket Usaha' : formatRupiah(supplier.outstanding)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

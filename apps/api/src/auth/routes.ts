@@ -3,6 +3,7 @@ import type { Database, Sql } from '@sahabat/db'
 import { hashForLookup, hashToken } from './token.ts'
 import { checkPasswordPolicy, dummyPasswordHash, hashPassword, passwordMatchesAny } from './password.ts'
 import { writeAudit } from './audit.ts'
+import { ensurePlanCapacity } from '../plans/service.ts'
 import { consumeMfaRecoveryCode, mfaVerifySchema } from './mfa-routes.ts'
 import { decryptSecret, verifyMfaToken } from './mfa.ts'
 import { loadMfaGate } from './mfa-policy.ts'
@@ -917,6 +918,10 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
 
       await tx.query('insert into workspace_settings (workspace_id) values ($1)', [workspaceId])
       await tx.query(
+        'insert into workspace_subscriptions (workspace_id) values ($1) on conflict (workspace_id) do nothing',
+        [workspaceId],
+      )
+      await tx.query(
         `insert into memberships (workspace_id, user_id, role) values ($1, $2, 'owner')`,
         [workspaceId, session.userId],
       )
@@ -1079,11 +1084,14 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
 
     const rawToken = cryptoRandomToken()
 
-    await db.query(
-      `insert into workspace_invitations (workspace_id, email, role, token_hash, invited_by, expires_at)
-       values ($1, $2, $3, $4, $5, now() + make_interval(days => $6))`,
-      [id, input.email, input.role, hashToken(rawToken), session.userId, INVITATION_TTL_DAYS],
-    )
+    await db.transaction(async (tx) => {
+      await ensurePlanCapacity(tx, id, 'anggota')
+      await tx.query(
+        `insert into workspace_invitations (workspace_id, email, role, token_hash, invited_by, expires_at)
+         values ($1, $2, $3, $4, $5, now() + make_interval(days => $6))`,
+        [id, input.email, input.role, hashToken(rawToken), session.userId, INVITATION_TTL_DAYS],
+      )
+    })
 
     await deps.sendEmail({
       to: input.email,
@@ -1156,6 +1164,8 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       if (claimed.affected === 0) {
         throw new AuthorizationError('Undangan tidak berlaku atau sudah dipakai.')
       }
+
+      await ensurePlanCapacity(tx, matched.workspaceId, 'anggota')
 
       await tx.query(
         `insert into memberships (workspace_id, user_id, role, invited_by)
