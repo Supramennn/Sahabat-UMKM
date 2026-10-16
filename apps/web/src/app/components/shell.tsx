@@ -29,6 +29,7 @@ export const moduleNav: NavItem[] = [
   { href: '/pembelian/retur', label: 'Retur pembelian', short: 'Retur' },
   { href: '/pembelian/pembayaran', label: 'Pembayaran', short: 'Bayar' },
   { href: '/penjualan', label: 'Penjualan', short: 'Jual' },
+  { href: '/pengeluaran', label: 'Pengeluaran', short: 'Biaya' },
   { href: '/penjualan/baru', label: 'Catat penjualan', short: 'Jual' },
   { href: '/penjualan/pelanggan', label: 'Pelanggan', short: 'Pelanggan' },
   { href: '/penjualan/impor', label: 'Impor penjualan', short: 'Impor' },
@@ -104,16 +105,19 @@ export function AppShell({
       </div>
 
       <nav className={styles.bottomNav} aria-label="Menu utama ponsel">
-        {moduleNav.slice(0, 4).map((item) => (
-          <a
-            key={item.href}
-            className={item.href === activeHref ? styles.bottomLinkActive : styles.bottomLink}
-            href={item.href}
-            aria-current={item.href === activeHref ? 'page' : undefined}
-          >
-            {item.short}
-          </a>
-        ))}
+        {['/stok', '/pembelian', '/penjualan', '/pengeluaran'].map((href) => {
+          const item = moduleNav.find((candidate) => candidate.href === href)!
+          return (
+            <a
+              key={item.href}
+              className={item.href === activeHref ? styles.bottomLinkActive : styles.bottomLink}
+              href={item.href}
+              aria-current={item.href === activeHref ? 'page' : undefined}
+            >
+              {item.short}
+            </a>
+          )
+        })}
       </nav>
     </div>
   )

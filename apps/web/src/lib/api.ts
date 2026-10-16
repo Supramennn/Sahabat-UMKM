@@ -304,6 +304,11 @@ export type PurchaseOrder = {
   createdByName: string
 }
 
+export type PurchaseOrdersResponse = {
+  orders: PurchaseOrder[]
+  pagination: { limit: number; offset: number; total: number }
+}
+
 export type PurchaseOrderItem = {
   id: number
   productId: number
@@ -474,4 +479,48 @@ export type SalesImportResult = {
   firstNumber: string | null
   lastNumber: string | null
   totalAmount: number
+}
+
+export type Expense = {
+  id: number
+  spentOn: string
+  categoryName: string
+  description: string
+  amount: number
+  reference: string | null
+  purchaseOrderNumber: string | null
+  createdByName: string
+  attachmentCount: number
+}
+
+export type ExpensesResponse = {
+  expenses: Expense[]
+  summary: { totalAmount: number }
+  pagination: { limit: number; offset: number; total: number }
+}
+
+export type ExpenseCategory = {
+  id: number
+  name: string
+  archived: boolean
+  expenseCount: number
+  totalAmount: number
+  looksLikeStockPurchase: boolean
+}
+
+export type ExpenseCategoriesResponse = { categories: ExpenseCategory[] }
+
+export type ExpenseDetailResponse = {
+  expense: Expense & {
+    purchaseOrderId: number | null
+    createdAt: string
+  }
+  attachments: Array<{
+    id: number
+    kind: string
+    fileName: string
+    contentType: string
+    sizeBytes: number
+    url: string
+  }>
 }

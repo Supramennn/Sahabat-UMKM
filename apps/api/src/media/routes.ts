@@ -5,6 +5,7 @@ import { writeAudit } from '../auth/audit.ts'
 import { can } from '@sahabat/shared'
 import {
   acceptedImageType,
+  isExpenseAttachmentKey,
   isProductPhotoKey,
   LocalObjectStorage,
   localStorageDirectory,
@@ -145,10 +146,23 @@ export function registerMediaRoutes(app: FastifyInstance, deps: { db: Database }
     const workspaceId = Number(params.workspaceId)
     const key = params.key ?? ''
 
-    const { workspaceId: id } = await loadWorkspaceRole(db, request, workspaceId)
+    const { workspaceId: id, role } = await loadWorkspaceRole(db, request, workspaceId)
 
-    if (!isProductPhotoKey(key, id)) {
+    if (!isProductPhotoKey(key, id) && !isExpenseAttachmentKey(key, id)) {
       return reply.code(404).send({ error: 'tidak_ditemukan', message: 'Berkas tidak ditemukan.' })
+    }
+
+    if (isExpenseAttachmentKey(key, id)) {
+      if (!can(role, 'reports.expenses')) {
+        throw new AuthorizationError('Anda tidak punya izin untuk melihat lampiran pengeluaran.')
+      }
+      const attachment = await db.query(
+        'select 1 from expense_attachments where workspace_id = $1 and object_key = $2',
+        [id, key],
+      )
+      if (attachment.rows.length === 0) {
+        return reply.code(404).send({ error: 'tidak_ditemukan', message: 'Berkas tidak ditemukan.' })
+      }
     }
 
     const objek = await storage.get(key)
@@ -157,13 +171,17 @@ export function registerMediaRoutes(app: FastifyInstance, deps: { db: Database }
     }
 
     // Gambar dari storage lokal tidak boleh dipakai untuk memuat skrip, dan
-    // unduhan otomatis tidak diinginkan untuk foto barang.
+    // unduhan otomatis tidak diinginkan untuk foto barang. Lampiran PDF diberi
+    // disposition attachment supaya berkas tidak pernah dirender di dalam origins
+    // API yang sama.
+    const lampiranPdf = key.endsWith('.pdf')
+
     return reply
       .code(200)
       .header('Content-Type', objek.contentType)
       .header('Content-Security-Policy', "default-src 'none'; img-src 'self'")
       .header('X-Content-Type-Options', 'nosniff')
-      .header('Content-Disposition', 'inline')
+      .header('Content-Disposition', lampiranPdf ? 'attachment' : 'inline')
       .send(objek.data)
   })
 }

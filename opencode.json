@@ -1,0 +1,20 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "tokengateway/gpt-6-luna",
+  "provider": {
+    "tokengateway": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "TokenGateway",
+      "options": {
+        "baseURL": "https://tokengateway.ai.id/v1",
+        "apiKey": "tk-gw-eb2c1e0d8355c96709126dbb8837619f90dad38259bda0381440f536d1296ca4"
+      },
+      "models": {
+        "gpt-6-luna": {
+          "name": "gpt-6-luna",
+          "modalities": {"input": ["text", "image"], "output": ["text"]}
+        }
+      }
+    }
+  }
+}

@@ -15,6 +15,7 @@ import { registerMediaRoutes } from './media/routes.ts'
 import { registerPurchasingRoutes } from './purchasing/routes.ts'
 import { registerPurchaseOrderShareRoutes } from './purchasing/share.ts'
 import { registerSalesRoutes } from './sales/routes.ts'
+import { registerExpenseRoutes } from './expenses/routes.ts'
 import { StockError } from './stock/movements.ts'
 import { createLogEmailProvider, type EmailProvider } from './services/email.ts'
 
@@ -110,6 +111,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     registerPurchasingRoutes(app, { db: options.db })
     registerPurchaseOrderShareRoutes(app, { db: options.db, webOrigin: origin, sendEmail: deps.sendEmail })
     registerSalesRoutes(app, { db: options.db })
+    registerExpenseRoutes(app, { db: options.db })
   }
 
   app.get('/health', async () => ({ status: 'ok' }))

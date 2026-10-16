@@ -12,3 +12,4 @@ export {
   roundRupiah,
 } from './stock.ts'
 export type { DerivedStockStatus, MovingAverageInput, MovingAverageResult } from './stock.ts'
+export { looksLikeStockPurchase, stockPurchaseWarning } from './expenses.ts'

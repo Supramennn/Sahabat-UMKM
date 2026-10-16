@@ -30,6 +30,9 @@ const HALAMAN = [
   { path: '/penjualan/baru', nama: 'catat penjualan' },
   { path: '/penjualan/pelanggan', nama: 'pelanggan' },
   { path: '/penjualan/impor', nama: 'impor penjualan' },
+  { path: '/pengeluaran', nama: 'daftar pengeluaran' },
+  { path: '/pengeluaran/baru', nama: 'catat pengeluaran' },
+  { path: '/pengeluaran/kategori', nama: 'kategori pengeluaran' },
 ]
 
 test.describe('halaman autentikasi', () => {

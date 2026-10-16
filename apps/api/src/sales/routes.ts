@@ -3,6 +3,7 @@ import type { Database } from '@sahabat/db'
 import { can, type Role } from '@sahabat/shared'
 import { AuthorizationError, loadWorkspaceRole } from '../auth/session.ts'
 import { writeAudit } from '../auth/audit.ts'
+import { queryFlag } from '../common/http.ts'
 import { asNumber, StockError } from '../stock/movements.ts'
 import { idFrom, paramsOf, requireCapability } from '../purchasing/routes.ts'
 import { todayInWorkspace, toDateString } from '../purchasing/documents.ts'
@@ -180,7 +181,7 @@ function registerCustomerRoutes(app: FastifyInstance, db: Database): void {
 function registerPaymentMethodRoutes(app: FastifyInstance, db: Database): void {
   app.get('/api/workspaces/:workspaceId/payment-methods', async (request) => {
     const context = await requireCapability(db, request, 'products.manage')
-    const includeArchived = paramsOf(request).archived === 'true'
+    const includeArchived = queryFlag(request, 'archived')
 
     const methods = await db.query<PaymentMethodRow>(
       `select id, name, is_archived
@@ -291,7 +292,7 @@ function registerSaleRoutes(app: FastifyInstance, db: Database): void {
       status: string
       item_count: string
     }>(
-      `select s.id, s.number, s.sold_on, l.name as location_name,
+      `select s.id, s.number, to_char(s.sold_on, 'YYYY-MM-DD') as sold_on, l.name as location_name,
               c.name as customer_name, s.payment_method_label,
               s.total_amount, s.cost_total, s.status,
               (select count(*) from sale_items si where si.sale_id = s.id) as item_count
@@ -414,7 +415,7 @@ function registerSaleRoutes(app: FastifyInstance, db: Database): void {
       note: string | null
       created_by_name: string
     }>(
-      `select s.id, s.number, s.sold_on, s.location_id, l.name as location_name,
+      `select s.id, s.number, to_char(s.sold_on, 'YYYY-MM-DD') as sold_on, s.location_id, l.name as location_name,
               s.customer_id, c.name as customer_name, s.payment_method_label,
               s.subtotal, s.discount_total, s.total_amount, s.cost_total,
               s.status, s.cancel_reason, s.cancelled_at, s.note,

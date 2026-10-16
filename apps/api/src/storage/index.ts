@@ -66,6 +66,27 @@ export function isProductPhotoKey(key: string, workspaceId: number): boolean {
   return new RegExp(`^${workspaceId}/produk/\\d+\\.(jpg|png|webp)$`).test(key)
 }
 
+/**
+ * Lampiran pengeluaran (PRD 6.5) boleh berupa foto atau PDF. Ekstensi diambil dari
+ * jenis berkas yang diterima server, bukan dari nama berkas yang dikirim peramban.
+ */
+export const ACCEPTED_PDF: AcceptedImage = { extension: 'pdf', contentType: 'application/pdf' }
+
+export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
+
+export function attachmentKey(
+  workspaceId: number,
+  expenseId: number,
+  attachmentToken: string,
+  extension: string,
+): string {
+  return `${workspaceId}/pengeluaran/${expenseId}-${attachmentToken}.${extension}`
+}
+
+export function isExpenseAttachmentKey(key: string, workspaceId: number): boolean {
+  return new RegExp(`^${workspaceId}/pengeluaran/\\d+-[0-9a-f-]{36}\\.(jpg|png|webp|pdf)$`).test(key)
+}
+
 export class LocalObjectStorage implements ObjectStorage {
   private readonly root: string
 
@@ -97,7 +118,9 @@ export class LocalObjectStorage implements ObjectStorage {
     try {
       const data = await readFile(target)
       const extension = target.slice(target.lastIndexOf('.') + 1)
-      const accepted = Object.values(ACCEPTED_IMAGES).find((item) => item.extension === extension)
+      const accepted = [ACCEPTED_PDF, ...Object.values(ACCEPTED_IMAGES)].find(
+        (item) => item.extension === extension,
+      )
       return { data, contentType: accepted?.contentType ?? 'application/octet-stream' }
     } catch {
       return null
@@ -113,7 +136,7 @@ export class LocalObjectStorage implements ObjectStorage {
 
 /**
  * Penyimpanan yang tidak dikonfigurasi. Endpoint yang butuh berkas menolak dengan
- * pesan yang jelas, bukan diam-diam menyimpan ke tempat yang tidakebenar.
+ * pesan yang jelas, bukan diam-diam menyimpan ke tempat yang tidak benar.
  */
 export class UnconfiguredStorage implements ObjectStorage {
   async put(): Promise<StoredObject> {
