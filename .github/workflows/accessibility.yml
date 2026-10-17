@@ -1,8 +1,10 @@
 name: Aksesibilitas
 
 on:
+  # main dan master sama-sama dicantumkan supaya penggantian nama cabang
+  # sewaktu-waktu tidak diam-diam mematikan CI.
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
 
 jobs:

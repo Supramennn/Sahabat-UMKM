@@ -1,8 +1,10 @@
 name: Verify
 
 on:
+  # main dan master sama-sama dicantumkan supaya penggantian nama cabang
+  # sewaktu-waktu tidak diam-diam mematikan CI.
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
 
 jobs:
@@ -40,9 +42,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER:CiPostgres
-          POSTGRES_PASSWORD:ci-test-password
-          POSTGRES_DB:ci_test
+          POSTGRES_USER: cipostgres
+          POSTGRES_PASSWORD: ci-test-password
+          POSTGRES_DB: ci_test
         ports:
           - 5432:5432
         options: >-
