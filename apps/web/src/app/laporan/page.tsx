@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useApp } from '../components/app-context'
+import { useApp, AppProvider } from '../components/app-context'
 import { AppShell } from '../components/shell'
 import { ErrorState } from '../components/ui'
 import { API_BASE, apiGet, errorMessage, type LocationsResponse } from '../../lib/api'
@@ -31,6 +31,14 @@ const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'ID
 const rupiahColumns = new Set(['averageCost', 'inventoryValue', 'receivedValue', 'returnedValue', 'netValue', 'debt', 'paid', 'outstanding', 'sales', 'cost', 'grossProfit', 'amount', 'purchases', 'expenses'])
 
 export default function ReportsPage() {
+  return (
+    <AppProvider title="Laporan usaha">
+      <ReportsPageContent />
+    </AppProvider>
+  )
+}
+
+function ReportsPageContent() {
   const app = useApp()
   const [kind, setKind] = useState<ReportKind>('stock')
   const [from, setFrom] = useState('')

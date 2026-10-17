@@ -42,7 +42,7 @@ export default function MfaVerifyPage() {
       return
     }
 
-    router.push('/pengaturan/akun')
+    router.push('/dashboard')
   }
 
   return (

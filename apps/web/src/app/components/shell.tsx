@@ -18,6 +18,7 @@ export interface NavItem {
 }
 
 export const moduleNav: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard', short: 'Dasbor' },
   { href: '/stok', label: 'Stok', short: 'Stok' },
   { href: '/stok/input', label: 'Catat stok', short: 'Catat' },
   { href: '/stok/peringatan', label: 'Perlu perhatian', short: 'Perhatian' },
@@ -32,6 +33,7 @@ export const moduleNav: NavItem[] = [
   { href: '/pengeluaran', label: 'Pengeluaran', short: 'Biaya' },
   { href: '/laporan', label: 'Laporan', short: 'Lapor' },
   { href: '/pengaturan/paket', label: 'Paket dan langganan', short: 'Paket' },
+  { href: '/pengaturan/impor-ekspor', label: 'Impor dan ekspor', short: 'Data' },
   { href: '/penjualan/baru', label: 'Catat penjualan', short: 'Jual' },
   { href: '/penjualan/pelanggan', label: 'Pelanggan', short: 'Pelanggan' },
   { href: '/penjualan/impor', label: 'Impor penjualan', short: 'Impor' },
@@ -39,6 +41,18 @@ export const moduleNav: NavItem[] = [
   { href: '/stok/opname', label: 'Stok opname', short: 'Opname' },
   { href: '/stok/lokasi', label: 'Lokasi', short: 'Lokasi' },
   { href: '/pengaturan/akun', label: 'Pengaturan akun', short: 'Akun' },
+]
+
+/**
+ * Navigasi bawah ponsel sesuai PRD 10. Empat tujuan utama tampil langsung,
+ * sisanya (termasuk Laporan dan Pengeluaran) dikumpulkan di halaman Lainnya.
+ */
+export const bottomNav: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard', short: 'Dasbor' },
+  { href: '/stok', label: 'Stok', short: 'Stok' },
+  { href: '/pembelian', label: 'Pembelian', short: 'Beli' },
+  { href: '/penjualan', label: 'Penjualan', short: 'Jual' },
+  { href: '/lainnya', label: 'Menu lainnya', short: 'Lainnya' },
 ]
 
 export function AppShell({
@@ -107,8 +121,7 @@ export function AppShell({
       </div>
 
       <nav className={styles.bottomNav} aria-label="Menu utama ponsel">
-        {['/stok', '/pembelian', '/penjualan', '/laporan', '/pengeluaran'].map((href) => {
-          const item = moduleNav.find((candidate) => candidate.href === href)!
+        {bottomNav.map((item) => {
           return (
             <a
               key={item.href}

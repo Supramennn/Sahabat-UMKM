@@ -47,7 +47,7 @@ export function registerExpenseRoutes(app: FastifyInstance, deps: { db: Database
   const { db } = deps
 
   const storage: ObjectStorage =
-    process.env.OBJECT_STORAGE_DIR === undefined
+    !process.env.OBJECT_STORAGE_DIR
       ? new UnconfiguredStorage()
       : new LocalObjectStorage(localStorageDirectory())
 

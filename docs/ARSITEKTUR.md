@@ -24,6 +24,37 @@ ekspor XLSX melewati pemeriksaan fitur paket Usaha. Halaman `apps/web/src/app/la
 menampilkan definisi metrik, filter yang sesuai laporan, tampilan cetak, serta keadaan
 memuat, kosong, dan galat.
 
+Ekspor seluruh data workspace (K-17) ada di `apps/api/src/export`. Satu permintaan
+`GET /api/workspaces/:id/exports/workspace` merakit CSV per tabel bisnis, membungkusnya
+menjadi ZIP dengan penulis sendiri di `apps/api/src/export/zip.ts`, dan mengembalikannya
+sebagai unduhan. Alasan tidak memakai pustaka ZIP pihak ketiga: yang dibutuhkan hanya
+metode deflate dari zlib bawaan Node dan CRC32, jadi tidak ada satu dependensi lagi yang
+harus dipercaya untuk berkas berisi data bisnis. Ekspor tersedia di semua paket, hanya
+untuk Owner dan Admin, dan setiap permintaan dicatat di audit log. Selama volume masih
+muat di satu permintaan, ekspor berjalan langsung; memindahkannya ke antrean dan
+penyimpanan objek adalah langkah berikutnya bila volume atau kebutuhan ekspor terjadwal
+datang.
+
+## Dashboard
+
+`apps/api/src/dashboard/service.ts` membangun seluruh isi dashboard (PRD 6.7) dalam satu
+permintaan `GET /api/workspaces/:id/dashboard`: kartu ringkasan, tren harian, distribusi
+status stok, dan daftar tindakan. Satu permintaan dipilih supaya semua bagian memakai
+periode dan lokasi yang sama, bukan angka dari lima panggilan yang selesai pada waktu
+berbeda. Periodenya dihitung di zona waktu workspace, dengan bawaan awal bulan sampai
+hari ini.
+
+Izin per bagian mengikuti izin laporan (K-18), jadi tidak ada matriks izin kedua yang
+harus dijaga tetap sama. Daftar utang membaca `createReport(..., 'debts')` yang sama
+dengan halaman laporan, supaya angka di dashboard dan di laporan tidak pernah berbeda.
+Distribusi status stok memakai `deriveStockStatus` dari `packages/shared`, aturan yang
+sama dengan lencana status di daftar barang (B-08).
+
+Halaman `apps/web/src/app/dashboard` menampilkan bilah CSS dan baris proporsi, bukan
+pustaka grafik; setiap grafik punya ringkasan teks dan tabel data yang bisa dibuka.
+Workspace tanpa catatan menampilkan penjelasan dan tombol langkah berikutnya, tanpa
+angka contoh (K-07).
+
 ## Bentuk sistem
 
 Modular monolith, sesuai PRD 13. Dua proses yang berjalan terpisah:
@@ -34,8 +65,10 @@ Modular monolith, sesuai PRD 13. Dua proses yang berjalan terpisah:
 | `apps/api` | API. Satu proses Fastify, modular per domain. |
 
 Basis data PostgreSQL accessed langsung oleh API. Antrean tugas (impor, ekspor,
-email) berjalan di atas PostgreSQL dengan pg-boss agar tidak ada layanan tambahan
-yang harus dipantau dan dicadangkan.
+email) direncanakan berjalan di atas PostgreSQL dengan pg-boss agar tidak ada
+layanan tambahan yang harus dipantau dan dicadangkan; pada fase ini impor dan
+ekspor masih dijalankan langsung saat permintaan datang karena volumenya belum
+menuntut antrean.
 
 ## Mengapa tanpa ORM
 

@@ -50,14 +50,14 @@ dan keputusan yang dibutuhkan.
 ## Status fase
 
 Fase 0 fondasi, Fase 1 autentikasi dan UI, Fase 2 stok, Fase 3 pembelian, Fase 4
-penjualan, Fase 5 pengeluaran operasional, dan Fase 6 paket, batas paket, uji coba,
-dan langganan selesai. Berikutnya Fase 7: laporan dan ekspor (PRD 6.6, 6.8).
+penjualan, Fase 5 pengeluaran operasional, Fase 6 paket, batas paket, uji coba,
+dan langganan, Fase 7 laporan dan ekspor, serta Fase 8 dashboard selesai. Berikutnya
+Fase 9: impor lengkap (XLSX, template, riwayat, pembatalan impor) dengan PRD 6.8.
 
 Urutan fase yang tersisa, supaya tidak ada tumpang tindih:
 
 | Fase | Isi | PRD |
 | --- | --- | --- |
-| 7 | Laporan dan ekspor | 6.6, 6.8 |
 | 8 | Dashboard | 6.7 |
 | 9 | Impor lengkap: XLSX, template, riwayat, pembatalan impor | 6.8 |
 | 10 | Notifikasi email dan di dalam aplikasi | 6.9 |

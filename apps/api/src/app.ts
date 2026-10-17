@@ -18,6 +18,8 @@ import { registerSalesRoutes } from './sales/routes.ts'
 import { registerExpenseRoutes } from './expenses/routes.ts'
 import { registerPlanRoutes } from './plans/routes.ts'
 import { registerReportRoutes } from './reports/routes.ts'
+import { registerExportRoutes } from './export/routes.ts'
+import { registerDashboardRoutes } from './dashboard/routes.ts'
 import { StockError } from './stock/movements.ts'
 import { createLogEmailProvider, type EmailProvider } from './services/email.ts'
 
@@ -38,7 +40,10 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     logger: options.logger ?? false,
   })
 
-  const origin = options.origin ?? process.env.WEB_ORIGIN ?? 'http://localhost:3000'
+  // Nilai kosong dianggap tidak diisi. Berkas .env contoh memuat beberapa kunci
+  // kosong, dan nilai kosong itu tidak boleh mengalahkan bawaan pengembangan
+  // (origin, rahasia sesi, atau kunci enkripsi MFA).
+  const origin = options.origin || process.env.WEB_ORIGIN || 'http://localhost:3000'
   const secureCookies = options.secureCookies ?? process.env.NODE_ENV === 'production'
 
   await app.register(helmet, {
@@ -76,7 +81,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
   })
 
   await app.register(cookie, {
-    secret: options.sessionSecret ?? process.env.SESSION_SECRET ?? 'rahasia-pengembangan',
+    secret: options.sessionSecret || process.env.SESSION_SECRET || 'rahasia-pengembangan',
     hook: 'onRequest',
   })
 
@@ -99,7 +104,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
       // PRD 9: enkripsi saat disimpan dan tanpa secret di repositori, jadi kunci
       // MFA hanya datang dari environment.
       encryptionSecret:
-        options.encryptionSecret ?? process.env.MFA_ENCRYPTION_SECRET ?? 'rahasia-mfa-pengembangan',
+        options.encryptionSecret || process.env.MFA_ENCRYPTION_SECRET || 'rahasia-mfa-pengembangan',
       // Tautan verifikasi dan atur ulang kata sandi menuju ke halaman web,
       // bukan ke endpoint API.
       webOrigin: origin,
@@ -116,6 +121,8 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     registerExpenseRoutes(app, { db: options.db })
     registerPlanRoutes(app, { db: options.db })
     registerReportRoutes(app, { db: options.db })
+    registerExportRoutes(app, { db: options.db })
+    registerDashboardRoutes(app, { db: options.db })
   }
 
   app.get('/health', async () => ({ status: 'ok' }))

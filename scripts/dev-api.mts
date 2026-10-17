@@ -13,13 +13,22 @@ import { createPgliteDatabase, migrate } from '@sahabat/db'
 import { createLogEmailProvider } from '../apps/api/src/services/email.ts'
 import { buildApp } from '../apps/api/src/app.ts'
 
+// Ikut memuat .env supaya rahasia dan pengaturan penyimpanan lokal dari
+// environment terpakai juga di jalur PGlite. DATABASE_URL diabaikan karena
+// skrip ini memang memakai database dalam memori.
+try {
+  process.loadEnvFile(new URL('../.env', import.meta.url))
+} catch {
+  // Tanpa .env pun skrip ini jalan dengan nilai pengembangan.
+}
+
 const db = await createPgliteDatabase()
 await migrate(db)
 
 const app = await buildApp({
   db,
   email: createLogEmailProvider(),
-  sessionSecret: process.env.SESSION_SECRET ?? 'rahasia-pengembangan-manual',
+  sessionSecret: process.env.SESSION_SECRET || 'rahasia-pengembangan-manual',
   origin: 'http://localhost:3000',
 })
 

@@ -34,7 +34,7 @@ export default function LoginForm({
   // tidak bisa mengarahkan pengguna ke situs lain.
   const destination = nextPath.startsWith('/') && !nextPath.startsWith('//')
     ? nextPath
-    : '/pengaturan/akun'
+    : '/dashboard'
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()

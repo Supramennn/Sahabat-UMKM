@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 }
 
 export default function ExpensesLayout({ children }: { children: ReactNode }) {
-  return <AppProvider>{children}</AppProvider>
+  return <AppProvider title="Pengeluaran">{children}</AppProvider>
 }

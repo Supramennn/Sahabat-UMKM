@@ -1,5 +1,14 @@
 import { createPostgresDatabase, migrate } from './index.ts'
 
+// Muat nilai dari .env di akar repositori; perintah npm berjalan di direktori
+// paket ini, jadi jalurnya dihitung dari letak berkas. Variabel lingkungan yang
+// sudah diisi menang, dan .env yang tidak ada bukan kesalahan.
+try {
+  process.loadEnvFile(new URL('../../../.env', import.meta.url))
+} catch {
+  // .env hanya untuk pengembangan lokal.
+}
+
 const connectionString = process.env.DATABASE_URL
 if (!connectionString) {
   console.error('DATABASE_URL belum diisi. Salin .env.example ke .env lalu isi nilainya.')

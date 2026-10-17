@@ -73,7 +73,7 @@ const descriptions: Record<ReportKind, { title: string; definition: string; colu
     title: 'Utang supplier dan umur utang',
     definition: 'Saldo berjalan adalah seluruh penerimaan dikurangi retur dan pembayaran yang dialokasikan. Umur utang adalah hari keterlambatan terhadap jatuh tempo tertua yang belum lunas.',
     columns: [
-      { key: 'supplier', label: 'Supplier' }, { key: 'orderNumber', label: 'Nomor PO' }, { key: 'dueOn', label: 'Jatuh tempo tertua' },
+      { key: 'supplier', label: 'Supplier' }, { key: 'dueOn', label: 'Jatuh tempo tertua' },
       { key: 'debt', label: 'Penerimaan dan retur (Rp)' }, { key: 'paid', label: 'Pembayaran (Rp)' },
       { key: 'outstanding', label: 'Sisa utang (Rp)' }, { key: 'overdueDays', label: 'Terlambat (hari)' },
     ],
@@ -220,8 +220,8 @@ export async function createReport(db: Sql, workspaceId: number, kind: ReportKin
     const clauses = ['e.workspace_id = $1']
     if (filter.supplierId) { params.push(filter.supplierId); clauses.push(`e.supplier_id = $${params.length}`) }
     const rows = await db.query<Record<string, unknown>>(
-      `select s.name as supplier, null::text as order_number,
-              case when s.payment_term_days is not null then to_char(min(e.entry_date + s.payment_term_days) filter (where e.amount > 0 and e.entry_date + s.payment_term_days > current_date), 'YYYY-MM-DD') end as due_on,
+      `select s.name as supplier,
+              case when s.payment_term_days is not null then to_char(min(e.entry_date + s.payment_term_days) filter (where e.amount > 0), 'YYYY-MM-DD') end as due_on,
               sum(e.amount) as debt,
               coalesce((select sum(p.amount) from supplier_payments p where p.workspace_id = e.workspace_id
                 and p.supplier_id = e.supplier_id), 0) as paid,
@@ -232,7 +232,7 @@ export async function createReport(db: Sql, workspaceId: number, kind: ReportKin
          and p.supplier_id = e.supplier_id), 0) <> 0
         order by overdue_days desc nulls last, s.name`, params,
     )
-    result = rows.rows.map((row) => { const debt = number(row.debt); const paid = number(row.paid); return { supplier: String(row.supplier), orderNumber: row.order_number as string | null, dueOn: row.due_on as string | null, debt, paid, outstanding: debt - paid, overdueDays: row.overdue_days === null ? null : number(row.overdue_days) } })
+    result = rows.rows.map((row) => { const debt = number(row.debt); const paid = number(row.paid); return { supplier: String(row.supplier), dueOn: row.due_on as string | null, debt, paid, outstanding: debt - paid, overdueDays: row.overdue_days === null ? null : number(row.overdue_days) } })
   } else if (kind === 'sales' || kind === 'gross-profit') {
     const params: unknown[] = [workspaceId]
     const clauses = ["s.workspace_id = $1", "s.status = 'selesai'"]

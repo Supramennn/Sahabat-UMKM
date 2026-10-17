@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
-import { Workbook } from 'exceljs'
+import ExcelJS from 'exceljs'
 import type { Database } from '@sahabat/db'
 import { can, type Capability } from '@sahabat/shared'
 import { AuthorizationError, loadWorkspaceRole } from '../auth/session.ts'
@@ -86,7 +86,7 @@ export function registerReportRoutes(app: FastifyInstance, deps: { db: Database 
         .send(`\uFEFF${lines.join('\r\n')}`)
     }
 
-    const workbook = new Workbook()
+    const workbook = new ExcelJS.Workbook()
     const sheet = workbook.addWorksheet(report.title.slice(0, 31))
     sheet.addRow(report.columns.map((column) => column.label))
     for (const row of report.rows) sheet.addRow(report.columns.map((column) => row[column.key] ?? null))

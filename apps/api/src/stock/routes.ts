@@ -62,8 +62,9 @@ export function registerStockRoutes(app: FastifyInstance, deps: StockDeps): void
       filters.push(`(lower(p.name) like $${params.length} or lower(p.sku) like $${params.length})`)
     }
 
-    params.push(query.limit, query.offset)
-
+    // Hitungan total hanya memakai parameter filter; limit dan offset baru
+    // ditambahkan setelahnya, kalau tidak kueri hitung menerima parameter
+    // berlebih dan database menolaknya.
     const total = await countMatching(db, 'products p', filters, params)
 
     params.push(query.limit, query.offset)

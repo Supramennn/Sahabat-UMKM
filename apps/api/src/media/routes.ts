@@ -59,7 +59,7 @@ function decodeDataUrl(input: string): Buffer {
 export function registerMediaRoutes(app: FastifyInstance, deps: { db: Database }): void {
   const { db } = deps
   const storage: ObjectStorage =
-    process.env.OBJECT_STORAGE_DIR === undefined
+    !process.env.OBJECT_STORAGE_DIR
       ? new UnconfiguredStorage()
       : new LocalObjectStorage(localStorageDirectory())
 

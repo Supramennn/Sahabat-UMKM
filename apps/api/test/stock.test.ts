@@ -193,6 +193,49 @@ describe('produk, kategori, dan lokasi (PRD 6.2)', () => {
     expect(productId).toBeGreaterThan(0)
   })
 
+  it('membaca daftar produk dengan pencarian dan total yang benar', async () => {
+    const context = await setupWorkspace('Daftar')
+    await createProduct(context, { sku: 'DAFTAR-1', name: 'Gula Pasir' })
+    await createProduct(context, { sku: 'DAFTAR-2', name: 'Teh Celup' })
+    await createProduct(context, { sku: 'DAFTAR-3', name: 'Teh Botol' })
+
+    const semua = await app.inject({
+      method: 'GET',
+      url: `/api/workspaces/${context.workspaceId}/products`,
+      headers: { cookie: context.cookie },
+    })
+    expect(semua.statusCode, semua.body).toBe(200)
+    expect(semua.json().products).toHaveLength(3)
+    expect(semua.json().pagination.total).toBe(3)
+
+    const cari = await app.inject({
+      method: 'GET',
+      url: `/api/workspaces/${context.workspaceId}/products?search=teh&limit=1`,
+      headers: { cookie: context.cookie },
+    })
+    expect(cari.statusCode, cari.body).toBe(200)
+    expect(cari.json().products).toHaveLength(1)
+    // Total mengikuti filter, bukan jumlah baris di halaman ini (PRD 14).
+    expect(cari.json().pagination.total).toBe(2)
+
+    // Viewer hanya boleh membaca, dan Staf tidak punya akses sama sekali.
+    const viewer = await addMember(context, 'viewer')
+    const dibacaViewer = await app.inject({
+      method: 'GET',
+      url: `/api/workspaces/${context.workspaceId}/products`,
+      headers: { cookie: viewer },
+    })
+    expect(dibacaViewer.statusCode).toBe(200)
+
+    const staff = await addMember(context, 'staff')
+    const dibacaStaf = await app.inject({
+      method: 'GET',
+      url: `/api/workspaces/${context.workspaceId}/products`,
+      headers: { cookie: staff },
+    })
+    expect(dibacaStaf.statusCode).toBe(403)
+  })
+
   it('menolak satuan di luar daftar sarat', async () => {
     const context = await setupWorkspace('Satuan')
     const response = await app.inject({

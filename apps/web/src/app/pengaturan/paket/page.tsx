@@ -14,7 +14,7 @@ const rupiah = (amount: number) => new Intl.NumberFormat('id-ID', {
 
 export default function PlansPage() {
   return (
-    <AppProvider>
+    <AppProvider title="Paket dan langganan">
       <PlansPageContent />
     </AppProvider>
   )

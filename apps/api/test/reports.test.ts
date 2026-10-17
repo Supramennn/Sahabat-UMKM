@@ -74,6 +74,34 @@ describe('laporan dan ekspor (PRD 6.6, 6.8)', () => {
     expect(response.json().rows).toEqual([expect.objectContaining({ product: 'Teh', sales: 10000, cost: 4000, grossProfit: 6000 })])
   })
 
+  it('meringkas utang supplier per supplier dengan jatuh tempo dan umur utang', async () => {
+    const context = await setup()
+    const trial = await app.inject({ method: 'POST', url: `/api/workspaces/${context.workspaceId}/subscription/plan`, headers: { cookie: context.cookie }, payload: { plan: 'usaha' } })
+    expect(trial.statusCode).toBe(200)
+    const supplier = await app.inject({ method: 'POST', url: `/api/workspaces/${context.workspaceId}/suppliers`, headers: { cookie: context.cookie }, payload: { name: 'CV Sumber Rejeki', paymentTermDays: 7 } })
+    const location = await app.inject({ method: 'POST', url: `/api/workspaces/${context.workspaceId}/locations`, headers: { cookie: context.cookie }, payload: { name: 'Gudang Utang' } })
+    const product = await app.inject({ method: 'POST', url: `/api/workspaces/${context.workspaceId}/products`, headers: { cookie: context.cookie }, payload: { sku: 'UTANG-1', name: 'Beras', unitCode: 'karung' } })
+    const supplierId = supplier.json().supplierId as number
+    const productId = product.json().productId as number
+    const order = await app.inject({ method: 'POST', url: `/api/workspaces/${context.workspaceId}/purchase-orders`, headers: { cookie: context.cookie }, payload: { supplierId, locationId: location.json().locationId, items: [{ productId, quantity: '4', unitPrice: '2500' }] } })
+    const orderId = order.json().orderId as number
+    expect((await app.inject({ method: 'POST', url: `/api/workspaces/${context.workspaceId}/purchase-orders/${orderId}/submit`, headers: { cookie: context.cookie }, payload: {} })).statusCode).toBe(200)
+    expect((await app.inject({ method: 'POST', url: `/api/workspaces/${context.workspaceId}/purchase-orders/${orderId}/approve`, headers: { cookie: context.cookie }, payload: {} })).statusCode).toBe(200)
+    const receipt = await app.inject({ method: 'POST', url: `/api/workspaces/${context.workspaceId}/goods-receipts`, headers: { cookie: context.cookie }, payload: { purchaseOrderId: orderId, items: [{ productId, quantity: '4' }], idempotencyKey: `laporan-terima-${sequence}-kunci` } })
+    expect(receipt.statusCode, receipt.body).toBe(201)
+
+    const response = await app.inject({ method: 'GET', url: `/api/workspaces/${context.workspaceId}/reports/debts`, headers: { cookie: context.cookie } })
+    expect(response.statusCode).toBe(200)
+    expect(response.json().rows).toEqual([expect.objectContaining({ supplier: 'CV Sumber Rejeki', debt: 10000, paid: 0, outstanding: 10000, overdueDays: 0 })])
+
+    // Jatuh tempo = tanggal transaksi + termin 7 hari, dihitung dari tanggal
+    // kalender hari ini di zona waktu workspace.
+    const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
+    const jatuhTempo = new Date(`${hariIni}T00:00:00.000Z`)
+    jatuhTempo.setUTCDate(jatuhTempo.getUTCDate() + 7)
+    expect(response.json().rows[0].dueOn).toBe(jatuhTempo.toISOString().slice(0, 10))
+  })
+
   it('ekspor CSV mengikuti filter, mengutip sel, dan mencegah formula spreadsheet', async () => {
     const context = await setup()
     const location = await app.inject({ method: 'POST', url: `/api/workspaces/${context.workspaceId}/locations`, headers: { cookie: context.cookie }, payload: { name: 'Gudang' } })

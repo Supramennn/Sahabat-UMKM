@@ -4,7 +4,7 @@ Status: aktif. Sumber kebenaran produk tetap `docs/PRD-Sahabat-UMKM.md`. Dokumen
 keputusan yang PRD delegasikan ke tim, beserta alasannya, supaya setiap fase bisa merujuk
 nomor yang sama.
 
-Terakhir diperbarui: 10 Oktober 2026.
+Terakhir diperbarui: 16 Oktober 2026.
 
 ## 1. Keputusan yang sudah dikunci
 
@@ -26,6 +26,8 @@ Terakhir diperbarui: 10 Oktober 2026.
 | K-14 | Pembagian purchase order | Token acak 32 byte, hanya hash-nya yang disimpan. Masa berlaku bawaan 30 hari dan bisa diubah Owner lewat parameter, dibatasi 1 sampai 365 hari. Tautan dicabut otomatis saat dibuatkan yang baru, jadi selalu ada tepat satu alamat hidup per PO | PRD 6.3, A-11 |
 | K-15 | PDF purchase order | pdfkit dengan font bawaan Helvetica. Huruf di luar WinAnsi diganti tanda tanya, bukan mencari font, supaya berkas selalu bisa dibuat dan tidak bergantung pada font yang ada di server | PRD 6.3 |
 | K-16 | Gaya frontend | CSS Modules di atas token warna PRD 10, bukan Tailwind. Token warna sudah dipakai di seluruh komponen dan sudah lolos `npm run test:contrast`. Memindahkan 20 halaman ke Tailwind adalah pekerjaan besar yang tidak menambah kemampuan produk, dan berisiko menurunkan kontras yang sekarang sudah terverifikasi | PRD 10, PRD 17 |
+| K-17 | Bentuk ekspor seluruh data | Satu arsip ZIP berisi satu CSV per tabel bisnis plus PANDUAN.txt, diunduh Owner atau Admin kapan saja, tersedia di semua paket, dan dijalankan langsung pada permintaan (belum lewat antrean). Berkas lampiran biner, riwayat impor, log audit, dan data teknis tidak ikut | PRD 6.8, PRD 16 |
+| K-18 | Isi dan akses dashboard | Setiap bagian dashboard memakai izin laporan yang sama dengan halaman laporan, jadi peran yang tidak boleh membaca laporan pembelian atau utang juga tidak menerimanya di dashboard. Grafik dibuat dari elemen dasar tanpa pustaka grafik, selalu disertai ringkasan teks dan tabel data yang bisa dibuka. Navigasi bawah ponsel memakai lima tujuan PRD 10 termasuk halaman Lainnya | PRD 6.7, PRD 8, PRD 10 |
 
 ### Alasan K-12
 
@@ -118,6 +120,45 @@ sama dengan CSS Modules untuk tabel dan formulir seperti yang dipakai produk ini
 
 Yang tetap dijaga: nama kelas, radius, spasi, dan warna hanya boleh diambil dari token
 yang sama. CSS Modules di sini bukan CSS bebas per halaman.
+
+### Alasan K-17
+
+Ekspor penuh dikirim sebagai satu arsip ZIP berisi CSV per tabel. Unduhan tunggal
+membuat pengguna tidak perlu mengumpulkan dua lusin berkas satu per satu, dan
+isinya tetap CSV yang bisa dibaca spreadsheet mana pun. Yang tidak ikut adalah
+lampiran foto/PDF pengeluaran (biner, bukan bentuk CSV), riwayat impor, log audit,
+dan data teknis seperti sesi, kata sandi, serta token. Daftar itu disebutkan di
+PANDUAN.txt di dalam arsip supaya pengguna tidak menduga-duga isinya.
+
+Tersedia di semua paket karena PRD 16 menyebut ekspor seluruh data tidak boleh
+jadi fitur berbayar. Owner dan Admin boleh mengunduhnya; Purchasing hanya menerima
+ekspor laporan pembelian, sesuai izin "Pembelian saja".
+
+Ekspornya berjalan langsung pada permintaan, bukan lewat antrean. Antrean pg-boss
+belum dipasang pada fase ini, dan selama volume workspace masih muat di satu
+permintaan, satu langkah lebih sedikit untuk gagal. Kalau nanti ada ekspor
+terjadwal atau workspace yang datanya tidak lagi muat di satu permintaan, langkah
+berikutnya adalah memindahkan pekerjaan ini ke antrean dan penyimpanan objek.
+
+### Alasan K-18
+
+PRD 6.7 menyebut isi dashboard, tetapi tidak menyebut siapa yang boleh melihat setiap
+bagiannya. Membuat izin baru untuk dashboard berarti dua tempat yang harus dijaga tetap
+sama. Dashboard karena itu meminjam izin laporan yang sudah ada (PRD 8, B-02): kartu dan
+tren stok butuh `reports.stock`, penjualan butuh `reports.sales`, pembelian dan PO butuh
+`reports.purchasing`, dan utang supplier butuh `reports.debt` plus paket yang memuat fitur
+retur dan utang, sama seperti laporan utang. Peran Staf, yang menurut PRD 8 tidak punya
+izin laporan, tetap bisa membuka halaman dan mendapat penjelasan serta tautan ke halaman
+kerja yang bisa dipakainya, bukan halaman kosong atau angka yang bukan haknya.
+
+Grafiknya dibuat dari elemen dasar, tanpa pustaka grafik: bilah CSS untuk tren harian dan
+baris proporsi untuk status stok. Setiap grafik disertai ringkasan teks dan tabel data
+yang bisa dibuka, jadi angkanya terbaca juga oleh pembaca layar, saat dicetak, dan saat
+warnanya tidak terbedakan. Menggambar grafik sendiri lebih sedikit kode daripada menambah
+dependensi yang harus ikut diuji kontras dan aksesibilitasnya.
+
+Menu ponsel PRD 10 meminta Dashboard dan Lainnya; halaman Lainnya mengambil daftarnya dari
+sumber yang sama dengan sidebar, jadi tidak ada tautan yang hanya hidup di satu tempat.
 
 ### Alasan K-02
 

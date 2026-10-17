@@ -34,7 +34,10 @@ const HALAMAN = [
   { path: '/pengeluaran/baru', nama: 'catat pengeluaran' },
   { path: '/pengeluaran/kategori', nama: 'kategori pengeluaran' },
   { path: '/pengaturan/paket', nama: 'paket dan langganan' },
+  { path: '/pengaturan/impor-ekspor', nama: 'impor dan ekspor' },
   { path: '/laporan', nama: 'laporan usaha' },
+  { path: '/dashboard', nama: 'dashboard' },
+  { path: '/lainnya', nama: 'menu lainnya' },
 ]
 
 test.describe('halaman autentikasi', () => {

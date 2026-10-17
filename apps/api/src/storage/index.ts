@@ -157,5 +157,5 @@ export class UnconfiguredStorage implements ObjectStorage {
  * berkas yang terunggah tidak ikut ter-commit tanpa sengaja.
  */
 export function localStorageDirectory(env: NodeJS.ProcessEnv = process.env): string {
-  return env.OBJECT_STORAGE_DIR ?? join(process.cwd(), '.object-storage')
+  return env.OBJECT_STORAGE_DIR || join(process.cwd(), '.object-storage')
 }

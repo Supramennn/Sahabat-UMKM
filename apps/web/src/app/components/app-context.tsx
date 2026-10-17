@@ -30,7 +30,7 @@ export function useApp(): AppContextValue {
   return value
 }
 
-export function AppProvider({ children }: { children: ReactNode }) {
+export function AppProvider({ children, title = 'Stok' }: { children: ReactNode; title?: string }) {
   const [context, setContext] = useState<AppContextValue | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -91,11 +91,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // PRD 10: judul utama harus ada di setiap keadaan halaman, termasuk saat memuat
   // dan saat gagal. Tanpa itu, pembaca layar dan mesin pencari tidak tahu halaman
-  // ini tentang apa.
+  // ini tentang apa. Judulnya milik halaman pemanggil, bukan selalu "Stok".
   if (loading) {
     return (
       <div className={styles.loading}>
-        <h1 className={styles.loadingTitle}>Stok</h1>
+        <h1 className={styles.loadingTitle}>{title}</h1>
         <p role="status">Memuat data workspace.</p>
       </div>
     )
@@ -104,7 +104,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   if (error || !context) {
     return (
       <div className={styles.loading}>
-        <h1 className={styles.loadingTitle}>Stok</h1>
+        <h1 className={styles.loadingTitle}>{title}</h1>
         <ErrorState
           title="Halaman ini belum bisa dibuka"
           body={error ?? 'Workspace tidak ditemukan.'}

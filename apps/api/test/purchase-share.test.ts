@@ -403,6 +403,15 @@ describe('tautan baca-saja (PRD 6.3, A-11)', () => {
   })
 
   it('berlaku 30 hari secara bawaan dan mengikuti nilai yang diminta', async () => {
+    // Tanggal kedaluwarsa dihitung server dari jam permintaan lalu ditulis sebagai
+    // tanggal UTC, jadi selisih hari dari "sekarang" bisa menunjukkan angka satu
+    // hari lebih kecil pada malam hari. Yang diperiksa di sini adalah jendela dua
+    // menit di sekitar angka hari yang diminta, bukan hasil pembulatan jam berjalan.
+    const hariKe = (days: number) => [
+      new Date(Date.now() + days * 24 * 60 * 60 * 1000 - 120_000).toISOString().slice(0, 10),
+      new Date(Date.now() + days * 24 * 60 * 60 * 1000 + 120_000).toISOString().slice(0, 10),
+    ]
+
     const toko = await setupToko()
     const dibuat = await app.inject({
       method: 'POST',
@@ -411,11 +420,7 @@ describe('tautan baca-saja (PRD 6.3, A-11)', () => {
       payload: { expiresInDays: 7 },
     })
 
-    const expiresOn = new Date(`${dibuat.json().expiresOn}T00:00:00.000Z`).getTime()
-    const sekarang = Date.now()
-    const selisihHari = Math.round((expiresOn - sekarang) / (24 * 60 * 60 * 1000))
-
-    expect(selisihHari).toBe(7)
+    expect(hariKe(7)).toContain(dibuat.json().expiresOn)
 
     // Tanpa parameter, ikut bawaan 30 hari dari pengaturan workspace.
     const bawaan = await app.inject({
@@ -424,11 +429,7 @@ describe('tautan baca-saja (PRD 6.3, A-11)', () => {
       headers: { cookie: toko.cookie },
       payload: {},
     })
-    const hariBawaan = Math.round(
-      (new Date(`${bawaan.json().expiresOn}T00:00:00.000Z`).getTime() - Date.now()) /
-        (24 * 60 * 60 * 1000),
-    )
-    expect(hariBawaan).toBe(30)
+    expect(hariKe(30)).toContain(bawaan.json().expiresOn)
   })
 
   it('menolak masa berlaku di luar 1 sampai 365 hari', async () => {

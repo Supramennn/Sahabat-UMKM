@@ -12,5 +12,5 @@ export const metadata: Metadata = {
  * sesi, workspace, dan peran dimuat sekali untuk seluruh halaman di bawahnya.
  */
 export default function PurchasingLayout({ children }: { children: ReactNode }) {
-  return <AppProvider>{children}</AppProvider>
+  return <AppProvider title="Pembelian">{children}</AppProvider>
 }

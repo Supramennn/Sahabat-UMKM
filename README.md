@@ -33,30 +33,93 @@ Perangkat tambahan untuk pengujian:
 Tailwind tidak dipakai. Keputusan dan alasannya tercatat di K-16 pada
 `docs/KEPUTUSAN-TEKNIS.md`.
 
-## Menjalankan secara lokal
+## Cara menjalankan aplikasi
 
-Pengujian otomatis tidak butuh Docker atau server database.
+Butuh Node.js 22 atau lebih baru. PostgreSQL dan MinIO disediakan lewat Docker
+Compose. Kalau Docker belum tersedia, pakai jalur cepat PGlite di bawah.
+
+### 1. Pasang dependensi
 
 ```bash
 npm install
-npm test
 ```
 
-Menjalankan aplikasi sendiri butuh PostgreSQL dan MinIO:
+### 2. Siapkan konfigurasi
 
 ```bash
 cp .env.example .env
-docker compose up -d postgres minio
-npm run migrate
-npm run dev:api
-npm run dev:web
 ```
 
-Tanpa PostgreSQL, API bisa dijalankan dengan database PGlite dalam memori. Berguna
-untuk memeriksa alur autentikasi, tapi data hilang saat proses berhenti.
+Nilai bawaan di `.env.example` cocok dengan `docker-compose.yml`, jadi untuk
+pengembangan lokal tidak ada yang perlu diubah. Dua nilai ini masih contoh dan
+sebaiknya diganti sebelum aplikasi dipakai dengan data sungguhan:
 
 ```bash
-npx tsx scripts/dev-api.mts
+node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"   # SESSION_SECRET
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"   # MFA_ENCRYPTION_SECRET
+```
+
+Perintah API dan migrasi membaca `.env` dari akar repositori, jadi nilainya tidak
+perlu di-export manual. Berkas `.env` tidak pernah ikut ke git.
+
+### 3. Nyalakan PostgreSQL dan MinIO
+
+```bash
+npm run db:up
+```
+
+PostgreSQL terbuka di `127.0.0.1:5432` dan MinIO di `127.0.0.1:9000` dengan konsol
+di `127.0.0.1:9001`. Modul lampiran saat ini memakai folder lokal, bukan MinIO;
+isi `OBJECT_STORAGE_DIR` di `.env` (misalnya `.object-storage`, sudah masuk
+.gitignore) supaya unggah foto dan lampiran aktif.
+
+### 4. Terapkan migrasi
+
+```bash
+npm run migrate
+```
+
+### 5. Jalankan API dan frontend
+
+Di dua terminal:
+
+```bash
+npm run dev:api     # terminal pertama, http://localhost:4000
+npm run dev:web     # terminal kedua, http://localhost:3000
+```
+
+API hanya menerima permintaan dari asal yang terdaftar, jadi buka aplikasinya
+lewat `http://localhost:3000`, bukan `http://127.0.0.1:3000`.
+
+### 6. Pakai aplikasinya
+
+Buat akun di `http://localhost:3000/buat-akun`, verifikasi email, lalu masuk.
+Selama penyedia email bawaan dipakai, email tidak benar-benar terkirim: tautan
+verifikasi tercetak di log API selama pengembangan. Di produksi isi email tidak
+pernah masuk log, karena token di log adalah kebocoran kredensial.
+
+### Menghentikan layanan
+
+```bash
+npm run db:down
+```
+
+### Jalur cepat tanpa Docker
+
+API bisa berjalan dengan database PGlite dalam memori. Cocok untuk mencoba seluruh
+alur, tetapi data hilang saat proses berhenti.
+
+```bash
+npx tsx scripts/dev-api.mts     # terminal pertama, http://127.0.0.1:4000
+npm run dev:web                 # terminal kedua, http://localhost:3000
+```
+
+### Pengujian otomatis
+
+Tes tidak butuh Docker maupun server database:
+
+```bash
+npm test
 ```
 
 ## Uji aksesibilitas
@@ -93,6 +156,10 @@ yang sama.
 | `npm test` | Semua tes tanpa server database, memakai PGlite |
 | `npm run test:contrast` | Hitung kontras setiap pasangan warna komponen, gagal kalau ada yang di bawah ambang |
 | `npm run test:e2e` | Uji aksesibilitas Playwright di ponsel dan desktop. Butuh API dan frontend sudah berjalan |
+| `npm run dev:api` | Jalankan API dengan PostgreSQL dari `.env` |
+| `npm run dev:web` | Jalankan frontend Next.js di http://localhost:3000 |
+| `npm run db:up` | Nyalakan PostgreSQL dan MinIO lewat Docker Compose |
+| `npm run db:down` | Hentikan layanan Docker Compose |
 | `npx tsx scripts/dev-api.mts` | Jalankan API dengan database PGlite dalam memori, untuk pemeriksaan manual tanpa PostgreSQL |
 | `npm run test:postgres` | Tes yang butuh PostgreSQL sungguhan, setel `TEST_DATABASE_URL` |
 | `npm run test:postgres:local` | Jalankan tes PostgreSQL sungguhan tanpa Docker, memakai klaster tertanam di `.pgdata` |
@@ -126,6 +193,8 @@ docs/
 | Pembelian | ringkasan, supplier, purchase order dan detailnya, penerimaan, retur pembelian, pembayaran supplier | 6.3 |
 | Penjualan | daftar penjualan, catat penjualan, detail dan pembatalan, pelanggan, impor CSV | 6.4, 6.8 |
 | Pengeluaran | daftar, pencatatan, detail, kategori, lampiran foto/PDF | 6.5 |
+| Laporan dan ekspor | laporan usaha, pengaturan impor dan ekspor | 6.6, 6.8 |
+| Dashboard | ringkasan usaha, menu lainnya di ponsel | 6.7, 10 |
 
 ## Paket dan langganan
 
@@ -141,7 +210,7 @@ penjual dan rekening, kewajiban pajak, kebijakan refund, serta dokumen hukum pad
 `docs/KEPUTUSAN-TEKNIS.md` dikonfirmasi.
 
 Fase 6 selesai: migrasi dan katalog paket, aktivasi uji coba, downgrade otomatis,
-pemeriksaan batas dan fitur di server, serta pengaturan paket. Verifikasi terakhir
+pemeriksaan batas dan fitur di server, serta pengaturan paket. Verifikasi Fase 6
 lulus: `npm run verify` (352 tes lulus, 8 dilewati), `npm run test:contrast` (33
 pasangan lolos), `npm run test:postgres:local` (9 lulus, 1 dilewati), build produksi,
 dan `npm run test:e2e` (128 lulus di ponsel dan desktop). Billing belum tersedia;
@@ -153,6 +222,37 @@ laba kotor, pengeluaran operasional, serta ringkasan bulanan. Halaman laporan me
 filter tanggal, lokasi, atau supplier yang relevan, definisi metrik, cetak, CSV, dan
 XLSX. Akses laporan dan ekspor diperiksa kembali di API per workspace dan peran;
 ekspor XLSX hanya tersedia mulai paket Usaha. Laporan tidak menampilkan laba bersih.
+
+Fase 7 juga menambahkan ekspor seluruh data workspace di
+`/pengaturan/impor-ekspor`: satu arsip ZIP berisi CSV per tabel bisnis plus
+PANDUAN.txt, tersedia untuk semua paket, hanya untuk Owner dan Admin, dan setiap
+unduhan masuk audit log. Lampiran biner, riwayat impor, log audit, dan data teknis
+tidak ikut diekspor; daftarnya disebut di dalam PANDUAN.txt.
+
+Verifikasi Fase 7 lulus: `npm run verify` (365 tes lulus, 8 dilewati),
+`npm run test:contrast` (33 pasangan lolos), `npm run test:postgres:local` (9 lulus,
+1 dilewati), build produksi, dan `npm run test:e2e` (136 lulus di ponsel dan
+desktop).
+
+Fase 8 menambahkan dashboard di `/dashboard`: enam kartu ringkasan, tren harian
+penjualan, pembelian, stok masuk, dan stok keluar (masing-masing dengan ringkasan
+teks dan tabel data yang bisa dibuka), distribusi status stok, serta daftar tindakan
+untuk barang yang perlu dibeli, PO menunggu persetujuan, utang jatuh tempo, dan barang
+mendekati kedaluwarsa. Filter periode dan lokasi mengganti seluruh isi halaman lewat
+satu permintaan. Izin tiap bagian mengikuti izin laporan per peran, jadi peran Staf
+melihat penjelasan dan tautan halaman kerja, bukan angka yang bukan haknya. Navigasi
+bawah ponsel kini sesuai PRD 10: Dashboard, Stok, Pembelian, Penjualan, dan Lainnya,
+dengan halaman `/lainnya` memuat sisa menu. Setelah masuk, pengguna mendarat di
+dashboard.
+
+Fase 8 juga memperbaiki cacat yang ditemukan saat pemeriksaan manual: daftar barang
+(`GET /products`) selalu gagal dengan 500 karena kueri hitung menerima parameter
+limit dan offset yang tidak dipakainya. Perbaikannya disertai tes regresi.
+
+Verifikasi Fase 8 lulus: `npm run verify` (372 tes lulus, 8 dilewati),
+`npm run test:contrast` (33 pasangan lolos), `npm run test:postgres:local` (9 lulus,
+1 dilewati), build produksi, dan `npm run test:e2e` (144 lulus di ponsel dan
+desktop).
 
 Penjualan memakai `recordMovement` yang sama dengan stok keluar, jadi penjualan yang
 menyentuh barang terakhir menghasilkan satu transaksi berhasil dan satu penolakan,
