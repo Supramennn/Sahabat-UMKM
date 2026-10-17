@@ -122,6 +122,23 @@ Tes tidak butuh Docker maupun server database:
 npm test
 ```
 
+### Jika muncul "Cannot find module './NNN.js'"
+
+Folder `apps/web/.next` menyimpan hasil kompilasi frontend. Kalau isinya bercampur
+antara hasil `next build` dan `next dev` — misalnya `npm run start` dan
+`npm run dev:web` pernah pakai folder yang sama, atau prosesnya dihentikan di
+tengah kompilasi — halaman bisa gagal dibuka dengan galat itu. Hentikan server
+web, hapus foldernya, lalu jalankan ulang:
+
+```bash
+rm -rf apps/web/.next        # di PowerShell: Remove-Item -Recurse -Force apps/web/.next
+npm run dev:web
+```
+
+Jangan jalankan `npm run dev:web` bersamaan dengan `npm run build --workspace
+apps/web` atau `npm run start --workspace apps/web`; keduanya memakai folder
+`.next` yang sama.
+
 ## Uji aksesibilitas
 
 Butuh frontend produksi dan API yang sudah berjalan. API harus diakses lewat
