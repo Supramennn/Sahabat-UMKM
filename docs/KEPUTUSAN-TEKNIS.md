@@ -4,7 +4,7 @@ Status: aktif. Sumber kebenaran produk tetap `docs/PRD-Sahabat-UMKM.md`. Dokumen
 keputusan yang PRD delegasikan ke tim, beserta alasannya, supaya setiap fase bisa merujuk
 nomor yang sama.
 
-Terakhir diperbarui: 16 Oktober 2026.
+Terakhir diperbarui: 17 Oktober 2026.
 
 ## 1. Keputusan yang sudah dikunci
 
@@ -25,9 +25,10 @@ Terakhir diperbarui: 16 Oktober 2026.
 | K-13 | Pemisahan izin penyesuaian stok | `stock.adjustments` dipisah dari `stock.movements`. Staf boleh mencatat barang masuk dan keluar, tetapi penyesuaian dan persetujuan hasil opname hanya untuk Owner dan Admin | PRD 8 |
 | K-14 | Pembagian purchase order | Token acak 32 byte, hanya hash-nya yang disimpan. Masa berlaku bawaan 30 hari dan bisa diubah Owner lewat parameter, dibatasi 1 sampai 365 hari. Tautan dicabut otomatis saat dibuatkan yang baru, jadi selalu ada tepat satu alamat hidup per PO | PRD 6.3, A-11 |
 | K-15 | PDF purchase order | pdfkit dengan font bawaan Helvetica. Huruf di luar WinAnsi diganti tanda tanya, bukan mencari font, supaya berkas selalu bisa dibuat dan tidak bergantung pada font yang ada di server | PRD 6.3 |
-| K-16 | Gaya frontend | CSS Modules di atas token warna PRD 10, bukan Tailwind. Token warna sudah dipakai di seluruh komponen dan sudah lolos `npm run test:contrast`. Memindahkan 20 halaman ke Tailwind adalah pekerjaan besar yang tidak menambah kemampuan produk, dan berisiko menurunkan kontras yang sekarang sudah terverifikasi | PRD 10, PRD 17 |
+| K-16 | Gaya frontend | CSS Modules di atas token warna PRD 10, bukan Tailwind. Token warna sudah dipakai di seluruh komponen dan sudah lolos `npm run test:contrast`. Memindahkan 20 halaman ke Tailwind adalah pekerjaan besar yang tidak menambah kemampuan produk, dan berisiko menurunkan kontras yang sekarang sudah terverifikasi. Dicabut pada 17 Okt 2026 oleh K-19 | PRD 10, PRD 17 |
 | K-17 | Bentuk ekspor seluruh data | Satu arsip ZIP berisi satu CSV per tabel bisnis plus PANDUAN.txt, diunduh Owner atau Admin kapan saja, tersedia di semua paket, dan dijalankan langsung pada permintaan (belum lewat antrean). Berkas lampiran biner, riwayat impor, log audit, dan data teknis tidak ikut | PRD 6.8, PRD 16 |
 | K-18 | Isi dan akses dashboard | Setiap bagian dashboard memakai izin laporan yang sama dengan halaman laporan, jadi peran yang tidak boleh membaca laporan pembelian atau utang juga tidak menerimanya di dashboard. Grafik dibuat dari elemen dasar tanpa pustaka grafik, selalu disertai ringkasan teks dan tabel data yang bisa dibuka. Navigasi bawah ponsel memakai lima tujuan PRD 10 termasuk halaman Lainnya | PRD 6.7, PRD 8, PRD 10 |
+| K-19 | Gaya frontend | Tailwind CSS v4 dan Motion (Framer Motion) untuk seluruh antarmuka, menggantikan K-16. Nilai warna tetap hanya dari `packages/design-tokens`; blok `@theme` di `apps/web/src/styles/globals.css` wajib sama persis dan dijaga tes `theme-sync`. Gerak dibatasi pada animasi transformasi masuk yang terukur dan menghormati `prefers-reduced-motion` | Permintaan pemilik produk, 17 Okt 2026; PRD 13 |
 
 ### Alasan K-12
 
@@ -160,6 +161,32 @@ dependensi yang harus ikut diuji kontras dan aksesibilitasnya.
 Menu ponsel PRD 10 meminta Dashboard dan Lainnya; halaman Lainnya mengambil daftarnya dari
 sumber yang sama dengan sidebar, jadi tidak ada tautan yang hanya hidup di satu tempat.
 
+### Alasan K-19
+
+Pemilik produk meminta antarmuka yang tidak lagi terasa datar, dengan Tailwind CSS sebagai
+sistem gaya dan Framer Motion untuk animasi (17 Okt 2026). K-16 menolak Tailwind dengan tiga
+alasan: nilai warna bisa tersebar, pemeriksa kontras kehilangan makna, dan migrasi besar tanpa
+tambahan kemampuan produk. K-19 menjawab ketiganya, bukan mengabaikannya.
+
+Nilai warna tetap hanya ada di `packages/design-tokens`. Tailwind membacanya lewat blok
+`@theme` di `apps/web/src/styles/globals.css`, dan tes `theme-sync` di packages/design-tokens
+gagal bila salinan itu menyimpang, baik nilai yang berbeda maupun warna tambahan yang tidak
+ada di token. Aturan kelas warna hanya boleh berasal dari tema itu; tidak ada nilai
+heksadesimal di JSX. Pemeriksa kontras tetap memeriksa pasangan yang benar-benar dipakai,
+sekarang dengan nilai yang diimpor langsung dari token, bukan ditulis ulang di skrip. Lapisan
+keduanya adalah axe saat E2E, yang mengukur warna yang benar-benar dirender di setiap halaman.
+
+Pekerjaan migrasinya besar dan itu disadari: 20 berkas `*.module.css` dan 43 komponen
+dipindahkan sekaligus, modul CSS dihapus setelah halamannya pindah, dan blok variabel CSS
+sementara ikut dihapus di akhir. Supaya tampilan tidak berubah tanpa kendali, PRD 10 tetap
+mengikat: palet yang sama, tanpa gradasi dekoratif, target sentuh 44 px, tanpa gulir
+horizontal, dan semua teks tetap Bahasa Indonesia dengan sapaan "Anda".
+
+Untuk animasi, aturannya: konten masuk memakai transformasi halus tanpa perubahan opasitas,
+sehingga pemeriksaan kontras tidak pernah mengukur teks yang setengah transparan;
+`MotionConfig reducedMotion="user"` mematikan animasi bagi pengguna yang memintanya; dan
+suite E2E dijalankan dengan `reducedMotion` agar hasilnya deterministik.
+
 ### Alasan K-02
 
 Satu basis kode untuk situs publik dan aplikasi. Situs publik butuh SSR untuk LCP 2,5 detik
@@ -277,19 +304,24 @@ Semua angka di PRD 10 dihitung ulang dengan `contrast-check.py` dan cocok. Satu 
 
 | Token | Nilai | Pemakaian | Rasio terverifikasi |
 | --- | --- | --- | --- |
-| `--primary` | `#172B4D` | Navigasi, judul | 14,10:1 di putih |
-| `--secondary` | `#0B7A6B` | Tombol utama, tautan, aksi positif | 5,24:1 di putih |
-| `--accent` | `#F5B544` | Isian sorotan saja, tidak pernah sebagai warna teks di atas putih | 1,81:1 di putih, jadi dilarang sebagai teks |
-| `--text-on-accent` | `#17212F` | Teks di atas isian aksen | 8,94:1 |
-| `--background` | `#F7F9FC` | Latar aplikasi | |
-| `--surface` | `#FFFFFF` | Kartu dan panel | |
-| `--text-primary` | `#17212F` | Isi | 15,37:1 di background |
-| `--text-secondary` | `#475569` | Keterangan dan placeholder | 7,18:1 di background, 7,58:1 di putih |
-| `--success` | `#15803D` | Status, selalu bersama teks atau ikon | 5,02:1 di putih, 4,76:1 di background |
-| `--warning` | `#B45309` | Status, selalu bersama teks atau ikon | 5,02:1 di putih, 4,76:1 di background |
-| `--danger` | `#B91C1C` | Status, selalu bersama teks atau ikon | 6,47:1 di putih, 6,13:1 di background |
-| `--border-strong` | `#6E7A8A` | Batas input dan komponen | 4,14:1 di background, memenuhi 3:1 |
-| `--focus-ring` | `#0B7A6B` | Cincin fokus | 4,96:1 di background, memenuhi 3:1 |
+| `--color-primary` | `#172B4D` | Navigasi, judul | 14,10:1 di putih |
+| `--color-secondary` | `#0B7A6B` | Tombol utama, tautan, aksi positif | 5,24:1 di putih |
+| `--color-accent` | `#F5B544` | Isian sorotan saja, tidak pernah sebagai warna teks di atas putih | 1,81:1 di putih, jadi dilarang sebagai teks |
+| `--color-text-on-accent` | `#17212F` | Teks di atas isian aksen | 8,94:1 |
+| `--color-background` | `#F7F9FC` | Latar aplikasi | |
+| `--color-surface` | `#FFFFFF` | Kartu dan panel | |
+| `--color-text-primary` | `#17212F` | Isi | 15,37:1 di background |
+| `--color-text-secondary` | `#475569` | Keterangan dan placeholder | 7,18:1 di background, 7,58:1 di putih |
+| `--color-success` | `#15803D` | Status, selalu bersama teks atau ikon | 5,02:1 di putih, 4,76:1 di background |
+| `--color-warning` | `#B45309` | Status, selalu bersama teks atau ikon | 5,02:1 di putih, 4,76:1 di background |
+| `--color-danger` | `#B91C1C` | Status, selalu bersama teks atau ikon | 6,47:1 di putih, 6,13:1 di background |
+| `--color-border-strong` | `#6E7A8A` | Batas input dan komponen | 4,14:1 di background, memenuhi 3:1 |
+| `--color-focus-ring` | `#0B7A6B` | Cincin fokus | 4,96:1 di background, memenuhi 3:1 |
+
+Nama variabel di atas mengikuti tema Tailwind (`--color-*` di
+`apps/web/src/styles/globals.css`). Warna turunan untuk keadaan komponen, seperti hover
+tombol utama, latar pesan galat dan sukses, serta lencana sesi, ikut dijaga di
+`packages/design-tokens/src/tokens.ts` dan diperiksa `npm run test:contrast`.
 
 `#8A94A6` tidak boleh dipakai sebagai batas input, karena gagal 3:1 di atas latar aplikasi.
 Batas dekoratif yang tidak membawa informasi boleh memakai nilai itu.

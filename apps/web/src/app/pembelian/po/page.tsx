@@ -13,9 +13,9 @@ import {
   type PurchaseOrder,
   type SuppliersResponse,
 } from '../../../lib/api'
+import { cx } from '../../../lib/cx'
 import { badgeFor, rupiah } from '../bagian'
 import { PurchasingShell } from '../pembelian-shell'
-import styles from '../pembelian.module.css'
 
 /**
  * PRD 5: Pembelian > Purchase Order. Daftar dengan filter status, dan aksi
@@ -23,6 +23,10 @@ import styles from '../pembelian.module.css'
  * rendah dengan jumlah usulan yang bisa diubah; tombolnya ada di sini dan
  * mengarah ke halaman POST dari peringatan stok.
  */
+
+const BADGE = 'inline-flex items-center rounded-badge border px-2 py-0.5 text-xs font-medium tabular'
+const CARD = 'flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 text-text-primary no-underline shadow-raised'
+const LINK_BUTTON = 'inline-flex min-h-touch items-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary no-underline transition-colors hover:border-text-secondary'
 
 const STATUS = [
   { value: '', label: 'Semua status' },
@@ -96,26 +100,26 @@ export default function PurchaseOrdersPage() {
       activeHref="/pembelian/po"
       title="Purchase order"
       actions={
-        <a className={styles.paginationLink} href="/pembelian/po/baru">
+        <a className={LINK_BUTTON} href="/pembelian/po/baru">
           Buat PO
         </a>
       }
     >
-      <div className={styles.actions}>
-        <span className={`${styles.badge} ${styles.badgePending}`}>
+      <div className="flex flex-wrap gap-2">
+        <span className={cx(BADGE, 'border-warning text-warning')}>
           Menunggu persetujuan {totals.menunggu}
         </span>
-        <span className={`${styles.badge} ${styles.badgeOk}`}>
+        <span className={cx(BADGE, 'border-success text-success')}>
           Diterima sebagian {totals.berjalan}
         </span>
       </div>
 
-      <div className={styles.filterGroup}>
-        <label className={styles.label} htmlFor="status">
+      <div className="flex min-w-0 flex-[1_1_12rem] flex-col gap-1">
+        <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="status">
           Status
         </label>
         <select
-          className={styles.select}
+          className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
           id="status"
           value={status}
           onChange={(event) => setStatus(event.target.value)}
@@ -131,19 +135,24 @@ export default function PurchaseOrdersPage() {
       {error ? <Alert kind="error">{error}</Alert> : null}
 
       {loading ? (
-        <p role="status">Memuat daftar purchase order.</p>
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat daftar purchase order.
+        </p>
       ) : orders && orders.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Belum ada purchase order</p>
-          <p className={styles.stateBody}>
+        <div className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Belum ada purchase order</p>
+          <p className="text-[0.9375rem] text-text-secondary">
             Buat PO untuk memesan barang ke supplier, lalu catat penerimaannya saat barang
             datang. Barang baru menambah stok setelah penerimaan dicatat.
           </p>
-          <div className={styles.emptyActions}>
-            <a className={styles.paginationLink} href="/pembelian/po/baru">
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a className={LINK_BUTTON} href="/pembelian/po/baru">
               Buat PO pertama
             </a>
-            <a className={styles.paginationLink} href="/stok/peringatan">
+            <a className={LINK_BUTTON} href="/stok/peringatan">
               Dari daftar stok rendah
             </a>
           </div>
@@ -152,18 +161,18 @@ export default function PurchaseOrdersPage() {
 
       {!loading && orders && orders.length > 0 ? (
         <>
-          <ul className={styles.list}>
+          <ul className="flex flex-col gap-2 desktop:hidden">
             {orders.map((order) => (
               <li key={order.id}>
-                <a className={styles.card} href={`/pembelian/po/${order.id}`}>
-                  <span className={styles.cardRow}>
-                    <span className={styles.cardName}>{order.number}</span>
+                <a className={CARD} href={`/pembelian/po/${order.id}`}>
+                  <span className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-semibold text-primary tabular">{order.number}</span>
                     <span className={badgeFor(order.status)}>{order.statusLabel}</span>
                   </span>
-                  <span className={styles.cardMeta}>
+                  <span className="text-sm text-text-secondary">
                     {order.supplierName} · {order.locationName}
                   </span>
-                  <span className={styles.cardMeta}>
+                  <span className="text-sm text-text-secondary tabular">
                     {rupiah(order.totalAmount)} · {order.orderedOn}
                   </span>
                 </a>
@@ -171,30 +180,30 @@ export default function PurchaseOrdersPage() {
             ))}
           </ul>
 
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <caption className={styles.visuallyHidden}>Daftar purchase order</caption>
-              <thead>
+          <div className="hidden overflow-x-auto rounded-surface border border-border-subtle bg-surface shadow-raised desktop:block">
+            <table className="w-full border-collapse text-sm">
+              <caption className="visually-hidden">Daftar purchase order</caption>
+              <thead className="bg-background text-left text-text-secondary">
                 <tr>
-                  <th scope="col">Nomor</th>
-                  <th scope="col">Supplier</th>
-                  <th scope="col">Status</th>
-                  <th scope="col" className={styles.numeric}>
+                  <th scope="col" className="px-3 py-2">Nomor</th>
+                  <th scope="col" className="px-3 py-2">Supplier</th>
+                  <th scope="col" className="px-3 py-2">Status</th>
+                  <th scope="col" className="px-3 py-2 text-right">
                     Total
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {orders.map((order) => (
-                  <tr key={order.id}>
-                    <td>
+                  <tr key={order.id} className="border-b border-border-subtle last:border-0">
+                    <td className="px-3 py-2">
                       <a href={`/pembelian/po/${order.id}`}>{order.number}</a>
                     </td>
-                    <td className={styles.muted}>{order.supplierName}</td>
-                    <td>
+                    <td className="px-3 py-2 text-text-secondary">{order.supplierName}</td>
+                    <td className="px-3 py-2">
                       <span className={badgeFor(order.status)}>{order.statusLabel}</span>
                     </td>
-                    <td className={styles.numeric}>{rupiah(order.totalAmount)}</td>
+                    <td className="px-3 py-2 text-right tabular">{rupiah(order.totalAmount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -204,17 +213,17 @@ export default function PurchaseOrdersPage() {
       ) : null}
 
       {suppliers.length === 0 ? (
-        <p className={styles.hint}>
+        <p className="text-sm text-text-secondary">
           Supplier masih kosong. Tambahkan supplier dulu sebelum membuat PO.
         </p>
       ) : null}
       {locations.length === 0 ? (
-        <p className={styles.hint}>
+        <p className="text-sm text-text-secondary">
           Lokasi masih kosong. Tambahkan lokasi dulu supaya stok bisa dipisahkan per tempat.
         </p>
       ) : null}
       {products.length === 0 ? (
-        <p className={styles.hint}>
+        <p className="text-sm text-text-secondary">
           Barang masih kosong. Tambahkan barang dulu sebelum membuat PO.
         </p>
       ) : null}

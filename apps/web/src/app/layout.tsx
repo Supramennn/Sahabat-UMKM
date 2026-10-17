@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
-import '../styles/tokens.css'
+import { MotionProvider } from './components/motion'
+import '../styles/globals.css'
 
 export const metadata: Metadata = {
   title: 'Sahabat UMKM',
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="id">
-      <body>{children}</body>
+      <body>
+        <MotionProvider>{children}</MotionProvider>
+      </body>
     </html>
   )
 }

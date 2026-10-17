@@ -11,7 +11,6 @@ import {
   type StockMovement,
 } from '../../../lib/api'
 import { formatQty } from '../bagian'
-import styles from '../stok.module.css'
 
 /**
  * PRD 6.2: riwayat tidak dapat diubah atau dihapus, jadi halaman ini hanya
@@ -77,13 +76,13 @@ export default function StockHistoryPage() {
       breadcrumb="Stok"
       title="Riwayat stok"
     >
-      <form className={styles.filters} onSubmit={onFilter}>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="lokasi">
+      <form className="flex flex-wrap items-end gap-3" onSubmit={onFilter}>
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="lokasi">
             Lokasi
           </label>
           <select
-            className={styles.select}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary"
             id="lokasi"
             value={locationId}
             onChange={(event) => setLocationId(event.target.value)}
@@ -96,24 +95,24 @@ export default function StockHistoryPage() {
             ))}
           </select>
         </div>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="dari">
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="dari">
             Dari tanggal
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary"
             id="dari"
             type="date"
             value={from}
             onChange={(event) => setFrom(event.target.value)}
           />
         </div>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="sampai">
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="sampai">
             Sampai tanggal
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary"
             id="sampai"
             type="date"
             value={to}
@@ -125,16 +124,24 @@ export default function StockHistoryPage() {
       {error ? <ErrorState title="Riwayat gagal dimuat" body={error} /> : null}
 
       {loading ? (
-        <p role="status">Memuat riwayat stok.</p>
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat riwayat stok.
+        </p>
       ) : movements && movements.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Belum ada catatan stok</p>
-          <p className={styles.stateBody}>
+        <div className="rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Belum ada catatan stok</p>
+          <p className="mt-1 text-[0.9375rem] text-text-secondary">
             Setiap barang yang masuk atau keluar akan tercatat di sini dengan tanggal, jumlah,
             alasan, dan saldo setelahnya.
           </p>
-          <div className={styles.emptyActions}>
-            <a className={styles.paginationLink} href="/stok/input">
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+              href="/stok/input"
+            >
               Catat stok pertama
             </a>
           </div>
@@ -142,21 +149,26 @@ export default function StockHistoryPage() {
       ) : null}
 
       {!loading && movements && movements.length > 0 ? (
-        <ul className={styles.list}>
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {movements.map((movement) => (
-            <li key={movement.id} className={styles.card}>
-              <span className={styles.cardRow}>
-                <span className={styles.cardName}>{movement.kindLabel}</span>
-                <span className={styles.quantity}>
+            <li
+              key={movement.id}
+              className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+            >
+              <span className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-[1.0625rem] font-semibold text-primary">
+                  {movement.kindLabel}
+                </span>
+                <span className="tabular font-bold">
                   {formatQty(movement.quantity)} {movement.unitCode}
                 </span>
               </span>
-              <span className={styles.cardMeta}>
-                {movement.productName} Â· {movement.locationName}
+              <span className="text-sm text-text-secondary">
+                {movement.productName} · {movement.locationName}
               </span>
-              <span className={styles.cardMeta}>
+              <span className="text-sm text-text-secondary">
                 Saldo {formatQty(movement.balanceBefore)} menjadi {formatQty(movement.balanceAfter)}
-                {' Â· '}
+                {' · '}
                 {movement.occurredOn}
               </span>
             </li>

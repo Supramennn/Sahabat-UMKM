@@ -37,11 +37,14 @@ describe('status PO ditulis sebagai teks dan warna', () => {
   it('memberi kelas berbeda untuk status yang berbeda', () => {
     expect(badgeFor('disetujui')).not.toBe(badgeFor('ditolak'))
     expect(badgeFor('draft')).not.toBe(badgeFor('disetujui'))
-    expect(badgeFor('disetujui')).toContain('badge')
+    expect(badgeFor('disetujui')).toContain('rounded-badge')
+    expect(badgeFor('disetujui')).toContain('border-success')
+    expect(badgeFor('ditolak')).toContain('border-danger')
   })
 
   it('menyebut status yang tidak dikenal sebagai netral, bukan sebagai gagal', () => {
-    expect(badgeFor('entah')).toContain('badgeNeutral')
+    expect(badgeFor('entah')).toContain('border-border-strong')
+    expect(badgeFor('entah')).not.toContain('border-danger')
   })
 })
 

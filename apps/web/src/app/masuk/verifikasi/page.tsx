@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 import { Alert, AuthCard, AuthLink, AuthShell, Button, Field } from '../../components/ui'
 import { apiPost, errorMessage, type MfaVerifyResponse } from '../../../lib/api'
-import styles from './page.module.css'
 
 /**
  * Langkah kedua saat masuk: kode dari aplikasi autentikator, atau kode pemulihan
@@ -53,7 +52,7 @@ export default function MfaVerifyPage() {
       >
         {error ? <Alert kind="error">{error}</Alert> : null}
 
-        <form className={styles.form} onSubmit={onSubmit} noValidate>
+        <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
           {useRecovery ? (
             <Field
               id="recoveryCode"
@@ -84,7 +83,7 @@ export default function MfaVerifyPage() {
           </Button>
         </form>
 
-        <div className={styles.actions}>
+        <div className="flex flex-col gap-2 min-[30rem]:flex-row min-[30rem]:flex-wrap">
           <AuthLink href="/masuk">
             {useRecovery ? 'Kembali ke kode dari aplikasi' : 'Kembali ke halaman masuk'}
           </AuthLink>
@@ -92,7 +91,7 @@ export default function MfaVerifyPage() {
 
         {!useRecovery ? (
           <button
-            className={styles.textButton}
+            className="min-h-touch self-start cursor-pointer bg-transparent px-2 text-left text-[0.9375rem] text-secondary underline enabled:hover:decoration-2 disabled:cursor-not-allowed disabled:text-text-secondary"
             type="button"
             onClick={() => {
               setUseRecovery(true)

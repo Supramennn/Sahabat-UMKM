@@ -1,5 +1,8 @@
+'use client'
+
 import type { ReactNode } from 'react'
-import styles from './shell.module.css'
+import { cx } from '../../lib/cx'
+import { PageTransition } from './motion'
 
 /**
  * Kerangka aplikasi setelah masuk. PRD 10: desktop memakai sidebar, bilah atas,
@@ -73,63 +76,86 @@ export function AppShell({
   children: ReactNode
 }) {
   return (
-    <div className={styles.shell}>
-      <a className={styles.skipLink} href="#konten-utama">
+    <div className="flex min-h-screen flex-col">
+      <a className="absolute -left-[9999px] top-2 z-10 rounded-control bg-surface px-3 py-2 focus:left-2" href="#konten-utama">
         Lewati ke isi utama
       </a>
 
-      <header className={styles.topBar}>
-        <div className={styles.brandBlock}>
-          <span className={styles.brand}>Sahabat UMKM</span>
-          <span className={styles.workspace}>{workspaceName}</span>
+      <header className="flex items-center justify-between gap-3 bg-primary px-4 py-3 text-white">
+        <div className="flex min-w-0 flex-col">
+          <span className="font-bold tracking-[0.01em]">Sahabat UMKM</span>
+          <span className="truncate text-sm text-on-primary-muted">{workspaceName}</span>
         </div>
-        <p className={styles.role}>{roleLabel}</p>
+        <p className="shrink-0 text-sm text-on-primary-muted">{roleLabel}</p>
       </header>
 
-      <div className={styles.body}>
-        <nav className={styles.sidebar} aria-label="Menu modul">
-          <ul className={styles.navList}>
-            {moduleNav.map((item) => (
-              <li key={item.href}>
-                <a
-                  className={item.href === activeHref ? styles.navLinkActive : styles.navLink}
-                  href={item.href}
-                  aria-current={item.href === activeHref ? 'page' : undefined}
-                >
-                  {item.label}
-                </a>
-              </li>
-            ))}
+      <div className="flex flex-1 flex-col gap-6 p-4 pb-24 desktop:flex-row desktop:gap-8 desktop:px-8 desktop:py-6 desktop:pb-8">
+        <nav
+          className="hidden desktop:block desktop:shrink-0 desktop:basis-[220px]"
+          aria-label="Menu modul"
+        >
+          <ul className="flex flex-col gap-1">
+            {moduleNav.map((item) => {
+              const active = item.href === activeHref
+              return (
+                <li key={item.href}>
+                  <a
+                    className={cx(
+                      'flex min-h-touch items-center rounded-control border-l-[3px] px-3 text-text-primary transition-colors duration-150',
+                      active
+                        ? 'border-secondary bg-surface font-semibold'
+                        : 'border-transparent hover:bg-surface',
+                    )}
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              )
+            })}
           </ul>
         </nav>
 
-        <main className={styles.main} id="konten-utama">
+        <main className="flex min-w-0 flex-1 flex-col gap-4" id="konten-utama">
           <nav aria-label="Remah roti">
-            <ol className={styles.breadcrumb}>
+            <ol className="flex flex-wrap gap-2 text-sm text-text-secondary">
               <li>{breadcrumb}</li>
-              <li aria-current="page">{title}</li>
+              <li className="before:mr-2 before:text-border-strong before:content-['/']" aria-current="page">
+                {title}
+              </li>
             </ol>
           </nav>
 
-          <div className={styles.titleRow}>
-            <h1 className={styles.title}>{title}</h1>
-            {actions ? <div className={styles.actions}>{actions}</div> : null}
+          <div className="flex flex-col-reverse gap-3 desktop:flex-row desktop:items-start desktop:justify-between">
+            <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+            {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
           </div>
 
-          {children}
+          <PageTransition className="flex flex-col gap-4">{children}</PageTransition>
         </main>
       </div>
 
-      <nav className={styles.bottomNav} aria-label="Menu utama ponsel">
+      <nav
+        className="fixed inset-x-0 bottom-0 flex border-t border-border-strong bg-surface desktop:hidden"
+        aria-label="Menu utama ponsel"
+      >
         {bottomNav.map((item) => {
+          const active = item.href === activeHref
           return (
             <a
               key={item.href}
-              className={item.href === activeHref ? styles.bottomLinkActive : styles.bottomLink}
+              className={cx(
+                'relative flex min-h-touch flex-1 items-center justify-center py-2 text-center text-sm',
+                active ? 'font-bold text-secondary' : 'text-text-secondary',
+              )}
               href={item.href}
-              aria-current={item.href === activeHref ? 'page' : undefined}
+              aria-current={active ? 'page' : undefined}
             >
               {item.short}
+              {active ? (
+                <span aria-hidden="true" className="absolute bottom-0 h-1 w-10 rounded-full bg-secondary" />
+              ) : null}
             </a>
           )
         })}

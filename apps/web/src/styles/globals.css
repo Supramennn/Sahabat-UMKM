@@ -1,0 +1,118 @@
+/**
+ * Gaya global aplikasi Sahabat UMKM.
+ *
+ * Tailwind CSS v4 dengan token PRD 10. Nilai di blok @theme adalah salinan dari
+ * packages/design-tokens/src/tokens.ts, dan kesamaannya dijaga oleh tes
+ * theme-sync di packages/design-tokens/test. Satu-satunya sumber angka tetap
+ * token itu; berkas ini hanya cara Tailwind membacanya.
+ *
+ * Aturan pewarnaan: kelas warna hanya boleh berasal dari tema di bawah. Tidak
+ * ada nilai heksadesimal langsung di JSX.
+ */
+
+@import 'tailwindcss';
+
+/* Seluruh berkas sumber aplikasi web dipindai untuk kelas. */
+@source '../';
+
+@theme {
+  /* Warna inti PRD 10. */
+  --color-primary: #172b4d;
+  --color-secondary: #0b7a6b;
+  --color-secondary-deep: #096053;
+  --color-accent: #f5b544;
+  --color-text-on-accent: #17212f;
+  --color-background: #f7f9fc;
+  --color-surface: #ffffff;
+  --color-text-primary: #17212f;
+  --color-text-secondary: #475569;
+  --color-success: #15803d;
+  --color-success-surface: #f0fdf4;
+  --color-success-ink: #14532d;
+  --color-success-muted: #ecfdf5;
+  --color-warning: #b45309;
+  --color-danger: #b91c1c;
+  --color-danger-surface: #fef2f2;
+  --color-danger-ink: #7f1d1d;
+  --color-border-strong: #6e7a8a;
+  --color-border-subtle: #8a94a6;
+  --color-disabled-background: #69748a;
+  --color-focus-ring: #0b7a6b;
+  --color-on-primary-muted: #dbe3f0;
+
+  /* Sudut mengikuti token yang sama. */
+  --radius-control: 6px;
+  --radius-surface: 10px;
+  --radius-badge: 999px;
+
+  /* Satu dosis elevasi untuk kartu yang memang menonjol dari latar, dan satu
+   * untuk lapisan yang benar-benar melayang di atas halaman. */
+  --shadow-raised: 0 1px 2px rgb(23 43 77 / 0.06), 0 6px 20px -12px rgb(23 43 77 / 0.22);
+  --shadow-overlay: 0 12px 40px -12px rgb(23 43 77 / 0.34);
+
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+
+  /* PRD 10: target sentuh minimal 44 x 44 px. */
+  --spacing-touch: 44px;
+
+  /* Tata letak: sidebar muncul dan navigasi bawah mati mulai 60rem. */
+  --breakpoint-desktop: 60rem;
+}
+
+@layer base {
+  /* rem-based, supaya teks bisa diperbesar sampai 200% tanpa terpotong (PRD 10). */
+  html {
+    font-size: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-background);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    /* PRD 10: tidak ada gulir horizontal pada halaman. */
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: var(--color-primary);
+    margin: 0;
+    line-height: 1.25;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  a {
+    color: var(--color-secondary);
+  }
+
+  /* Fokus selalu terlihat dengan kontras minimal 3:1 (PRD 10). */
+  :focus-visible {
+    outline: 3px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-control);
+  }
+}
+
+/* Angka rupiah dan tanggal memakai angka tabular agar kolom lurus (PRD 10). */
+.tabular {
+  font-variant-numeric: 'tnum' 1, 'lnum' 1;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

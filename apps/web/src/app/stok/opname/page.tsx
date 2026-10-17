@@ -14,7 +14,6 @@ import {
   type StockCountDetail,
 } from '../../../lib/api'
 import { formatQty } from '../bagian'
-import styles from '../stok.module.css'
 
 /**
  * PRD 6.2: Owner atau Admin membuka sesi hitung untuk satu lokasi, staf
@@ -143,18 +142,18 @@ export default function StockCountPage() {
       {success ? <Alert kind="success">{success}</Alert> : null}
 
       <form
-        className={styles.form}
+        className="flex max-w-[34rem] flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault()
           void mulai()
         }}
       >
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="lokasi-opname">
+        <div className="flex flex-col gap-1">
+          <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="lokasi-opname">
             Lokasi yang dihitung
           </label>
           <select
-            className={styles.select}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="lokasi-opname"
             value={locationId}
             onChange={(event) => setLocationId(event.target.value)}
@@ -166,7 +165,11 @@ export default function StockCountPage() {
             ))}
           </select>
         </div>
-        <button type="submit" className={styles.submit} disabled={busy || locationId === ''}>
+        <button
+          type="submit"
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control bg-secondary px-4 text-base font-medium text-surface transition-colors duration-150 enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
+          disabled={busy || locationId === ''}
+        >
           {busy ? 'Memproses' : 'Mulai atau lanjutkan hitungan'}
         </button>
       </form>
@@ -174,9 +177,9 @@ export default function StockCountPage() {
       {loading ? (
         <p role="status">Memuat sesi opname.</p>
       ) : counts && counts.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Belum ada sesi opname</p>
-          <p className={styles.stateBody}>
+        <div className="flex flex-col gap-2 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold text-text-primary">Belum ada sesi opname</p>
+          <p className="text-[0.9375rem] text-text-secondary">
             Mulai sesi dari lokasi di atas, masukkan jumlah fisik, lalu setujui selisihnya
             menjadi transaksi penyesuaian.
           </p>
@@ -184,17 +187,20 @@ export default function StockCountPage() {
       ) : null}
 
       {!loading && counts && counts.length > 0 ? (
-        <ul className={styles.list}>
+        <ul className="flex flex-col gap-2">
           {counts.map((item) => (
-            <li key={item.countId} className={styles.card}>
-              <span className={styles.cardName}>{item.locationName}</span>
-              <span className={styles.cardMeta}>
-                {statusLabel(item.status)} Â· {formatQty(item.countedItems ?? 0)} dari{' '}
+            <li
+              key={item.countId}
+              className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+            >
+              <span className="font-semibold text-primary">{item.locationName}</span>
+              <span className="text-sm text-text-secondary">
+                {statusLabel(item.status)} · {formatQty(item.countedItems ?? 0)} dari{' '}
                 {formatQty(item.totalItems ?? 0)} barang sudah dihitung
               </span>
               <button
                 type="button"
-                className={styles.textButton}
+                className="min-h-touch self-start cursor-pointer bg-transparent px-2 text-left text-[0.9375rem] text-secondary underline enabled:hover:decoration-2 disabled:cursor-not-allowed disabled:text-text-secondary"
                 onClick={() => {
                   void buka(item.countId)
                 }}
@@ -207,30 +213,33 @@ export default function StockCountPage() {
       ) : null}
 
       {selected ? (
-        <section className={styles.state}>
-          <h2 className={styles.cardName}>
-            Sesi {selected.count.locationName} Â· {statusLabel(selected.count.status)}
+        <section className="flex flex-col gap-2 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <h2 className="text-lg font-semibold text-primary">
+            Sesi {selected.count.locationName} · {statusLabel(selected.count.status)}
           </h2>
-          <p className={styles.stateBody}>
+          <p className="text-[0.9375rem] text-text-secondary">
             Isi jumlah fisik yang dihitung. Selisih muncul begitu jumlahnya disimpan, dan saldo
             baru berubah setelah ada persetujuan.
           </p>
 
-          <ul className={styles.list}>
+          <ul className="flex flex-col gap-2">
             {selected.items.map((item) => (
-              <li key={item.itemId} className={styles.card}>
-                <span className={styles.cardName}>{item.productName}</span>
-                <span className={styles.cardMeta}>
+              <li
+                key={item.itemId}
+                className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+              >
+                <span className="font-semibold text-primary">{item.productName}</span>
+                <span className="text-sm text-text-secondary">
                   Sistem {formatQty(item.systemQuantity)} {item.unitCode}
                   {item.variance === null
-                    ? ' Â· belum dihitung'
-                    : ` Â· selisih ${item.variance > 0 ? '+' : ''}${formatQty(item.variance)}`}
+                    ? ' · belum dihitung'
+                    : ` · selisih ${item.variance > 0 ? '+' : ''}${formatQty(item.variance)}`}
                 </span>
-                <label className={styles.label} htmlFor={`hitung-${item.itemId}`}>
+                <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor={`hitung-${item.itemId}`}>
                   Jumlah fisik ({item.unitCode})
                 </label>
                 <input
-                  className={styles.input}
+                  className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
                   id={`hitung-${item.itemId}`}
                   inputMode="decimal"
                   defaultValue={item.counted ? String(item.countedQuantity) : ''}
@@ -246,7 +255,7 @@ export default function StockCountPage() {
           {selected.count.status === 'draf' ? (
             <button
               type="button"
-              className={styles.submit}
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control bg-secondary px-4 text-base font-medium text-surface transition-colors duration-150 enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
               disabled={busy}
               onClick={() => {
                 void setujui()

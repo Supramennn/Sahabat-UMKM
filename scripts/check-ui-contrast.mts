@@ -1,15 +1,16 @@
 /**
  * Kontras untuk pasangan warna yang dipakai komponen, bukan hanya token.
  *
- * PRD 10 mewajibkan setiap pasangan warna baru dihitung sebelum dipakai. Token
- * asli dijaga oleh tes di packages/design-tokens, tapi komponen ini memakai
- * beberapa warna turunan untuk keadaan hover, latar alert, dan lencana, dan
- * warna-warna itu tidak terlihat di mana pun kecuali di sini.
+ * PRD 10 mewajibkan setiap pasangan warna baru dihitung sebelum dipakai. Nilai
+ * warna diambil dari packages/design-tokens/src/tokens.ts, jadi daftar ini tidak
+ * bisa menyimpang dari token; yang berbeda di sini hanya pemasangan yang
+ * benar-benar dipakai antarmuka.
  *
- * Jalankan: npx tsx scripts/check-ui-contrast.mts
+ * Jalankan: npm run test:contrast
  */
 
 import { contrastRatio, formatRatio } from '../packages/design-tokens/src/contrast.ts'
+import { colors } from '../packages/design-tokens/src/tokens.ts'
 
 const NORMAL_TEXT = 4.5
 const NON_TEXT = 3
@@ -22,42 +23,45 @@ interface Pairing {
 }
 
 const pairings: Pairing[] = [
-  { name: 'tombol utama, teks di tombol', foreground: '#ffffff', background: '#0b7a6b', minimum: NORMAL_TEXT },
-  { name: 'tombol utama, keadaan hover', foreground: '#ffffff', background: '#096053', minimum: NORMAL_TEXT },
-  { name: 'tombol sekunder, teks di tombol', foreground: '#172b4d', background: '#ffffff', minimum: NORMAL_TEXT },
-  { name: 'tombol bahaya, teks di tombol', foreground: '#b91c1c', background: '#ffffff', minimum: NORMAL_TEXT },
-  { name: 'tombol bahaya, keadaan hover', foreground: '#b91c1c', background: '#fef2f2', minimum: NORMAL_TEXT },
-  { name: 'galat, teks di latar galat', foreground: '#7f1d1d', background: '#fef2f2', minimum: NORMAL_TEXT },
-  { name: 'galat, batas di latar galat', foreground: '#b91c1c', background: '#fef2f2', minimum: NON_TEXT },
-  { name: 'sukses, teks di latar sukses', foreground: '#14532d', background: '#f0fdf4', minimum: NORMAL_TEXT },
-  { name: 'sukses, batas di latar sukses', foreground: '#15803d', background: '#f0fdf4', minimum: NON_TEXT },
-  { name: 'lencana perangkat, teks', foreground: '#14532d', background: '#ecfdf5', minimum: NORMAL_TEXT },
-  { name: 'lencana perangkat, batas', foreground: '#15803d', background: '#ecfdf5', minimum: NON_TEXT },
-  { name: 'keadaan data, batas di latar aplikasi', foreground: '#6e7a8a', background: '#f7f9fc', minimum: NON_TEXT },
-  { name: 'keadaan data, batas di kartu', foreground: '#6e7a8a', background: '#ffffff', minimum: NON_TEXT },
-  { name: 'batas isian di atas kartu', foreground: '#6e7a8a', background: '#ffffff', minimum: NON_TEXT },
-  { name: 'batas isian di atas latar aplikasi', foreground: '#6e7a8a', background: '#f7f9fc', minimum: NON_TEXT },
-  { name: 'kode pemulihan, batas di atas kartu', foreground: '#6e7a8a', background: '#ffffff', minimum: NON_TEXT },
-  { name: 'cincin fokus di atas latar aplikasi', foreground: '#0b7a6b', background: '#f7f9fc', minimum: NON_TEXT },
-  { name: 'teks utama di atas latar aplikasi', foreground: '#17212f', background: '#f7f9fc', minimum: NORMAL_TEXT },
-  { name: 'teks sekunder di atas kartu', foreground: '#475569', background: '#ffffff', minimum: NORMAL_TEXT },
+  { name: 'tombol utama, teks di tombol', foreground: colors.surface, background: colors.secondary, minimum: NORMAL_TEXT },
+  { name: 'tombol utama, keadaan hover', foreground: colors.surface, background: colors.secondaryDeep, minimum: NORMAL_TEXT },
+  { name: 'tombol sekunder, teks di tombol', foreground: colors.primary, background: colors.surface, minimum: NORMAL_TEXT },
+  { name: 'tombol sekunder, batas saat diarahkan', foreground: colors.textSecondary, background: colors.surface, minimum: NON_TEXT },
+  { name: 'tombol bahaya, teks di tombol', foreground: colors.danger, background: colors.surface, minimum: NORMAL_TEXT },
+  { name: 'tombol bahaya, keadaan hover', foreground: colors.danger, background: colors.dangerSurface, minimum: NORMAL_TEXT },
+  { name: 'galat, teks di latar galat', foreground: colors.dangerInk, background: colors.dangerSurface, minimum: NORMAL_TEXT },
+  { name: 'galat, batas di latar galat', foreground: colors.danger, background: colors.dangerSurface, minimum: NON_TEXT },
+  { name: 'sukses, teks di latar sukses', foreground: colors.successInk, background: colors.successSurface, minimum: NORMAL_TEXT },
+  { name: 'sukses, batas di latar sukses', foreground: colors.success, background: colors.successSurface, minimum: NON_TEXT },
+  { name: 'lencana status sesi, teks', foreground: colors.successInk, background: colors.successMuted, minimum: NORMAL_TEXT },
+  { name: 'lencana status sesi, batas', foreground: colors.success, background: colors.successMuted, minimum: NON_TEXT },
+  { name: 'keadaan data, batas di latar aplikasi', foreground: colors.borderStrong, background: colors.background, minimum: NON_TEXT },
+  { name: 'keadaan data, batas di kartu', foreground: colors.borderStrong, background: colors.surface, minimum: NON_TEXT },
+  { name: 'batas isian di atas kartu', foreground: colors.borderStrong, background: colors.surface, minimum: NON_TEXT },
+  { name: 'batas isian di atas latar aplikasi', foreground: colors.borderStrong, background: colors.background, minimum: NON_TEXT },
+  { name: 'kode pemulihan, batas di atas kartu', foreground: colors.borderStrong, background: colors.surface, minimum: NON_TEXT },
+  { name: 'cincin fokus di atas latar aplikasi', foreground: colors.focusRing, background: colors.background, minimum: NON_TEXT },
+  { name: 'cincin fokus di atas kartu', foreground: colors.focusRing, background: colors.surface, minimum: NON_TEXT },
+  { name: 'teks utama di atas latar aplikasi', foreground: colors.textPrimary, background: colors.background, minimum: NORMAL_TEXT },
+  { name: 'teks sekunder di atas kartu', foreground: colors.textSecondary, background: colors.surface, minimum: NORMAL_TEXT },
 
-  // Modul stok. Semua warna di sini sudah ada di token PRD 10; yang diperiksa
-  // adalah pasangan yang benar-benar dipakai, termasuk bilah atas yang gelap.
-  { name: 'bilah atas, nama aplikasi', foreground: '#ffffff', background: '#172b4d', minimum: NORMAL_TEXT },
-  { name: 'bilah atas, nama workspace', foreground: '#dbe3f0', background: '#172b4d', minimum: NORMAL_TEXT },
-  { name: 'lencana stok normal, teks', foreground: '#15803d', background: '#ffffff', minimum: NORMAL_TEXT },
-  { name: 'lencana stok normal, batas', foreground: '#15803d', background: '#ffffff', minimum: NON_TEXT },
-  { name: 'lencana stok rendah, teks', foreground: '#b45309', background: '#ffffff', minimum: NORMAL_TEXT },
-  { name: 'lencana stok rendah, batas', foreground: '#b45309', background: '#ffffff', minimum: NON_TEXT },
-  { name: 'lencana habis, teks', foreground: '#b91c1c', background: '#ffffff', minimum: NORMAL_TEXT },
-  { name: 'lencana habis, batas', foreground: '#b91c1c', background: '#ffffff', minimum: NON_TEXT },
-  { name: 'kartu saldo, batas', foreground: '#8a94a6', background: '#ffffff', minimum: NON_TEXT },
-  { name: 'tombol simpan, teks', foreground: '#ffffff', background: '#0b7a6b', minimum: NORMAL_TEXT },
-  { name: 'tombol simpan, keadaan mati', foreground: '#ffffff', background: '#69748a', minimum: NORMAL_TEXT },
-  { name: 'tombol pilihan aktif, teks', foreground: '#ffffff', background: '#172b4d', minimum: NORMAL_TEXT },
-  { name: 'bilah bawah ponsel, teks', foreground: '#475569', background: '#ffffff', minimum: NORMAL_TEXT },
-  { name: 'bilah bawah ponsel, teks aktif', foreground: '#0b7a6b', background: '#ffffff', minimum: NORMAL_TEXT },
+  // Kerangka aplikasi: bilah atas gelap dan navigasi.
+  { name: 'bilah atas, nama aplikasi', foreground: colors.surface, background: colors.primary, minimum: NORMAL_TEXT },
+  { name: 'bilah atas, nama workspace', foreground: colors.onPrimaryMuted, background: colors.primary, minimum: NORMAL_TEXT },
+  { name: 'bilah bawah ponsel, teks', foreground: colors.textSecondary, background: colors.surface, minimum: NORMAL_TEXT },
+  { name: 'bilah bawah ponsel, teks aktif', foreground: colors.secondary, background: colors.surface, minimum: NORMAL_TEXT },
+
+  // Lencana dan tombol modul stok; semuanya memakai token yang sama.
+  { name: 'lencana stok normal, teks', foreground: colors.success, background: colors.surface, minimum: NORMAL_TEXT },
+  { name: 'lencana stok normal, batas', foreground: colors.success, background: colors.surface, minimum: NON_TEXT },
+  { name: 'lencana stok rendah, teks', foreground: colors.warning, background: colors.surface, minimum: NORMAL_TEXT },
+  { name: 'lencana stok rendah, batas', foreground: colors.warning, background: colors.surface, minimum: NON_TEXT },
+  { name: 'lencana habis, teks', foreground: colors.danger, background: colors.surface, minimum: NORMAL_TEXT },
+  { name: 'lencana habis, batas', foreground: colors.danger, background: colors.surface, minimum: NON_TEXT },
+  { name: 'kartu saldo, batas', foreground: colors.borderSubtle, background: colors.surface, minimum: NON_TEXT },
+  { name: 'tombol simpan, teks', foreground: colors.surface, background: colors.secondary, minimum: NORMAL_TEXT },
+  { name: 'tombol simpan, keadaan mati', foreground: colors.surface, background: colors.disabledBackground, minimum: NORMAL_TEXT },
+  { name: 'tombol pilihan aktif, teks', foreground: colors.surface, background: colors.primary, minimum: NORMAL_TEXT },
 ]
 
 let gagal = 0

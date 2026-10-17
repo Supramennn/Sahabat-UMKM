@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Alert, AuthCard, AuthLink, AuthShell, Button } from '../components/ui'
 import { apiPost, errorMessage } from '../../lib/api'
-import styles from './page.module.css'
 
 /**
  * PRD 6.1: verifikasi email. Tanpa halaman ini, akun yang baru mendaftar tidak
@@ -63,11 +62,11 @@ export default function VerifyEmailForm({ token }: { token: string }) {
       <AuthCard title="Verifikasi email" subtitle="Satu langkah lagi sebelum Anda masuk.">
         {error ? <Alert kind="error">{error}</Alert> : null}
 
-        <div className={styles.stack}>
+        <div className="flex flex-col gap-4">
           <Button onClick={verify} disabled={busy} full>
             {busy ? 'Memproses' : 'Verifikasi email saya'}
           </Button>
-          <p className={styles.recoveryNote}>
+          <p className="text-[0.9375rem] text-text-secondary">
             Kalau tautan ini sudah tidak berlaku, minta tautan baru dari halaman masuk memakai email
             yang sama.
           </p>

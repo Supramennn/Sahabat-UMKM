@@ -1,7 +1,5 @@
 'use client'
 
-import styles from './stok.module.css'
-
 /**
  * Bagian yang dipakai beberapa halaman modul stok. Berada di berkas sendiri
  * karena berkas halaman Next.js hanya boleh mengekspor satu komponen default.
@@ -21,14 +19,13 @@ export function formatQty(value: number): string {
 
 /**
  * Status stok selalu ditulis sebagai teks dan simbol, bukan hanya warna, supaya
- * tetap terbaca pada mode kontras paksa (PRD 10). Tipe modul CSS memperlakukan
- * setiap kunci sebagai opsional, jadi nilai kosong dipakai sebagai jaring pengaman
- * dan bukan sebagai sumber gaya.
+ * tetap terbaca pada mode kontras paksa (PRD 10). Kelas warna di sini dipadukan
+ * dengan bentuk dasar lencana di sisi pemanggil.
  */
 export function badgeClass(status: string): string {
-  if (status === 'habis') return styles.badgeEmpty ?? ''
-  if (status === 'stok_rendah') return styles.badgeLow ?? ''
-  return styles.badgeNormal ?? ''
+  if (status === 'habis') return 'border-danger text-danger'
+  if (status === 'stok_rendah') return 'border-warning text-warning'
+  return 'border-success text-success'
 }
 
 export function Pagination({
@@ -46,14 +43,17 @@ export function Pagination({
   const sampai = Math.min(offset + limit, total)
 
   return (
-    <nav className={styles.pagination} aria-label="Halaman daftar">
+    <nav
+      className="flex flex-wrap items-center gap-3 text-sm text-text-secondary"
+      aria-label="Halaman daftar"
+    >
       <span>
         Menampilkan {dari} sampai {sampai} dari {total} data
       </span>
       {offset > 0 ? (
         <button
           type="button"
-          className={styles.paginationLink}
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
           onClick={() => onChange(Math.max(0, offset - limit))}
         >
           Sebelumnya
@@ -62,7 +62,7 @@ export function Pagination({
       {sampai < total ? (
         <button
           type="button"
-          className={styles.paginationLink}
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
           onClick={() => onChange(offset + limit)}
         >
           Berikutnya

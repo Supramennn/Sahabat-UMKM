@@ -8,7 +8,6 @@ import { Alert, ErrorState } from '../../components/ui'
 import { apiGet, apiPost, errorMessage, type CancelledSale, type SaleDetail } from '../../../lib/api'
 import { SalesShell } from '../penjualan-shell'
 import { badgeFor, formatQty, rupiah } from '../bagian'
-import styles from '../penjualan.module.css'
 
 /**
  * Detail satu penjualan (PRD 6.4). Halaman ini juga menjadi tempat pembatalan,
@@ -85,14 +84,24 @@ export default function SaleDetailPage() {
       {error ? <Alert kind="error">{error}</Alert> : null}
       {success ? <Alert kind="success">{success}</Alert> : null}
 
-      {loading ? <p role="status">Memuat penjualan.</p> : null}
+      {loading ? (
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat penjualan.
+        </p>
+      ) : null}
 
       {!loading && !detail && error ? (
         <ErrorState
           title="Penjualan tidak bisa dibuka"
           body={error ?? 'Penjualan tidak ditemukan.'}
           action={
-            <Link className={styles.linkButton} href="/penjualan">
+            <Link
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center self-start rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+              href="/penjualan"
+            >
               Kembali ke daftar penjualan
             </Link>
           }
@@ -101,119 +110,129 @@ export default function SaleDetailPage() {
 
       {detail ? (
         <>
-          <dl className={styles.summary}>
+          <dl className="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-2 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
             <div>
-              <dt className={styles.summaryLabel}>Nomor</dt>
-              <dd className={styles.summaryValue}>{detail.sale.number}</dd>
+              <dt className="text-[0.9375rem] text-text-secondary">Nomor</dt>
+              <dd className="text-2xl font-semibold tabular">{detail.sale.number}</dd>
             </div>
             <div>
-              <dt className={styles.summaryLabel}>Tanggal</dt>
-              <dd className={styles.summaryValue}>{detail.sale.soldOn}</dd>
+              <dt className="text-[0.9375rem] text-text-secondary">Tanggal</dt>
+              <dd className="text-2xl font-semibold tabular">{detail.sale.soldOn}</dd>
             </div>
             <div>
-              <dt className={styles.summaryLabel}>Total</dt>
-              <dd className={styles.summaryValue}>{rupiah(detail.sale.totalAmount)}</dd>
+              <dt className="text-[0.9375rem] text-text-secondary">Total</dt>
+              <dd className="text-2xl font-semibold tabular">{rupiah(detail.sale.totalAmount)}</dd>
             </div>
             <div>
-              <dt className={styles.summaryLabel}>Laba kotor</dt>
-              <dd className={styles.summaryValue}>{rupiah(detail.sale.grossProfit)}</dd>
+              <dt className="text-[0.9375rem] text-text-secondary">Laba kotor</dt>
+              <dd className="text-2xl font-semibold tabular">{rupiah(detail.sale.grossProfit)}</dd>
             </div>
           </dl>
 
-          <p className={styles.cardMeta}>
+          <p className="text-sm text-text-secondary">
             <span className={badgeFor(detail.sale.status)}> {detail.sale.statusLabel} </span>{' '}
             Lokasi {detail.sale.locationName} · Metode {detail.sale.paymentMethodLabel} · Pelanggan{' '}
             {detail.sale.customerName ?? 'umum'} · Dicatat oleh {detail.sale.createdByName}
           </p>
 
           {detail.sale.status === 'dibatalkan' ? (
-            <p className={styles.hint}>
+            <p className="text-sm text-text-secondary">
               Dibatalkan{detail.sale.cancelledAt ? ` pada ${detail.sale.cancelledAt.slice(0, 10)}` : ''}
               {detail.sale.cancelReason ? ` dengan alasan "${detail.sale.cancelReason}"` : ''}. Stok
               yang sudah keluar dikembalikan lewat baris stok baru, jadi riwayat tetap utuh.
             </p>
           ) : null}
 
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <caption className={styles.visuallyHidden}>Barang yang terjual pada penjualan ini</caption>
-              <thead>
+          <div className="hidden overflow-x-auto rounded-surface border border-border-subtle bg-surface shadow-raised desktop:block">
+            <table className="w-full text-sm">
+              <caption className="visually-hidden">Barang yang terjual pada penjualan ini</caption>
+              <thead className="bg-background text-text-secondary">
                 <tr>
-                  <th scope="col">Barang</th>
-                  <th scope="col" className={styles.numeric}>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    Barang
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-right font-semibold tabular">
                     Jumlah
                   </th>
-                  <th scope="col" className={styles.numeric}>
+                  <th scope="col" className="px-3 py-2 text-right font-semibold tabular">
                     Harga jual
                   </th>
-                  <th scope="col" className={styles.numeric}>
+                  <th scope="col" className="px-3 py-2 text-right font-semibold tabular">
                     Diskon
                   </th>
-                  <th scope="col" className={styles.numeric}>
+                  <th scope="col" className="px-3 py-2 text-right font-semibold tabular">
                     Total
                   </th>
-                  <th scope="col" className={styles.numeric}>
+                  <th scope="col" className="px-3 py-2 text-right font-semibold tabular">
                     Harga pokok
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {detail.items.map((item) => (
-                  <tr key={item.id}>
-                    <td>
+                  <tr key={item.id} className="border-b border-border-subtle last:border-b-0">
+                    <td className="px-3 py-2">
                       {item.productName} ({item.sku})
                     </td>
-                    <td className={styles.numeric}>
+                    <td className="px-3 py-2 text-right tabular">
                       {formatQty(item.quantity)} {item.unitCode}
                     </td>
-                    <td className={styles.numeric}>{rupiah(item.unitPrice)}</td>
-                    <td className={styles.numeric}>{rupiah(item.discountAmount)}</td>
-                    <td className={styles.numeric}>{rupiah(item.lineTotal)}</td>
-                    <td className={styles.numeric}>{rupiah(item.costTotal)}</td>
+                    <td className="px-3 py-2 text-right tabular">{rupiah(item.unitPrice)}</td>
+                    <td className="px-3 py-2 text-right tabular">{rupiah(item.discountAmount)}</td>
+                    <td className="px-3 py-2 text-right tabular">{rupiah(item.lineTotal)}</td>
+                    <td className="px-3 py-2 text-right tabular">{rupiah(item.costTotal)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr>
-                  <th scope="row">Total</th>
-                  <td colSpan={4} className={styles.numeric}>
+                <tr className="border-t border-border-subtle">
+                  <th scope="row" className="px-3 py-2 text-left font-semibold">
+                    Total
+                  </th>
+                  <td colSpan={4} className="px-3 py-2 text-right tabular">
                     {rupiah(detail.sale.totalAmount)}
                   </td>
-                  <td className={styles.numeric}>{rupiah(detail.sale.costTotal)}</td>
+                  <td className="px-3 py-2 text-right tabular">{rupiah(detail.sale.costTotal)}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
-          <ul className={styles.list}>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0 desktop:hidden">
             {detail.items.map((item) => (
-              <li key={item.id} className={styles.card}>
-                <span className={styles.cardRow}>
-                  <span className={styles.cardName}>{item.productName}</span>
-                  <span className={styles.cardTotal}>{rupiah(item.lineTotal)}</span>
+              <li
+                key={item.id}
+                className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+              >
+                <span className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-[1.0625rem] font-semibold text-primary">{item.productName}</span>
+                  <span className="font-semibold tabular">{rupiah(item.lineTotal)}</span>
                 </span>
-                <span className={styles.cardMeta}>
+                <span className="text-sm text-text-secondary">
                   {formatQty(item.quantity)} {item.unitCode} x {rupiah(item.unitPrice)}
                   {item.discountAmount > 0 ? `, diskon ${rupiah(item.discountAmount)}` : ''}
                 </span>
-                <span className={styles.cardMeta}>Harga pokok {rupiah(item.costTotal)}</span>
+                <span className="text-sm text-text-secondary">Harga pokok {rupiah(item.costTotal)}</span>
               </li>
             ))}
           </ul>
 
-          <p className={styles.hint}>
+          <p className="text-sm text-text-secondary">
             Harga pokok memakai rata-rata bergerak pada saat penjualan dicatat, jadi laporan bulan
             lalu tidak berubah karena ada pembelian baru bulan ini.
           </p>
 
-          <div className={styles.actions}>
-            <Link className={styles.linkButton} href="/penjualan">
+          <div className="flex flex-wrap gap-2">
+            <Link
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+              href="/penjualan"
+            >
               Kembali ke daftar
             </Link>
             {detail.sale.status === 'selesai' ? (
               <button
                 type="button"
-                className={styles.dangerButton}
+                className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-danger bg-surface px-4 text-base font-medium text-danger transition-colors duration-150 enabled:hover:bg-danger-surface disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
                 onClick={() => void batalkan()}
                 disabled={busy}
               >

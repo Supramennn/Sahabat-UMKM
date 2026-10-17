@@ -12,9 +12,9 @@ import {
   type SuppliersResponse,
   type SupplierDebt,
 } from '../../../lib/api'
+import { cx } from '../../../lib/cx'
 import { PurchasingShell } from '../pembelian-shell'
 import { rupiah } from '../bagian'
-import styles from '../pembelian.module.css'
 import { can } from '@sahabat/shared'
 
 /**
@@ -25,6 +25,13 @@ import { can } from '@sahabat/shared'
  * A-08: kalau pembayaran tidak memilih PO, sistem mengalokasikan otomatis ke utang
  * paling lama lebih dulu dan menampilkan alokasinya supaya bisa diperiksa.
  */
+
+const BADGE = 'inline-flex items-center rounded-badge border px-2 py-0.5 text-xs font-medium tabular'
+const CARD = 'flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 text-text-primary no-underline shadow-raised'
+const GROUP = 'flex min-w-0 flex-[1_1_12rem] flex-col gap-1'
+const LABEL = 'text-[0.9375rem] font-medium text-text-primary'
+const INPUT = 'min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary'
+const PRIMARY_BUTTON = 'min-h-touch cursor-pointer rounded-control bg-secondary px-4 font-medium text-surface transition-colors enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface'
 
 const METHODS = ['Transfer', 'Tunai', 'Kartu', 'Cek', 'Lainnya'] as const
 
@@ -117,24 +124,24 @@ export default function SupplierPaymentsPage() {
 
   return (
     <PurchasingShell activeHref="/pembelian/pembayaran" title="Pembayaran supplier">
-      {plan === 'gratis' ? <div className={styles.state}>
-        <p className={styles.stateTitle}>Pembayaran dan utang tersedia di paket Usaha</p>
-        <p className={styles.stateBody}>Data pembelian tetap tersimpan. Pilih paket Usaha untuk mencatat pembayaran dan melihat saldo utang supplier.</p>
-        <a className={styles.paginationLink} href="/pengaturan/paket">Lihat paket</a>
+      {plan === 'gratis' ? <div className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+        <p className="font-semibold">Pembayaran dan utang tersedia di paket Usaha</p>
+        <p className="text-[0.9375rem] text-text-secondary">Data pembelian tetap tersimpan. Pilih paket Usaha untuk mencatat pembayaran dan melihat saldo utang supplier.</p>
+        <a className="inline-flex min-h-touch self-start items-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary no-underline transition-colors hover:border-text-secondary" href="/pengaturan/paket">Lihat paket</a>
       </div> : plan !== null && enabled ? <>
       {error ? <Alert kind="error">{error}</Alert> : null}
       {success ? <Alert kind="success">{success}</Alert> : null}
 
       {allocations && allocations.length > 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Pembayaran dialokasikan ke</p>
-          <ul className={styles.list}>
+        <div className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Pembayaran dialokasikan ke</p>
+          <ul className="flex flex-col gap-2">
             {allocations.map((allocation) => {
               const detail = debts?.find((item) => item.purchaseOrderId === allocation.orderId)
               return (
-                <li key={allocation.orderId} className={styles.card}>
-                  <span className={styles.cardName}>{detail?.orderNumber ?? `PO #${allocation.orderId}`}</span>
-                  <span className={styles.cardMeta}>{rupiah(allocation.amount)}</span>
+                <li key={allocation.orderId} className={CARD}>
+                  <span className="font-semibold text-primary tabular">{detail?.orderNumber ?? `PO #${allocation.orderId}`}</span>
+                  <span className="text-sm text-text-secondary tabular">{rupiah(allocation.amount)}</span>
                 </li>
               )
             })}
@@ -142,24 +149,24 @@ export default function SupplierPaymentsPage() {
         </div>
       ) : null}
 
-      <div className={styles.actions}>
-        <span className={`${styles.badge} ${badgeForDebt(totalUtang)}`}>
+      <div className="flex flex-wrap gap-2">
+        <span className={cx(BADGE, badgeForDebt(totalUtang))}>
           Total utang {rupiah(totalUtang)}
         </span>
         {lewatJatuhTempo.length > 0 ? (
-          <span className={`${styles.badge} ${styles.badgeDanger}`}>
+          <span className={cx(BADGE, 'border-danger text-danger')}>
             {lewatJatuhTempo.length} lewat jatuh tempo
           </span>
         ) : null}
       </div>
 
-      <form className={styles.form} onSubmit={onSubmit}>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="supplier-bayar">
+      <form className="flex max-w-[34rem] flex-col gap-4" onSubmit={onSubmit}>
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="supplier-bayar">
             Supplier
           </label>
           <select
-            className={styles.select}
+            className={INPUT}
             id="supplier-bayar"
             value={supplierId}
             onChange={(event) => setSupplierId(event.target.value)}
@@ -172,12 +179,12 @@ export default function SupplierPaymentsPage() {
           </select>
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="jumlah-bayar">
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="jumlah-bayar">
             Jumlah yang dibayar
           </label>
           <input
-            className={styles.input}
+            className={INPUT}
             id="jumlah-bayar"
             inputMode="numeric"
             value={amount}
@@ -187,12 +194,12 @@ export default function SupplierPaymentsPage() {
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="metode">
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="metode">
             Metode pembayaran
           </label>
           <select
-            className={styles.select}
+            className={INPUT}
             id="metode"
             value={method}
             onChange={(event) => setMethod(event.target.value)}
@@ -205,12 +212,12 @@ export default function SupplierPaymentsPage() {
           </select>
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="referensi">
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="referensi">
             Nomor referensi (opsional)
           </label>
           <input
-            className={styles.input}
+            className={INPUT}
             id="referensi"
             value={reference}
             onChange={(event) => setReference(event.target.value)}
@@ -220,7 +227,7 @@ export default function SupplierPaymentsPage() {
 
         <button
           type="submit"
-          className={styles.submit}
+          className={cx(PRIMARY_BUTTON, 'self-start')}
           disabled={busy || supplierId === '' || amount.trim() === ''}
         >
           {busy ? 'Menyimpan' : 'Catat pembayaran'}
@@ -228,11 +235,16 @@ export default function SupplierPaymentsPage() {
       </form>
 
       {loading ? (
-        <p role="status">Memuat daftar utang.</p>
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat daftar utang.
+        </p>
       ) : debts && debts.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Tidak ada utang supplier</p>
-          <p className={styles.stateBody}>
+        <div className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Tidak ada utang supplier</p>
+          <p className="text-[0.9375rem] text-text-secondary">
             Utang muncul setelah barang diterima dari supplier dan belum dibayar.
           </p>
         </div>
@@ -240,23 +252,24 @@ export default function SupplierPaymentsPage() {
 
       {!loading && debts && debts.length > 0 ? (
         <>
-          <h2 className={styles.cardName}>Utang berjalan</h2>
-          <ul className={styles.list}>
+          <h2 className="text-lg font-semibold">Utang berjalan</h2>
+          <ul className="flex flex-col gap-2">
             {debts.map((debt) => (
-              <li key={`${debt.supplierId}-${debt.purchaseOrderId ?? 'tanpa-po'}`} className={styles.card}>
-                <span className={styles.cardRow}>
-                  <span className={styles.cardName}>
+              <li key={`${debt.supplierId}-${debt.purchaseOrderId ?? 'tanpa-po'}`} className={CARD}>
+                <span className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-semibold text-primary tabular">
                     {debt.orderNumber ?? debt.supplierName}
                   </span>
                   <span
-                    className={`${styles.badge} ${
-                      (debt.overdueDays ?? 0) > 0 ? styles.badgeDanger : styles.badgePending
-                    }`}
+                    className={cx(
+                      BADGE,
+                      (debt.overdueDays ?? 0) > 0 ? 'border-danger text-danger' : 'border-warning text-warning',
+                    )}
                   >
                     {debt.outstanding > 0 ? rupiah(debt.outstanding) : 'Lunas'}
                   </span>
                 </span>
-                <span className={styles.cardMeta}>
+                <span className="text-sm text-text-secondary tabular">
                   {debt.supplierName}
                   {debt.dueOn ? ` · jatuh tempo ${debt.dueOn}` : ' · tanpa termin'}
                   {(debt.overdueDays ?? 0) > 0 ? ` · lewat ${debt.overdueDays} hari` : ''}
@@ -266,12 +279,19 @@ export default function SupplierPaymentsPage() {
           </ul>
         </>
       ) : null}
-      </> : loading ? <p role="status">Memuat paket dan pembayaran supplier.</p> : null}
+      </> : loading ? (
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat paket dan pembayaran supplier.
+        </p>
+      ) : null}
     </PurchasingShell>
   )
 }
 
 /** Utang nol tampil sebagai lunas, bukan sebagai angka nol yang membingungkan. */
 function badgeForDebt(total: number): string {
-  return total > 0 ? (styles.badgePending ?? '') : (styles.badgeOk ?? '')
+  return total > 0 ? 'border-warning text-warning' : 'border-success text-success'
 }

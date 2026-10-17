@@ -12,7 +12,7 @@ import {
   type ProductSummary,
   type ProductsResponse,
 } from '../../../lib/api'
-import styles from '../stok.module.css'
+import { cx } from '../../../lib/cx'
 
 /**
  * PRD 10: form input stok di ponsel maksimal tiga isian terlihat tanpa menggulir,
@@ -166,15 +166,20 @@ export default function StockInputPage() {
       {loading ? (
         <p role="status">Memuat daftar barang.</p>
       ) : (
-        <form className={styles.form} onSubmit={onSubmit} noValidate>
-          <fieldset className={styles.fieldset}>
-            <legend className={styles.label}>Jenis catatan</legend>
-            <div className={styles.segment}>
+        <form className="flex max-w-[34rem] flex-col gap-4" onSubmit={onSubmit} noValidate>
+          <fieldset>
+            <legend className="text-[0.9375rem] font-medium text-text-primary">Jenis catatan</legend>
+            <div className="flex gap-1">
               {(['masuk', 'keluar'] as const).map((item) => (
                 <button
                   key={item}
                   type="button"
-                  className={mode === item ? styles.segmentActive : styles.segmentButton}
+                  className={cx(
+                    'flex-1 min-h-touch cursor-pointer rounded-control border px-3 text-base transition-colors duration-150',
+                    mode === item
+                      ? 'border-primary bg-primary font-semibold text-surface'
+                      : 'border-border-strong bg-surface text-text-primary hover:border-text-secondary',
+                  )}
                   aria-pressed={mode === item}
                   onClick={() => {
                     setMode(item)
@@ -188,12 +193,17 @@ export default function StockInputPage() {
               ))}
             </div>
             {bolehMenyesuaikan ? (
-              <div className={styles.segment}>
+              <div className="flex gap-1">
                 {(['penyesuaian_naik', 'penyesuaian_turun'] as const).map((item) => (
                   <button
                     key={item}
                     type="button"
-                    className={mode === item ? styles.segmentActive : styles.segmentButton}
+                    className={cx(
+                      'flex-1 min-h-touch cursor-pointer rounded-control border px-3 text-base transition-colors duration-150',
+                      mode === item
+                        ? 'border-primary bg-primary font-semibold text-surface'
+                        : 'border-border-strong bg-surface text-text-primary hover:border-text-secondary',
+                    )}
                     aria-pressed={mode === item}
                     onClick={() => {
                       setMode(item)
@@ -212,12 +222,12 @@ export default function StockInputPage() {
           {error ? <Alert kind="error">{error}</Alert> : null}
           {success ? <Alert kind="success">{success}</Alert> : null}
 
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="produk">
+          <div className="flex flex-col gap-1">
+            <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="produk">
               Barang
             </label>
             <select
-              className={styles.select}
+              className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
               id="produk"
               value={productId}
               onChange={(event) => setProductId(event.target.value)}
@@ -232,12 +242,12 @@ export default function StockInputPage() {
             </select>
           </div>
 
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="jumlah">
+          <div className="flex flex-col gap-1">
+            <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="jumlah">
               Jumlah
             </label>
             <input
-              className={styles.input}
+              className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
               id="jumlah"
               name="jumlah"
               inputMode="decimal"
@@ -248,12 +258,12 @@ export default function StockInputPage() {
             />
           </div>
 
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="alasan">
+          <div className="flex flex-col gap-1">
+            <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="alasan">
               Alasan
             </label>
             <select
-              className={styles.select}
+              className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
               id="alasan"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
@@ -266,12 +276,12 @@ export default function StockInputPage() {
             </select>
           </div>
 
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="harga-beli">
+          <div className="flex flex-col gap-1">
+            <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="harga-beli">
               Harga beli per satuan (opsional)
             </label>
             <input
-              className={styles.input}
+              className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
               id="harga-beli"
               name="harga-beli"
               inputMode="numeric"
@@ -279,25 +289,25 @@ export default function StockInputPage() {
               onChange={(event) => setUnitCost(event.target.value)}
               disabled={mode !== 'masuk'}
             />
-            <p className={styles.hint}>
+            <p className="text-sm text-text-secondary">
               Dipakai untuk menghitung harga pokok. Kosongkan kalau barang sudah punya harga
               rata-rata.
             </p>
           </div>
 
           {mode === 'masuk' ? (
-            <div className={styles.filterGroup}>
-              <label className={styles.label} htmlFor="kedaluwarsa">
+            <div className="flex flex-col gap-1">
+              <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="kedaluwarsa">
                 Tanggal kedaluwarsa (opsional)
               </label>
               <input
-                className={styles.input}
+                className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
                 id="kedaluwarsa"
                 type="date"
                 value={expiresAt}
                 onChange={(event) => setExpiresAt(event.target.value)}
               />
-              <p className={styles.hint}>
+              <p className="text-sm text-text-secondary">
                 Diisi untuk barang yang ada tanggal kedaluwarsanya, misalnya makanan dan
                 minuman.
               </p>
@@ -306,24 +316,24 @@ export default function StockInputPage() {
 
           {mode === 'penyesuaian_naik' || mode === 'penyesuaian_turun' ? (
             <>
-              <div className={styles.filterGroup}>
-                <label className={styles.label} htmlFor="referensi">
+              <div className="flex flex-col gap-1">
+                <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="referensi">
                   Nomor referensi atau dokumen
                 </label>
                 <input
-                  className={styles.input}
+                  className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
                   id="referensi"
                   value={reference}
                   onChange={(event) => setReference(event.target.value)}
                   placeholder="Contoh: nota gudang No. 12"
                 />
               </div>
-              <div className={styles.filterGroup}>
-                <label className={styles.label} htmlFor="catatan">
+              <div className="flex flex-col gap-1">
+                <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="catatan">
                   Keterangan
                 </label>
                 <input
-                  className={styles.input}
+                  className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
                   id="catatan"
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
@@ -333,13 +343,13 @@ export default function StockInputPage() {
             </>
           ) : null}
 
-          <div className={styles.filterGroup}>
-            <span className={styles.label}>
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.9375rem] font-medium text-text-primary">
               Lokasi: {(locations ?? []).find((item) => String(item.id) === locationId)?.name ?? 'Belum ada lokasi'}
             </span>
             {showLocation ? (
               <select
-                className={styles.select}
+                className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
                 id="lokasi"
                 value={locationId}
                 onChange={(event) => setLocationId(event.target.value)}
@@ -354,7 +364,7 @@ export default function StockInputPage() {
             ) : (
               <button
                 type="button"
-                className={styles.textButton}
+                className="min-h-touch self-start cursor-pointer bg-transparent px-2 text-left text-[0.9375rem] text-secondary underline enabled:hover:decoration-2 disabled:cursor-not-allowed disabled:text-text-secondary"
                 onClick={() => setShowLocation(true)}
               >
                 Ganti lokasi
@@ -364,7 +374,7 @@ export default function StockInputPage() {
 
           <button
             type="submit"
-            className={styles.submit}
+            className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control bg-secondary px-4 text-base font-medium text-surface transition-colors duration-150 enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
             disabled={busy || productId === '' || quantity === '' || locationId === ''}
           >
             {busy ? 'Menyimpan' : 'Simpan catatan stok'}

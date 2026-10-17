@@ -2,7 +2,6 @@
 
 import { useApp, AppProvider } from '../components/app-context'
 import { AppShell, moduleNav } from '../components/shell'
-import styles from './page.module.css'
 
 /**
  * Halaman Lainnya untuk navigasi bawah ponsel (PRD 10). Isinya diambil dari
@@ -42,13 +41,15 @@ function MorePageContent() {
 
   return (
     <AppShell workspaceName={app.workspaceName} roleLabel={app.roleLabel} activeHref="/lainnya" breadcrumb="Beranda" title="Menu lainnya">
-      <section className={styles.content}>
-        <p className={styles.intro}>Semua halaman yang tidak ada di navigasi bawah, dikelompokkan supaya mudah dicari.</p>
+      <section className="flex min-w-0 flex-col gap-6">
+        <p className="text-[0.9375rem] text-text-secondary">Semua halaman yang tidak ada di navigasi bawah, dikelompokkan supaya mudah dicari.</p>
         {grup.map((group) => (
-          <section key={group.judul} className={styles.group}>
-            <h2>{group.judul}</h2>
-            <ul className={styles.list}>
-              {group.items.map((item) => <li key={item.href}><a href={item.href}>{item.label}</a></li>)}
+          <section key={group.judul} className="flex flex-col gap-2 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+            <h2 className="text-lg font-semibold">{group.judul}</h2>
+            <ul className="flex flex-col">
+              {group.items.map((item) => <li key={item.href} className="border-t border-border-subtle first:border-t-0">
+                <a className="flex min-h-touch items-center font-semibold text-secondary" href={item.href}>{item.label}</a>
+              </li>)}
             </ul>
           </section>
         ))}

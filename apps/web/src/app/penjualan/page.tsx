@@ -7,7 +7,6 @@ import { ErrorState } from '../components/ui'
 import { apiGet, errorMessage, type Location, type LocationsResponse, type Sale, type SalesResponse } from '../../lib/api'
 import { SalesShell } from './penjualan-shell'
 import { Pagination, badgeFor, rupiah } from './bagian'
-import styles from './penjualan.module.css'
 
 /**
  * PRD 5: Penjualan > Daftar Penjualan. PRD 6.4: penjualan mengurangi stok di lokasi
@@ -70,18 +69,21 @@ export default function SalesPage() {
       activeHref="/penjualan"
       title="Daftar penjualan"
       actions={
-        <Link className={styles.submit} href="/penjualan/baru">
+        <Link
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control bg-secondary px-4 font-medium text-surface transition-colors hover:bg-secondary-deep"
+          href="/penjualan/baru"
+        >
           Catat penjualan
         </Link>
       }
     >
-      <div className={styles.filters}>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="filter-lokasi">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="filter-lokasi">
             Lokasi
           </label>
           <select
-            className={styles.select}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="filter-lokasi"
             value={locationId}
             onChange={(event) => {
@@ -98,12 +100,12 @@ export default function SalesPage() {
           </select>
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="filter-dari">
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="filter-dari">
             Dari tanggal
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="filter-dari"
             type="date"
             value={dari}
@@ -114,12 +116,12 @@ export default function SalesPage() {
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="filter-sampai">
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="filter-sampai">
             Sampai tanggal
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="filter-sampai"
             type="date"
             value={sampai}
@@ -136,28 +138,45 @@ export default function SalesPage() {
           title="Daftar penjualan gagal dimuat"
           body={error}
           action={
-            <button type="button" className={styles.linkButton} onClick={() => void muat()}>
+            <button
+              type="button"
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center self-start rounded-control border border-border-strong bg-surface px-4 text-base font-medium text-primary transition-colors duration-150 enabled:hover:border-text-secondary disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
+              onClick={() => void muat()}
+            >
               Coba lagi
             </button>
           }
         />
       ) : null}
 
-      {loading ? <p role="status">Memuat daftar penjualan.</p> : null}
+      {loading ? (
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat daftar penjualan.
+        </p>
+      ) : null}
 
       {!loading && !error && sales && sales.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Belum ada penjualan</p>
-          <p className={styles.stateBody}>
+        <div className="rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Belum ada penjualan</p>
+          <p className="mt-1 text-[0.9375rem] text-text-secondary">
             Penjualan dicatat satu per satu supaya laba kotor setiap transaksi bisa ditelusuri
             sampai harga pokok barangnya. Kalau datanya sudah ada dari aplikasi kasir, impor dari
             berkas saja lebih cepat.
           </p>
-          <div className={styles.emptyActions}>
-            <Link className={styles.submit} href="/penjualan/baru">
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control bg-secondary px-4 font-medium text-surface transition-colors hover:bg-secondary-deep"
+              href="/penjualan/baru"
+            >
               Catat penjualan
             </Link>
-            <Link className={styles.linkButton} href="/penjualan/impor">
+            <Link
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+              href="/penjualan/impor"
+            >
               Impor dari berkas
             </Link>
           </div>
@@ -166,47 +185,59 @@ export default function SalesPage() {
 
       {!loading && sales && sales.length > 0 ? (
         <>
-          <div className={styles.summary}>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-2 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
             <div>
-              <p className={styles.summaryLabel}>Penjualan pada halaman ini</p>
-              <p className={styles.summaryValue}>{rupiah(totalPenjualan)}</p>
+              <p className="text-[0.9375rem] text-text-secondary">Penjualan pada halaman ini</p>
+              <p className="text-2xl font-semibold tabular">{rupiah(totalPenjualan)}</p>
             </div>
             <div>
-              <p className={styles.summaryLabel}>Jumlah data</p>
-              <p className={styles.summaryValue}>{total}</p>
+              <p className="text-[0.9375rem] text-text-secondary">Jumlah data</p>
+              <p className="text-2xl font-semibold tabular">{total}</p>
             </div>
           </div>
 
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <caption className={styles.visuallyHidden}>
+          <div className="hidden overflow-x-auto rounded-surface border border-border-subtle bg-surface shadow-raised desktop:block">
+            <table className="w-full text-sm">
+              <caption className="visually-hidden">
                 Daftar penjualan beserta lokasi, metode pembayaran, dan totalnya
               </caption>
-              <thead>
+              <thead className="bg-background text-text-secondary">
                 <tr>
-                  <th scope="col">Nomor</th>
-                  <th scope="col">Tanggal</th>
-                  <th scope="col">Lokasi</th>
-                  <th scope="col">Pelanggan</th>
-                  <th scope="col">Metode</th>
-                  <th scope="col" className={styles.numeric}>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    Nomor
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    Tanggal
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    Lokasi
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    Pelanggan
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    Metode
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-right font-semibold tabular">
                     Total
                   </th>
-                  <th scope="col">Status</th>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {sales.map((sale) => (
-                  <tr key={sale.id}>
-                    <td>
+                  <tr key={sale.id} className="border-b border-border-subtle last:border-b-0">
+                    <td className="px-3 py-2">
                       <Link href={`/penjualan/${sale.id}`}>{sale.number}</Link>
                     </td>
-                    <td>{sale.soldOn}</td>
-                    <td>{sale.locationName}</td>
-                    <td>{sale.customerName ?? 'Pelanggan umum'}</td>
-                    <td>{sale.paymentMethodLabel}</td>
-                    <td className={styles.numeric}>{rupiah(sale.totalAmount)}</td>
-                    <td>
+                    <td className="px-3 py-2">{sale.soldOn}</td>
+                    <td className="px-3 py-2">{sale.locationName}</td>
+                    <td className="px-3 py-2">{sale.customerName ?? 'Pelanggan umum'}</td>
+                    <td className="px-3 py-2">{sale.paymentMethodLabel}</td>
+                    <td className="px-3 py-2 text-right tabular">{rupiah(sale.totalAmount)}</td>
+                    <td className="px-3 py-2">
                       <span className={badgeFor(sale.status)}>{sale.statusLabel}</span>
                     </td>
                   </tr>
@@ -215,21 +246,24 @@ export default function SalesPage() {
             </table>
           </div>
 
-          <ul className={styles.list}>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0 desktop:hidden">
             {sales.map((sale) => (
               <li key={sale.id}>
-                <Link className={styles.card} href={`/penjualan/${sale.id}`}>
-                  <span className={styles.cardRow}>
-                    <span className={styles.cardName}>{sale.number}</span>
+                <Link
+                  className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 text-text-primary shadow-raised"
+                  href={`/penjualan/${sale.id}`}
+                >
+                  <span className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="text-[1.0625rem] font-semibold text-primary">{sale.number}</span>
                     <span className={badgeFor(sale.status)}>{sale.statusLabel}</span>
                   </span>
-                  <span className={styles.cardRow}>
-                    <span className={styles.cardMeta}>
+                  <span className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="text-sm text-text-secondary">
                       {sale.soldOn} · {sale.locationName} · {sale.paymentMethodLabel}
                     </span>
-                    <span className={styles.cardTotal}>{rupiah(sale.totalAmount)}</span>
+                    <span className="font-semibold tabular">{rupiah(sale.totalAmount)}</span>
                   </span>
-                  <span className={styles.cardMeta}>
+                  <span className="text-sm text-text-secondary">
                     {sale.customerName ?? 'Pelanggan umum'} · {sale.itemCount} barang · laba{' '}
                     {rupiah(sale.grossProfit)}
                   </span>

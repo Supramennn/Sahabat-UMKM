@@ -7,7 +7,6 @@ import { API_BASE } from '../../../lib/api'
 import { Alert, Button, ErrorState } from '../../components/ui'
 import { AppProvider, useApp } from '../../components/app-context'
 import { AppShell } from '../../components/shell'
-import styles from './page.module.css'
 
 /**
  * Pengaturan Impor dan Ekspor (PRD 6.8).
@@ -69,15 +68,15 @@ function DataPageContent() {
       breadcrumb="Pengaturan"
       title="Impor dan ekspor"
     >
-      <div className={styles.page}>
-        <section className={styles.card} aria-labelledby="ekspor-data">
-          <h2 id="ekspor-data">Ekspor seluruh data usaha</h2>
-          <p>
+      <div className="flex min-w-0 flex-col gap-6">
+        <section className="flex min-w-0 flex-col gap-3 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised" aria-labelledby="ekspor-data">
+          <h2 className="text-lg font-semibold" id="ekspor-data">Ekspor seluruh data usaha</h2>
+          <p className="text-[0.9375rem] text-text-secondary">
             Arsip berisi seluruh data workspace dalam berkas CSV, satu berkas untuk satu
             tabel: produk, stok, pembelian, penjualan, pengeluaran, dan seterusnya.
             Tersedia untuk semua paket dan tidak dikenai biaya tambahan.
           </p>
-          <ul className={styles.list}>
+          <ul className="flex flex-col gap-2 pl-4 text-[0.9375rem] text-text-secondary">
             <li>Berkas CSV bisa dibuka di aplikasi spreadsheet mana pun.</li>
             <li>Kolom id dipertahankan supaya hubungan antar tabel bisa ditelusuri.</li>
             <li>Ada PANDUAN.txt di dalam arsip yang menjelaskan isinya.</li>
@@ -85,7 +84,7 @@ function DataPageContent() {
           </ul>
 
           {boleh ? (
-            <div className={styles.actions}>
+            <div className="flex flex-wrap gap-3">
               <Button type="button" onClick={() => void unduh()} disabled={mengunduh}>
                 {mengunduh ? 'Menyiapkan arsip...' : 'Unduh arsip data'}
               </Button>
@@ -101,13 +100,13 @@ function DataPageContent() {
           {selesai ? <Alert kind="success">Arsip data sudah diunduh. Simpan berkas itu di tempat yang aman karena isinya data usaha Anda.</Alert> : null}
         </section>
 
-        <section className={styles.card} aria-labelledby="impor-data">
-          <h2 id="impor-data">Impor data</h2>
-          <p>
+        <section className="flex min-w-0 flex-col gap-3 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised" aria-labelledby="impor-data">
+          <h2 className="text-lg font-semibold" id="impor-data">Impor data</h2>
+          <p className="text-[0.9375rem] text-text-secondary">
             Impor berjalan dua langkah: periksa dulu pratinjaunya, lalu simpan. Template
             yang bisa diunduh tersedia di halaman masing-masing.
           </p>
-          <ul className={styles.list}>
+          <ul className="flex flex-col gap-2 pl-4 text-[0.9375rem] text-text-secondary">
             <li><Link href="/stok/impor">Impor barang</Link> dari CSV untuk menambah produk beserta kategori dan saldo awalnya.</li>
             <li><Link href="/penjualan/impor">Impor penjualan</Link> dari CSV untuk memindahkan riwayat penjualan lama.</li>
           </ul>

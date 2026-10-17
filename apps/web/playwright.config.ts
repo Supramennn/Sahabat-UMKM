@@ -18,6 +18,9 @@ export default defineConfig({
     // ditolak dan halaman tampak seperti jaringan bermasalah.
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3000',
     trace: 'retain-on-failure',
+    // Pemeriksaan aksesibilitas dijalankan tanpa animasi supaya hasilnya
+    // deterministik dan mengukur keadaan akhir, bukan keadaan saat bergerak.
+    reducedMotion: 'reduce',
   },
   projects: [
     {

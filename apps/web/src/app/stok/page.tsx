@@ -10,8 +10,8 @@ import {
   type ProductSummary,
   type ProductsResponse,
 } from '../../lib/api'
+import { cx } from '../../lib/cx'
 import { Pagination, badgeClass, formatQty } from './bagian'
-import styles from './stok.module.css'
 
 /**
  * PRD 5: Stok > Barang. Daftar produk dengan pencarian, filter status, dan
@@ -80,28 +80,40 @@ export default function ProductsPage() {
       title="Barang"
       actions={
         <>
-          <a className={styles.paginationLink} href="/stok/peringatan">
+          <a
+            className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+            href="/stok/peringatan"
+          >
             Perlu perhatian
           </a>
-          <a className={styles.paginationLink} href="/stok/input">
+          <a
+            className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+            href="/stok/input"
+          >
             Catat stok
           </a>
-          <a className={styles.paginationLink} href="/stok/impor">
+          <a
+            className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+            href="/stok/impor"
+          >
             Impor barang
           </a>
-          <a className={styles.paginationLink} href="/stok/produk/baru">
+          <a
+            className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+            href="/stok/produk/baru"
+          >
             Tambah barang
           </a>
         </>
       }
     >
-      <form className={styles.filters} onSubmit={onSearch} role="search">
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="cari">
+      <form className="flex flex-wrap items-end gap-3" onSubmit={onSearch} role="search">
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="cari">
             Cari barang
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary"
             id="cari"
             name="cari"
             type="search"
@@ -113,12 +125,12 @@ export default function ProductsPage() {
             placeholder="Nama atau SKU"
           />
         </div>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="status">
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="status">
             Status
           </label>
           <select
-            className={styles.select}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary"
             id="status"
             value={status}
             onChange={(event) => {
@@ -138,22 +150,36 @@ export default function ProductsPage() {
       {error ? <ErrorState title="Daftar barang gagal dimuat" body={error} /> : null}
 
       {loading ? (
-        <p role="status">Memuat daftar barang.</p>
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat daftar barang.
+        </p>
       ) : products && products.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Belum ada barang</p>
-          <p className={styles.stateBody}>
+        <div className="rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Belum ada barang</p>
+          <p className="mt-1 text-[0.9375rem] text-text-secondary">
             Tambahkan barang satu per satu, atau impor dari berkas CSV. Saldo stok terisi
             sendiri setelah barang masuk dicatat.
           </p>
-          <div className={styles.emptyActions}>
-            <a className={styles.paginationLink} href="/stok/impor">
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+              href="/stok/impor"
+            >
               Impor dari CSV
             </a>
-            <a className={styles.paginationLink} href="/stok/produk/baru">
+            <a
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+              href="/stok/produk/baru"
+            >
               Tambah barang pertama
             </a>
-            <a className={styles.paginationLink} href="/stok/input">
+            <a
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+              href="/stok/input"
+            >
               Catat stok masuk
             </a>
           </div>
@@ -162,20 +188,28 @@ export default function ProductsPage() {
 
       {!loading && products && products.length > 0 ? (
         <>
-          <ul className={styles.list}>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0 desktop:hidden">
             {products.map((product) => (
               <li key={product.id}>
-                <a className={styles.card} href={`/stok/produk/${product.id}`}>
-                  <span className={styles.cardName}>{product.name}</span>
-                  <span className={styles.cardMeta}>
+                <a
+                  className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+                  href={`/stok/produk/${product.id}`}
+                >
+                  <span className="text-[1.0625rem] font-semibold text-primary">{product.name}</span>
+                  <span className="text-sm text-text-secondary">
                     {product.sku}
                     {product.categoryName ? ` · ${product.categoryName}` : ''}
                   </span>
-                  <span className={styles.cardRow}>
-                    <span className={`${styles.badge} ${badgeClass(product.stockStatus)}`}>
+                  <span className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span
+                      className={cx(
+                        'inline-flex items-center rounded-badge border px-2 py-0.5 text-xs font-medium',
+                        badgeClass(product.stockStatus),
+                      )}
+                    >
                       {product.stockStatusLabel}
                     </span>
-                    <span className={styles.quantity}>
+                    <span className="tabular font-bold">
                       {formatQty(product.totalQuantity)} {product.unitCode}
                     </span>
                   </span>
@@ -184,33 +218,48 @@ export default function ProductsPage() {
             ))}
           </ul>
 
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <caption className={styles.visuallyHidden}>Daftar barang</caption>
-              <thead>
+          <div className="hidden overflow-x-auto rounded-surface border border-border-subtle bg-surface shadow-raised desktop:block">
+            <table className="w-full text-sm">
+              <caption className="visually-hidden">Daftar barang</caption>
+              <thead className="bg-background text-text-secondary">
                 <tr>
-                  <th scope="col">Barang</th>
-                  <th scope="col">SKU</th>
-                  <th scope="col">Kategori</th>
-                  <th scope="col" className={styles.numeric}>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    Barang
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    SKU
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    Kategori
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-right font-semibold tabular">
                     Saldo
                   </th>
-                  <th scope="col">Status</th>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {products.map((product) => (
-                  <tr key={product.id}>
-                    <td>
+                  <tr key={product.id} className="border-b border-border-subtle last:border-b-0">
+                    <td className="px-3 py-2">
                       <a href={`/stok/produk/${product.id}`}>{product.name}</a>
                     </td>
-                    <td className={styles.muted}>{product.sku}</td>
-                    <td className={styles.muted}>{product.categoryName ?? 'Tanpa kategori'}</td>
-                    <td className={styles.numeric}>
+                    <td className="px-3 py-2 text-text-secondary">{product.sku}</td>
+                    <td className="px-3 py-2 text-text-secondary">
+                      {product.categoryName ?? 'Tanpa kategori'}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular">
                       {formatQty(product.totalQuantity)} {product.unitCode}
                     </td>
-                    <td>
-                      <span className={`${styles.badge} ${badgeClass(product.stockStatus)}`}>
+                    <td className="px-3 py-2">
+                      <span
+                        className={cx(
+                          'inline-flex items-center rounded-badge border px-2 py-0.5 text-xs font-medium',
+                          badgeClass(product.stockStatus),
+                        )}
+                      >
                         {product.stockStatusLabel}
                       </span>
                     </td>

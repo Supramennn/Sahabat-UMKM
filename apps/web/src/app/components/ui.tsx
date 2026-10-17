@@ -1,19 +1,21 @@
 'use client'
 
+import { motion } from 'motion/react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import styles from './components.module.css'
+import { cx } from '../../lib/cx'
+import { ENTER_EASE } from './motion'
 
 /**
  * Kerangka halaman autentikasi. Satu kolom di ponsel, kartu dengan lebar
- * Terbatas di desktop supaya baris isian tidak terlalu panjang untuk dibaca
+ * terbatas di desktop supaya baris isian tidak terlalu panjang untuk dibaca
  * (PRD 10).
  */
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className={styles.authLayout}>
-      <p className={styles.authBrand}>Sahabat UMKM</p>
-      <div className={styles.authMain}>{children}</div>
+    <div className="flex min-h-dvh flex-col gap-6 p-4 sm:p-8">
+      <p className="text-lg font-semibold tracking-[-0.01em] text-primary">Sahabat UMKM</p>
+      <div className="flex flex-1 items-start justify-center">{children}</div>
     </div>
   )
 }
@@ -28,13 +30,18 @@ export function AuthCard({
   children: ReactNode
 }) {
   return (
-    <div className={styles.authCard}>
+    <motion.div
+      className="flex w-full max-w-[26rem] flex-col gap-4 rounded-surface border border-border-subtle bg-surface p-6 shadow-raised sm:p-8"
+      initial={{ y: 10 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.26, ease: ENTER_EASE }}
+    >
       <div>
-        <h1 className={styles.authTitle}>{title}</h1>
-        {subtitle ? <p className={styles.authSubtitle}>{subtitle}</p> : null}
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        {subtitle ? <p className="-mt-1 text-text-secondary">{subtitle}</p> : null}
       </div>
       {children}
-    </div>
+    </motion.div>
   )
 }
 
@@ -78,12 +85,12 @@ export function Field({
   const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined
 
   return (
-    <div className={styles.field}>
-      <label className={styles.label} htmlFor={id}>
+    <div className="flex flex-col gap-1">
+      <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor={id}>
         {label}
       </label>
       <input
-        className={styles.input}
+        className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
         id={id}
         name={id}
         type={type}
@@ -97,12 +104,12 @@ export function Field({
         aria-describedby={describedBy}
       />
       {hint ? (
-        <p className={styles.hint} id={hintId}>
+        <p className="text-sm text-text-secondary" id={hintId}>
           {hint}
         </p>
       ) : null}
       {error ? (
-        <p className={styles.fieldError} id={errorId}>
+        <p className="text-sm text-danger" id={errorId}>
           {error}
         </p>
       ) : null}
@@ -125,15 +132,14 @@ export function Button({
   disabled?: boolean
   full?: boolean
 }) {
-  const className = [
-    styles.button,
-    variant === 'primary' ? styles.primary : '',
-    variant === 'secondary' ? styles.secondary : '',
-    variant === 'danger' ? styles.danger : '',
-    full ? styles.full : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
+  const className = cx(
+    'inline-flex min-h-touch cursor-pointer items-center justify-center gap-2 rounded-control border border-transparent px-4 text-base font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface',
+    variant === 'primary' && 'bg-secondary text-surface enabled:hover:bg-secondary-deep',
+    variant === 'secondary' &&
+      'border-border-strong bg-surface text-primary enabled:hover:border-text-secondary',
+    variant === 'danger' && 'border-danger bg-surface text-danger enabled:hover:bg-danger-surface',
+    full && 'w-full',
+  )
 
   return (
     <button className={className} type={type} onClick={onClick} disabled={disabled}>
@@ -150,37 +156,44 @@ type AlertKind = 'error' | 'success' | 'info'
  * kontras paksa (PRD 10).
  */
 export function Alert({ kind, children }: { kind: AlertKind; children: ReactNode }) {
-  const className = [
-    styles.alert,
-    kind === 'error' ? styles.alertError : '',
-    kind === 'success' ? styles.alertSuccess : '',
-    kind === 'info' ? styles.alertInfo : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
+  const className = cx(
+    'flex items-start gap-2 rounded-control border px-3 py-3 text-[0.9375rem]',
+    kind === 'error' && 'border-danger bg-danger-surface text-danger-ink',
+    kind === 'success' && 'border-success bg-success-surface text-success-ink',
+    kind === 'info' && 'border-border-strong bg-background text-text-primary',
+  )
 
   const symbol = kind === 'error' ? '!' : kind === 'success' ? 'OK' : 'i'
   const word = kind === 'error' ? 'Gagal' : kind === 'success' ? 'Berhasil' : 'Informasi'
 
   return (
-    <div className={className} role={kind === 'error' ? 'alert' : 'status'}>
-      <span className={styles.alertIcon} aria-hidden="true">
+    <motion.div
+      className={className}
+      role={kind === 'error' ? 'alert' : 'status'}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: ENTER_EASE }}
+    >
+      <span className="shrink-0 font-bold" aria-hidden="true">
         {symbol}
       </span>
       <span>
-        <span className={styles.visuallyHidden}>{word}: </span>
+        <span className="visually-hidden">{word}: </span>
         {children}
       </span>
-    </div>
+    </motion.div>
   )
 }
 
 /** Keadaan galat saat memuat data (PRD 10). */
 export function ErrorState({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
   return (
-    <div className={styles.state} role="alert">
-      <p className={styles.stateTitle}>{title}</p>
-      <p className={styles.stateBody}>{body}</p>
+    <div
+      className="flex flex-col gap-2 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+      role="alert"
+    >
+      <p className="font-semibold text-text-primary">{title}</p>
+      <p className="text-[0.9375rem] text-text-secondary">{body}</p>
       {action}
     </div>
   )
@@ -188,12 +201,15 @@ export function ErrorState({ title, body, action }: { title: string; body: strin
 
 export function AuthLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link className={styles.link} href={href}>
+    <Link
+      className="inline-flex min-h-touch items-center text-secondary underline underline-offset-4 transition-colors hover:text-secondary-deep"
+      href={href}
+    >
       {children}
     </Link>
   )
 }
 
 export function AuthLinkRow({ children }: { children: ReactNode }) {
-  return <div className={styles.linkRow}>{children}</div>
+  return <div className="flex flex-wrap items-center gap-x-4 gap-y-2">{children}</div>
 }

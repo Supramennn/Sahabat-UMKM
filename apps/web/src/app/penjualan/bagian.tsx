@@ -1,7 +1,7 @@
 'use client'
 
 import { formatRupiah } from '@sahabat/shared'
-import styles from './penjualan.module.css'
+import { cx } from '../../lib/cx'
 
 /**
  * Bagian yang dipakai beberapa halaman penjualan. Berada di berkas sendiri karena
@@ -25,10 +25,10 @@ export function formatQty(value: number): string {
  * untuk pengguna dengan penglihatan warna terbatas dan dalam mode kontras paksa
  * (PRD 10).
  */
+const BADGE = 'inline-flex items-center rounded-badge border px-2 py-0.5 text-xs font-medium tabular'
+
 export function badgeFor(status: string): string {
-  return status === 'dibatalkan'
-    ? `${styles.badge} ${styles.badgeDanger}`
-    : `${styles.badge} ${styles.badgeOk}`
+  return cx(BADGE, status === 'dibatalkan' ? 'border-danger text-danger' : 'border-success text-success')
 }
 
 export function Pagination({
@@ -46,14 +46,17 @@ export function Pagination({
   const sampai = Math.min(offset + limit, total)
 
   return (
-    <nav className={styles.pagination} aria-label="Halaman daftar penjualan">
+    <nav
+      className="flex flex-wrap items-center gap-3 text-sm text-text-secondary"
+      aria-label="Halaman daftar penjualan"
+    >
       <span>
         Menampilkan {dari} sampai {sampai} dari {total} penjualan
       </span>
       {offset > 0 ? (
         <button
           type="button"
-          className={styles.paginationLink}
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
           onClick={() => onChange(Math.max(0, offset - limit))}
         >
           Sebelumnya
@@ -62,7 +65,7 @@ export function Pagination({
       {sampai < total ? (
         <button
           type="button"
-          className={styles.paginationLink}
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
           onClick={() => onChange(offset + limit)}
         >
           Berikutnya

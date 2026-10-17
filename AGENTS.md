@@ -11,6 +11,8 @@ dan membaca laporan usaha UMKM.
    dengan alasannya, plus daftar ambiguitas A-01 sampai B-13 dan penghalang rilis yang
    belum bisa diselesaikan dengan kode.
 3. `docs/ARSITEKTUR.md` menjelaskan bentuk sistem dan alasan di balik pilihan teknis.
+4. `DESIGN.md` adalah arah desain antarmuka (PRD 10 dan keputusan K-19): palet, tipografi,
+   gerak, dan aturan pemakaian Tailwind.
 
 ## Aturan yang tidak boleh dilanggar
 

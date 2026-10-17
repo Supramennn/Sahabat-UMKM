@@ -23,7 +23,6 @@ import {
 } from '../../../lib/api'
 import { SalesShell } from '../penjualan-shell'
 import { formatQty, rupiah } from '../bagian'
-import styles from '../penjualan.module.css'
 
 /**
  * PRD 6.4: catat penjualan dengan tanggal, lokasi, item, jumlah, harga jual, diskon,
@@ -224,7 +223,12 @@ export default function NewSalePage() {
   if (loading) {
     return (
       <SalesShell activeHref="/penjualan/baru" title="Catat penjualan">
-        <p role="status">Memuat barang dan lokasi.</p>
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat barang dan lokasi.
+        </p>
       </SalesShell>
     )
   }
@@ -242,27 +246,30 @@ export default function NewSalePage() {
       {error ? <Alert kind="error">{error}</Alert> : null}
 
       {locations.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Belum ada lokasi</p>
-          <p className={styles.stateBody}>
+        <div className="rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Belum ada lokasi</p>
+          <p className="mt-1 text-[0.9375rem] text-text-secondary">
             Penjualan selalu mengurangi stok di suatu lokasi, jadi tambahkan lokasi dulu.
           </p>
-          <div className={styles.emptyActions}>
-            <Link className={styles.linkButton} href="/stok/lokasi">
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+              href="/stok/lokasi"
+            >
               Tambah lokasi
             </Link>
           </div>
         </div>
       ) : null}
 
-      <form className={styles.form} onSubmit={onSubmit}>
-        <div className={styles.filters}>
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="lokasi">
+      <form className="flex max-w-[46rem] flex-col gap-4" onSubmit={onSubmit}>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+            <label className="text-sm text-text-secondary" htmlFor="lokasi">
               Lokasi
             </label>
             <select
-              className={styles.select}
+              className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
               id="lokasi"
               value={locationId}
               onChange={(event) => setLocationId(event.target.value)}
@@ -276,12 +283,12 @@ export default function NewSalePage() {
             </select>
           </div>
 
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="tanggal">
+          <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+            <label className="text-sm text-text-secondary" htmlFor="tanggal">
               Tanggal
             </label>
             <input
-              className={styles.input}
+              className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
               id="tanggal"
               type="date"
               value={soldOn}
@@ -289,12 +296,12 @@ export default function NewSalePage() {
             />
           </div>
 
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="pelanggan">
+          <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+            <label className="text-sm text-text-secondary" htmlFor="pelanggan">
               Pelanggan
             </label>
             <select
-              className={styles.select}
+              className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
               id="pelanggan"
               value={customerId}
               onChange={(event) => setCustomerId(event.target.value)}
@@ -312,16 +319,19 @@ export default function NewSalePage() {
         {rows.map((row, index) => {
           const saldo = saldoUntuk.get(Number(row.productId))
           return (
-            <fieldset className={styles.itemRow} key={row.key}>
-              <legend className={styles.label}>Barang {index + 1}</legend>
+            <fieldset
+              className="grid min-w-0 gap-3 rounded-control border border-border-subtle bg-background p-3"
+              key={row.key}
+            >
+              <legend className="text-sm text-text-secondary">Barang {index + 1}</legend>
 
-              <div className={styles.itemGrid}>
-                <div className={styles.filterGroup}>
-                  <label className={styles.label} htmlFor={`produk-${row.key}`}>
+              <div className="grid gap-3 desktop:grid-cols-[2fr_1fr_1fr_1fr_auto] desktop:items-end">
+                <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+                  <label className="text-sm text-text-secondary" htmlFor={`produk-${row.key}`}>
                     Barang
                   </label>
                   <select
-                    className={styles.select}
+                    className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
                     id={`produk-${row.key}`}
                     value={row.productId}
                     onChange={(event) => pilihProduk(row.key, event.target.value)}
@@ -338,12 +348,12 @@ export default function NewSalePage() {
                   </select>
                 </div>
 
-                <div className={styles.filterGroup}>
-                  <label className={styles.label} htmlFor={`jumlah-${row.key}`}>
+                <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+                  <label className="text-sm text-text-secondary" htmlFor={`jumlah-${row.key}`}>
                     Jumlah
                   </label>
                   <input
-                    className={styles.input}
+                    className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
                     id={`jumlah-${row.key}`}
                     type="text"
                     inputMode="decimal"
@@ -353,12 +363,12 @@ export default function NewSalePage() {
                   />
                 </div>
 
-                <div className={styles.filterGroup}>
-                  <label className={styles.label} htmlFor={`harga-${row.key}`}>
+                <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+                  <label className="text-sm text-text-secondary" htmlFor={`harga-${row.key}`}>
                     Harga jual
                   </label>
                   <input
-                    className={styles.input}
+                    className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
                     id={`harga-${row.key}`}
                     type="text"
                     inputMode="numeric"
@@ -368,12 +378,12 @@ export default function NewSalePage() {
                   />
                 </div>
 
-                <div className={styles.filterGroup}>
-                  <label className={styles.label} htmlFor={`diskon-${row.key}`}>
+                <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+                  <label className="text-sm text-text-secondary" htmlFor={`diskon-${row.key}`}>
                     Diskon
                   </label>
                   <input
-                    className={styles.input}
+                    className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
                     id={`diskon-${row.key}`}
                     type="text"
                     inputMode="numeric"
@@ -382,10 +392,10 @@ export default function NewSalePage() {
                   />
                 </div>
 
-                <div className={styles.itemTotal}>{rupiah(hargaBaris(row))}</div>
+                <div className="self-end py-2 font-semibold tabular">{rupiah(hargaBaris(row))}</div>
               </div>
 
-              <p className={styles.hint}>
+              <p className="text-sm text-text-secondary">
                 {!saldoDimuat
                   ? 'Stok dicek server saat disimpan, jadi penjualan melebihi stok akan ditolak.'
                   : saldo === undefined
@@ -396,7 +406,7 @@ export default function NewSalePage() {
               {rows.length > 1 ? (
                 <button
                   type="button"
-                  className={styles.linkButton}
+                  className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 text-base font-medium text-primary transition-colors duration-150 enabled:hover:border-text-secondary disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
                   onClick={() => setRows((sekarang) => sekarang.filter((item) => item.key !== row.key))}
                 >
                   Hapus barang {index + 1}
@@ -406,26 +416,26 @@ export default function NewSalePage() {
           )
         })}
 
-        <div className={styles.actionsTop}>
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className={styles.linkButton}
+            className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 text-base font-medium text-primary transition-colors duration-150 enabled:hover:border-text-secondary disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
             onClick={() => setRows((sekarang) => [...sekarang, barisKosong()])}
           >
             Tambah barang
           </button>
-          <p className={styles.itemTotal} aria-live="polite">
+          <p className="self-end py-2 font-semibold tabular" aria-live="polite">
             Total {rupiah(total)}
           </p>
         </div>
 
-        <div className={styles.filters}>
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="metode-daftar">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+            <label className="text-sm text-text-secondary" htmlFor="metode-daftar">
               Metode dari daftar
             </label>
             <select
-              className={styles.select}
+              className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
               id="metode-daftar"
               value={methodId}
               onChange={(event) => {
@@ -443,12 +453,12 @@ export default function NewSalePage() {
           </div>
 
           {methodId === '' ? (
-            <div className={styles.filterGroup}>
-              <label className={styles.label} htmlFor="metode-teks">
+            <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+              <label className="text-sm text-text-secondary" htmlFor="metode-teks">
                 Metode pembayaran
               </label>
               <input
-                className={styles.input}
+                className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
                 id="metode-teks"
                 type="text"
                 value={methodLabel}
@@ -462,7 +472,7 @@ export default function NewSalePage() {
 
         <button
           type="submit"
-          className={styles.submit}
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center self-start rounded-control bg-secondary px-4 text-base font-medium text-surface transition-colors duration-150 enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
           disabled={busy || locations.length === 0}
         >
           {busy ? 'Menyimpan' : 'Simpan penjualan'}

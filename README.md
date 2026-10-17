@@ -16,7 +16,7 @@ pengerjaan atau setelah selesai. Jangan mulai UI sebelum ada jawaban.
 
 | Bagian | Pilihan |
 | --- | --- |
-| Frontend | Next.js 15, TypeScript, CSS Modules dengan token warna PRD 10 |
+| Frontend | Next.js 15, TypeScript, Tailwind CSS v4, Motion (Framer Motion), dengan token warna PRD 10 sebagai tema Tailwind |
 | API | Fastify 5, TypeScript, Zod |
 | Database | PostgreSQL 16 |
 | Antrean | pg-boss |
@@ -30,8 +30,9 @@ Perangkat tambahan untuk pengujian:
 | `@testing-library/react` | Uji komponen di jsdom: penomoran halaman, keadaan kosong, tombol pembatalan |
 | `@vitejs/plugin-react` | Mengubah JSX saat berkas komponen diuji, karena `jsx: preserve` milik Next.js tidak berlaku di Vitest |
 
-Tailwind tidak dipakai. Keputusan dan alasannya tercatat di K-16 pada
-`docs/KEPUTUSAN-TEKNIS.md`.
+Antarmuka memakai Tailwind CSS v4; warna hanya boleh berasal dari tema yang dibangun
+dari `packages/design-tokens`. Arah desain dan aturan pemakaiannya ada di `DESIGN.md`.
+Keputusan dan alasannya tercatat di K-19 pada `docs/KEPUTUSAN-TEKNIS.md`.
 
 ## Cara menjalankan aplikasi
 

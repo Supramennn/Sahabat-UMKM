@@ -1,7 +1,7 @@
 'use client'
 
 import { formatRupiah } from '@sahabat/shared'
-import styles from './pembelian.module.css'
+import { cx } from '../../lib/cx'
 
 /**
  * Bagian yang dipakai beberapa halaman pembelian. Berada di berkas sendiri karena
@@ -12,17 +12,19 @@ import styles from './pembelian.module.css'
  * Status PO ditulis sebagai teks dan warna sekaligus. Warna saja tidak cukup untuk
  * pengguna dengan penglihatan warna terbatas dan dalam mode kontras paksa (PRD 10).
  */
+const BADGE = 'inline-flex items-center rounded-badge border px-2 py-0.5 text-xs font-medium tabular'
+
 export function badgeFor(status: string): string {
   if (status === 'disetujui' || status === 'diterima' || status === 'ditutup') {
-    return `${styles.badge} ${styles.badgeOk}`
+    return cx(BADGE, 'border-success text-success')
   }
   if (status === 'diajukan' || status === 'diterima_sebagian') {
-    return `${styles.badge} ${styles.badgePending}`
+    return cx(BADGE, 'border-warning text-warning')
   }
   if (status === 'ditolak' || status === 'dibatalkan') {
-    return `${styles.badge} ${styles.badgeDanger}`
+    return cx(BADGE, 'border-danger text-danger')
   }
-  return `${styles.badge} ${styles.badgeNeutral}`
+  return cx(BADGE, 'border-border-strong text-text-secondary')
 }
 
 /**

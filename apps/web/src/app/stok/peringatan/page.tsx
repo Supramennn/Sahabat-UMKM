@@ -7,7 +7,6 @@ import { AppShell } from '../../components/shell'
 import { Alert, ErrorState } from '../../components/ui'
 import { apiGet, errorMessage, type AlertsResponse, type StockAlert } from '../../../lib/api'
 import { formatQty } from '../bagian'
-import styles from '../stok.module.css'
 
 /**
  * PRD 6.2: peringatan stok rendah dan hampir kedaluwarsa memakai batas yang diatur
@@ -115,13 +114,13 @@ export default function StockAlertsPage() {
       breadcrumb="Stok"
       title="Perlu perhatian"
     >
-      <div className={styles.filters}>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="jendela">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="jendela">
             Hampir kedaluwarsa dalam
           </label>
           <select
-            className={styles.select}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary"
             id="jendela"
             value={withinDays}
             onChange={(event) => setWithinDays(Number(event.target.value))}
@@ -138,11 +137,16 @@ export default function StockAlertsPage() {
       {error ? <ErrorState title="Peringatan gagal dimuat" body={error} /> : null}
 
       {loading ? (
-        <p role="status">Memuat daftar peringatan.</p>
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat daftar peringatan.
+        </p>
       ) : alerts && alerts.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Tidak ada yang perlu diperhatikan</p>
-          <p className={styles.stateBody}>
+        <div className="rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Tidak ada yang perlu diperhatikan</p>
+          <p className="mt-1 text-[0.9375rem] text-text-secondary">
             Tidak ada barang yang habis, menyentuh batas minimum, atau hampir kedaluwarsa
             dalam {withinDays} hari ke depan. Daftar ini diperbarui setiap kali Anda mencatat
             stok.
@@ -152,30 +156,35 @@ export default function StockAlertsPage() {
 
       {!loading && usulan.length > 0 ? (
         <>
-          <p className={styles.cardMeta}>
+          <p className="text-sm text-text-secondary">
             {totalDipilih > 0
               ? `${totalDipilih} barang dipilih untuk di-usulkan dalam PO. Jumlahnya masih bisa diubah.`
               : 'Kosongkan jumlah untuk barang yang tidak mau dipesan.'}
           </p>
 
-          <ul className={styles.list}>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">
             {usulan.map((item) => (
-              <li key={item.productId} className={styles.card}>
-                <span className={styles.cardRow}>
-                  <span className={styles.cardName}>{item.productName}</span>
-                  <span className={styles.cardMeta}>{item.sku}</span>
+              <li
+                key={item.productId}
+                className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+              >
+                <span className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-[1.0625rem] font-semibold text-primary">
+                    {item.productName}
+                  </span>
+                  <span className="text-sm text-text-secondary">{item.sku}</span>
                 </span>
 
-                <span className={styles.cardMeta}>
+                <span className="text-sm text-text-secondary">
                   {item.lokasi.join(', ')} · {item.unitCode}
                 </span>
 
-                <div className={styles.filterGroup}>
-                  <label className={styles.label} htmlFor={`usulan-${item.productId}`}>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-text-secondary" htmlFor={`usulan-${item.productId}`}>
                     Jumlah yang dipesan (batas minimum {formatQty(item.saran)})
                   </label>
                   <input
-                    className={styles.input}
+                    className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary"
                     id={`usulan-${item.productId}`}
                     inputMode="decimal"
                     value={dipilih[item.productId] ?? ''}
@@ -185,7 +194,7 @@ export default function StockAlertsPage() {
                   />
                 </div>
 
-                <span className={styles.cardMeta}>
+                <span className="text-sm text-text-secondary">
                   {(dipilih[item.productId] ?? '') === ''
                     ? 'Tidak ikut dipesan. Kosongkan kolomnya.'
                     : `${formatQty(Number(dipilih[item.productId]))} ${item.unitCode} akan masuk PO.`}
@@ -194,10 +203,10 @@ export default function StockAlertsPage() {
             ))}
           </ul>
 
-          <div className={styles.emptyActions}>
+          <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
-              className={styles.submit}
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-transparent bg-secondary px-4 font-medium text-surface transition-colors enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
               disabled={totalDipilih === 0}
               onClick={buatPO}
             >

@@ -28,6 +28,8 @@ describe('format jumlah barang', () => {
 describe('status penjualan ditulis sebagai teks dan warna', () => {
   it('membedakan penjualan selesai dan dibatalkan', () => {
     expect(badgeFor('selesai')).not.toBe(badgeFor('dibatalkan'))
-    expect(badgeFor('selesai')).toContain('badge')
+    expect(badgeFor('selesai')).toContain('rounded-badge')
+    expect(badgeFor('selesai')).toContain('border-success')
+    expect(badgeFor('dibatalkan')).toContain('border-danger')
   })
 })

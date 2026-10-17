@@ -10,7 +10,6 @@ import {
   errorMessage,
   type LocationsResponse,
 } from '../../../lib/api'
-import styles from '../stok.module.css'
 
 /**
  * PRD 5: Stok > Lokasi. Saldo dihitung per produk per lokasi, jadi daftar lokasi
@@ -76,7 +75,12 @@ export default function LocationsPage() {
       {success ? <Alert kind="success">{success}</Alert> : null}
 
       {loading ? (
-        <p role="status">Memuat daftar lokasi.</p>
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat daftar lokasi.
+        </p>
       ) : locations && locations.length === 0 ? (
         <ErrorState
           title="Belum ada lokasi"
@@ -85,11 +89,14 @@ export default function LocationsPage() {
       ) : null}
 
       {!loading && locations && locations.length > 0 ? (
-        <ul className={styles.list}>
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {locations.map((item) => (
-            <li key={item.id} className={styles.card}>
-              <span className={styles.cardName}>{item.name}</span>
-              <span className={styles.cardMeta}>
+            <li
+              key={item.id}
+              className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+            >
+              <span className="text-[1.0625rem] font-semibold text-primary">{item.name}</span>
+              <span className="text-sm text-text-secondary">
                 {item.isDefault ? 'Lokasi bawaan' : 'Lokasi tambahan'}
                 {item.code ? ` · Kode ${item.code}` : ''}
               </span>
@@ -98,14 +105,14 @@ export default function LocationsPage() {
         </ul>
       ) : null}
 
-      <form className={styles.form} onSubmit={onSubmit}>
-        <h2 className={styles.cardName}>Tambah lokasi</h2>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="nama-lokasi">
+      <form className="flex max-w-[34rem] flex-col gap-4" onSubmit={onSubmit}>
+        <h2 className="text-lg font-semibold">Tambah lokasi</h2>
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="nama-lokasi">
             Nama lokasi
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary"
             id="nama-lokasi"
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -113,7 +120,11 @@ export default function LocationsPage() {
             placeholder="Contoh: Gudang Belakang"
           />
         </div>
-        <button type="submit" className={styles.submit} disabled={busy || name.trim() === ''}>
+        <button
+          type="submit"
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-transparent bg-secondary px-4 font-medium text-surface transition-colors enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
+          disabled={busy || name.trim() === ''}
+        >
           {busy ? 'Menyimpan' : 'Simpan lokasi'}
         </button>
       </form>

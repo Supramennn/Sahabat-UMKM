@@ -6,7 +6,6 @@ import { Alert, ErrorState } from '../../../components/ui'
 import { API_BASE, apiGet, apiPost, errorMessage, type PurchaseOrderDetail } from '../../../../lib/api'
 import { PurchasingShell } from '../../pembelian-shell'
 import { badgeFor, rupiah } from '../../bagian'
-import styles from '../../pembelian.module.css'
 
 /**
  * Detail satu PO (PRD 6.3).
@@ -18,6 +17,15 @@ import styles from '../../pembelian.module.css'
  * Setiap aksi yang mengubah status atau mencabut tautan meminta konfirmasi yang
  * menyebut objeknya, karena keduanya meninggalkan jejak yang tidak bisa dihapus.
  */
+
+const CARD = 'flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 text-text-primary no-underline shadow-raised'
+const ACTIONS = 'flex flex-wrap gap-2'
+const GROUP = 'flex min-w-0 flex-[1_1_12rem] flex-col gap-1'
+const LABEL = 'text-[0.9375rem] font-medium text-text-primary'
+const INPUT = 'min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary'
+const LINK_BUTTON = 'inline-flex min-h-touch items-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary no-underline transition-colors hover:border-text-secondary'
+const PRIMARY_BUTTON = 'min-h-touch cursor-pointer rounded-control bg-secondary px-4 font-medium text-surface transition-colors enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface'
+const SECONDARY_BUTTON = 'min-h-touch cursor-pointer rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors enabled:hover:border-text-secondary disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface'
 
 interface ShareStatus {
   active: boolean
@@ -184,12 +192,19 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
       activeHref="/pembelian/po"
       title={detail?.order.number ?? 'Purchase order'}
       actions={
-        <a className={styles.paginationLink} href={pdfUrl} target="_blank" rel="noreferrer">
+        <a className={LINK_BUTTON} href={pdfUrl} target="_blank" rel="noreferrer">
           Unduh PDF
         </a>
       }
     >
-      {loading ? <p role="status">Memuat detail PO.</p> : null}
+      {loading ? (
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat detail PO.
+        </p>
+      ) : null}
       {error ? <Alert kind="error">{error}</Alert> : null}
       {message ? <Alert kind="success">{message}</Alert> : null}
 
@@ -199,16 +214,16 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
 
       {detail ? (
         <>
-          <p className={styles.cardMeta}>
+          <p className="text-sm text-text-secondary tabular">
             <span className={badgeFor(status)}>{detail.order.statusLabel}</span> ·{' '}
             {detail.order.supplierName} · {detail.order.locationName} · {detail.order.orderedOn}
           </p>
 
-          <div className={styles.actions}>
+          <div className={ACTIONS}>
             {status === 'draft' ? (
               <button
                 type="button"
-                className={styles.submit}
+                className={PRIMARY_BUTTON}
                 disabled={busy}
                 onClick={() => void aksi('submit', 'PO diajukan untuk persetujuan.')}
               >
@@ -220,7 +235,7 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
               <>
                 <button
                   type="button"
-                  className={styles.submit}
+                  className={PRIMARY_BUTTON}
                   disabled={busy}
                   onClick={() =>
                     void aksi(
@@ -234,7 +249,7 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
                 </button>
                 <button
                   type="button"
-                  className={styles.linkButton}
+                  className={SECONDARY_BUTTON}
                   disabled={busy}
                   onClick={() =>
                     void aksi(
@@ -252,7 +267,7 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
             {['disetujui', 'diterima_sebagian'].includes(status) ? (
               <button
                 type="button"
-                className={styles.submit}
+                className={PRIMARY_BUTTON}
                 disabled={busy}
                 onClick={() => void catatPenerimaan()}
               >
@@ -263,7 +278,7 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
             {['diterima', 'diterima_sebagian'].includes(status) ? (
               <button
                 type="button"
-                className={styles.linkButton}
+                className={SECONDARY_BUTTON}
                 disabled={busy}
                 onClick={() =>
                   void aksi(
@@ -280,7 +295,7 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
             {['draft', 'diajukan'].includes(status) ? (
               <button
                 type="button"
-                className={styles.linkButton}
+                className={SECONDARY_BUTTON}
                 disabled={busy}
                 onClick={() =>
                   void aksi(
@@ -295,32 +310,32 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
             ) : null}
           </div>
 
-          <h2 className={styles.cardName}>Bagikan ke supplier</h2>
-          <p className={styles.cardMeta}>
+          <h2 className="text-lg font-semibold">Bagikan ke supplier</h2>
+          <p className="text-sm text-text-secondary">
             Tautan ini hanya untuk dibaca. Supplier bisa melihat isi PO dan mengunduh PDF-nya,
             tetapi tidak bisa mengubah apa pun. Tautan berlaku 30 hari, bisa dicabut kapan
             saja, dan setiap pembukaan tercatat.
           </p>
 
           {share?.active ? (
-            <p className={styles.cardMeta}>
+            <p className="text-sm text-text-secondary tabular">
               Tautan aktif sampai {share.expiresOn}
               {share.openCount > 0 ? ` · sudah dibuka ${share.openCount} kali` : ' · belum dibuka'}
             </p>
           ) : null}
           {share && !share.active ? (
-            <p className={styles.cardMeta}>
+            <p className="text-sm text-text-secondary">
               Tautan sebelumnya sudah {share.revoked ? 'dicabut' : 'kedaluwarsa'}. Buat yang baru
               bila perlu dikirim lagi.
             </p>
           ) : null}
 
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="email-tujuan">
+          <div className={GROUP}>
+            <label className={LABEL} htmlFor="email-tujuan">
               Kirim juga ke email (opsional)
             </label>
             <input
-              className={styles.input}
+              className={INPUT}
               id="email-tujuan"
               type="email"
               inputMode="email"
@@ -330,14 +345,14 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
             />
           </div>
 
-          <div className={styles.actions}>
-            <button type="button" className={styles.linkButton} disabled={busy} onClick={() => void buatTautan()}>
+          <div className={ACTIONS}>
+            <button type="button" className={SECONDARY_BUTTON} disabled={busy} onClick={() => void buatTautan()}>
               Buat tautan baca-saja
             </button>
             {share?.active ? (
               <button
                 type="button"
-                className={styles.linkButton}
+                className={SECONDARY_BUTTON}
                 disabled={busy}
                 onClick={() =>
                   void aksi(
@@ -353,30 +368,30 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
           </div>
 
           {shareUrl ? (
-            <div className={styles.itemRow}>
-              <label className={styles.label} htmlFor="tautan">
+            <div className="grid gap-2 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+              <label className={LABEL} htmlFor="tautan">
                 Tautan baca-saja
               </label>
-              <input className={styles.input} id="tautan" readOnly value={shareUrl} />
-              <button type="button" className={styles.linkButton} onClick={() => void salinTautan()}>
+              <input className={INPUT} id="tautan" readOnly value={shareUrl} />
+              <button type="button" className={SECONDARY_BUTTON} onClick={() => void salinTautan()}>
                 Salin tautan
               </button>
             </div>
           ) : null}
 
-          <h2 className={styles.cardName}>Barang</h2>
-          <ul className={styles.list}>
+          <h2 className="text-lg font-semibold">Barang</h2>
+          <ul className="flex flex-col gap-2">
             {detail.items.map((item) => (
-              <li key={item.id} className={styles.card}>
-                <span className={styles.cardRow}>
-                  <span className={styles.cardName}>{item.productName}</span>
-                  <span className={styles.cardMeta}>{rupiah(item.lineTotal)}</span>
+              <li key={item.id} className={CARD}>
+                <span className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-semibold text-primary">{item.productName}</span>
+                  <span className="text-sm text-text-secondary tabular">{rupiah(item.lineTotal)}</span>
                 </span>
-                <span className={styles.cardMeta}>
+                <span className="text-sm text-text-secondary tabular">
                   {item.quantity} {item.unitCode} × {rupiah(item.unitPrice)}
                   {item.discountAmount > 0 ? `, diskon ${rupiah(item.discountAmount)}` : ''}
                 </span>
-                <span className={styles.cardMeta}>
+                <span className="text-sm text-text-secondary tabular">
                   Diterima {item.receivedQuantity} {item.unitCode} · sisa {item.outstanding}{' '}
                   {item.unitCode}
                 </span>
@@ -384,16 +399,16 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
             ))}
           </ul>
 
-          <p className={styles.cardMeta}>Total PO: {rupiah(detail.order.totalAmount)}</p>
+          <p className="text-sm text-text-secondary tabular">Total PO: {rupiah(detail.order.totalAmount)}</p>
 
           {detail.receipts.length > 0 ? (
             <>
-              <h2 className={styles.cardName}>Penerimaan</h2>
-              <ul className={styles.list}>
+              <h2 className="text-lg font-semibold">Penerimaan</h2>
+              <ul className="flex flex-col gap-2">
                 {detail.receipts.map((receipt) => (
-                  <li key={receipt.receiptId} className={styles.card}>
-                    <span className={styles.cardName}>{receipt.number}</span>
-                    <span className={styles.cardMeta}>
+                  <li key={receipt.receiptId} className={CARD}>
+                    <span className="font-semibold text-primary tabular">{receipt.number}</span>
+                    <span className="text-sm text-text-secondary tabular">
                       {receipt.receivedOn} · dicatat {receipt.receivedByName}
                     </span>
                   </li>
@@ -404,12 +419,12 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
 
           {detail.revisions.length > 0 ? (
             <>
-              <h2 className={styles.cardName}>Riwayat revisi</h2>
-              <ul className={styles.list}>
+              <h2 className="text-lg font-semibold">Riwayat revisi</h2>
+              <ul className="flex flex-col gap-2">
                 {detail.revisions.map((revision) => (
-                  <li key={revision.revisionNumber} className={styles.card}>
-                    <span className={styles.cardName}>Revisi {revision.revisionNumber}</span>
-                    <span className={styles.cardMeta}>
+                  <li key={revision.revisionNumber} className={CARD}>
+                    <span className="font-semibold text-primary tabular">Revisi {revision.revisionNumber}</span>
+                    <span className="text-sm text-text-secondary">
                       {revision.reason} · diubah {revision.changedByName}
                     </span>
                   </li>

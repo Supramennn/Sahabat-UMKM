@@ -15,7 +15,6 @@ import {
 } from '../../../../lib/api'
 import { PurchasingShell } from '../../pembelian-shell'
 import { parseUsulan, rupiah } from '../../bagian'
-import styles from '../../pembelian.module.css'
 
 /**
  * Pembuatan PO (PRD 6.3). PO disimpan sebagai draft supaya bisa diperiksa dulu,
@@ -25,6 +24,14 @@ import styles from '../../pembelian.module.css'
  * Jumlah usulan dari daftar stok rendah bisa diubah di sini, karena PRD 6.3
  * meminta usulan yang bisa diubah.
  */
+
+const FORM = 'flex max-w-[34rem] flex-col gap-4'
+const GROUP = 'flex min-w-0 flex-[1_1_12rem] flex-col gap-1'
+const LABEL = 'text-[0.9375rem] font-medium text-text-primary'
+const INPUT = 'min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary'
+const ACTIONS = 'flex flex-wrap gap-2'
+const PRIMARY_BUTTON = 'min-h-touch cursor-pointer rounded-control bg-secondary px-4 font-medium text-surface transition-colors enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface'
+const SECONDARY_BUTTON = 'min-h-touch cursor-pointer rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors enabled:hover:border-text-secondary disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface'
 
 interface BarisPO {
   productId: string
@@ -156,13 +163,13 @@ export default function NewPurchaseOrderPage({
     <PurchasingShell activeHref="/pembelian/po" title="Buat purchase order">
       {error ? <Alert kind="error">{error}</Alert> : null}
 
-      <form className={styles.form} onSubmit={(event) => event.preventDefault()}>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="supplier">
+      <form className={FORM} onSubmit={(event) => event.preventDefault()}>
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="supplier">
             Supplier
           </label>
           <select
-            className={styles.select}
+            className={INPUT}
             id="supplier"
             value={supplierId}
             onChange={(event) => setSupplierId(event.target.value)}
@@ -175,12 +182,12 @@ export default function NewPurchaseOrderPage({
           </select>
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="lokasi-tujuan">
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="lokasi-tujuan">
             Lokasi tujuan
           </label>
           <select
-            className={styles.select}
+            className={INPUT}
             id="lokasi-tujuan"
             value={locationId}
             onChange={(event) => setLocationId(event.target.value)}
@@ -193,12 +200,12 @@ export default function NewPurchaseOrderPage({
           </select>
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="perkiraan">
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="perkiraan">
             Perkiraan barang datang
           </label>
           <input
-            className={styles.input}
+            className={INPUT}
             id="perkiraan"
             type="date"
             value={expectedOn}
@@ -207,13 +214,13 @@ export default function NewPurchaseOrderPage({
         </div>
 
         {baris.map((item, index) => (
-          <div key={index} className={styles.itemRow}>
-            <div className={styles.filterGroup}>
-              <label className={styles.label} htmlFor={`barang-${index}`}>
+          <div key={index} className="grid gap-2 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+            <div className={GROUP}>
+              <label className={LABEL} htmlFor={`barang-${index}`}>
                 Barang
               </label>
               <select
-                className={styles.select}
+                className={INPUT}
                 id={`barang-${index}`}
                 value={item.productId}
                 onChange={(event) => perbaruiBaris(index, { productId: event.target.value })}
@@ -227,12 +234,12 @@ export default function NewPurchaseOrderPage({
               </select>
             </div>
 
-            <div className={styles.filterGroup}>
-              <label className={styles.label} htmlFor={`jumlah-${index}`}>
+            <div className={GROUP}>
+              <label className={LABEL} htmlFor={`jumlah-${index}`}>
                 Jumlah
               </label>
               <input
-                className={styles.input}
+                className={INPUT}
                 id={`jumlah-${index}`}
                 inputMode="decimal"
                 value={item.quantity}
@@ -240,12 +247,12 @@ export default function NewPurchaseOrderPage({
               />
             </div>
 
-            <div className={styles.filterGroup}>
-              <label className={styles.label} htmlFor={`harga-${index}`}>
+            <div className={GROUP}>
+              <label className={LABEL} htmlFor={`harga-${index}`}>
                 Harga beli per satuan
               </label>
               <input
-                className={styles.input}
+                className={INPUT}
                 id={`harga-${index}`}
                 inputMode="numeric"
                 value={item.unitPrice}
@@ -253,12 +260,12 @@ export default function NewPurchaseOrderPage({
               />
             </div>
 
-            <div className={styles.filterGroup}>
-              <label className={styles.label} htmlFor={`diskon-${index}`}>
+            <div className={GROUP}>
+              <label className={LABEL} htmlFor={`diskon-${index}`}>
                 Diskon per baris (opsional)
               </label>
               <input
-                className={styles.input}
+                className={INPUT}
                 id={`diskon-${index}`}
                 inputMode="numeric"
                 value={item.discountAmount}
@@ -268,10 +275,10 @@ export default function NewPurchaseOrderPage({
           </div>
         ))}
 
-        <div className={styles.actions}>
+        <div className={ACTIONS}>
           <button
             type="button"
-            className={styles.linkButton}
+            className={SECONDARY_BUTTON}
             onClick={() => setBaris([...baris, barisKosong()])}
           >
             Tambah barang
@@ -279,7 +286,7 @@ export default function NewPurchaseOrderPage({
           {baris.length > 1 ? (
             <button
               type="button"
-              className={styles.linkButton}
+              className={SECONDARY_BUTTON}
               onClick={() => setBaris(baris.slice(0, -1))}
             >
               Hapus baris terakhir
@@ -287,12 +294,12 @@ export default function NewPurchaseOrderPage({
           ) : null}
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="catatan">
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="catatan">
             Catatan
           </label>
           <input
-            className={styles.input}
+            className={INPUT}
             id="catatan"
             value={note}
             onChange={(event) => setNote(event.target.value)}
@@ -300,12 +307,12 @@ export default function NewPurchaseOrderPage({
           />
         </div>
 
-        <p className={styles.cardMeta}>Total Sementara: {rupiah(total)}</p>
+        <p className="text-sm text-text-secondary tabular">Total Sementara: {rupiah(total)}</p>
 
-        <div className={styles.actions}>
+        <div className={ACTIONS}>
           <button
             type="button"
-            className={styles.submit}
+            className={PRIMARY_BUTTON}
             disabled={busy || supplierId === '' || locationId === ''}
             onClick={() => void simpan(false)}
           >
@@ -313,7 +320,7 @@ export default function NewPurchaseOrderPage({
           </button>
           <button
             type="button"
-            className={styles.linkButton}
+            className={SECONDARY_BUTTON}
             disabled={busy || supplierId === '' || locationId === ''}
             onClick={() => void simpan(true)}
           >

@@ -5,14 +5,21 @@ import { useRouter } from 'next/navigation'
 import { useApp } from '../../components/app-context'
 import { Alert } from '../../components/ui'
 import { apiGet, apiPost, errorMessage, type SuppliersResponse } from '../../../lib/api'
+import { cx } from '../../../lib/cx'
 import { PurchasingShell } from '../pembelian-shell'
-import styles from '../pembelian.module.css'
 
 /**
  * PRD 6.3: supplier dengan nama, kontak, telepon, email, alamat, termin
  * pembayaran, catatan, dan status. Termin dipakai untuk menghitung jatuh tempo
  * utang supplier.
  */
+
+const BADGE = 'inline-flex items-center rounded-badge border px-2 py-0.5 text-xs font-medium tabular'
+const CARD = 'flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 text-text-primary no-underline shadow-raised'
+const GROUP = 'flex min-w-0 flex-[1_1_12rem] flex-col gap-1'
+const LABEL = 'text-[0.9375rem] font-medium text-text-primary'
+const INPUT = 'min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary'
+const LINK_BUTTON = 'inline-flex min-h-touch items-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary no-underline transition-colors hover:border-text-secondary'
 
 interface SupplierForm {
   name: string
@@ -97,7 +104,7 @@ export default function SuppliersPage() {
       activeHref="/pembelian/supplier"
       title="Supplier"
       actions={
-        <a className={styles.paginationLink} href="/pembelian/po">
+        <a className={LINK_BUTTON} href="/pembelian/po">
           Buat PO
         </a>
       }
@@ -106,11 +113,16 @@ export default function SuppliersPage() {
       {success ? <Alert kind="success">{success}</Alert> : null}
 
       {loading ? (
-        <p role="status">Memuat daftar supplier.</p>
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat daftar supplier.
+        </p>
       ) : suppliers && suppliers.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Belum ada supplier</p>
-          <p className={styles.stateBody}>
+        <div className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Belum ada supplier</p>
+          <p className="text-[0.9375rem] text-text-secondary">
             Tambahkan supplier sebelum membuat purchase order. Data supplier dipakai untuk
             mencatat utang dan jatuh tempo pembayaran.
           </p>
@@ -119,28 +131,28 @@ export default function SuppliersPage() {
 
       {!loading && suppliers && suppliers.length > 0 ? (
         <>
-          <ul className={styles.list}>
+          <ul className="flex flex-col gap-2 desktop:hidden">
             {suppliers.map((supplier) => (
-              <li key={supplier.id} className={styles.card}>
-                <span className={styles.cardRow}>
-                  <span className={styles.cardName}>{supplier.name}</span>
+              <li key={supplier.id} className={CARD}>
+                <span className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-semibold text-primary">{supplier.name}</span>
                   {supplier.outstanding === null ? (
-                    <span className={`${styles.badge} ${styles.badgeNeutral}`}>Utang tersedia di paket Usaha</span>
+                    <span className={cx(BADGE, 'border-border-strong text-text-secondary')}>Utang tersedia di paket Usaha</span>
                   ) : supplier.outstanding > 0 ? (
-                    <span className={`${styles.badge} ${styles.badgePending}`}>
+                    <span className={cx(BADGE, 'border-warning text-warning')}>
                       Utang {formatRupiah(supplier.outstanding)}
                     </span>
                   ) : (
-                    <span className={`${styles.badge} ${styles.badgeNeutral}`}>Lunas</span>
+                    <span className={cx(BADGE, 'border-border-strong text-text-secondary')}>Lunas</span>
                   )}
                 </span>
-                <span className={styles.cardMeta}>
+                <span className="text-sm text-text-secondary">
                   {[supplier.contactName, supplier.phone, supplier.email]
                     .filter(Boolean)
                     .join(' · ') || 'Kontak belum diisi'}
                 </span>
                 {supplier.paymentTermDays ? (
-                  <span className={styles.cardMeta}>
+                  <span className="text-sm text-text-secondary tabular">
                     Termin {supplier.paymentTermDays} hari
                   </span>
                 ) : null}
@@ -148,30 +160,30 @@ export default function SuppliersPage() {
             ))}
           </ul>
 
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <caption className={styles.visuallyHidden}>Daftar supplier</caption>
-              <thead>
+          <div className="hidden overflow-x-auto rounded-surface border border-border-subtle bg-surface shadow-raised desktop:block">
+            <table className="w-full border-collapse text-sm">
+              <caption className="visually-hidden">Daftar supplier</caption>
+              <thead className="bg-background text-left text-text-secondary">
                 <tr>
-                  <th scope="col">Supplier</th>
-                  <th scope="col">Kontak</th>
-                  <th scope="col">Termin</th>
-                  <th scope="col" className={styles.numeric}>
+                  <th scope="col" className="px-3 py-2">Supplier</th>
+                  <th scope="col" className="px-3 py-2">Kontak</th>
+                  <th scope="col" className="px-3 py-2">Termin</th>
+                  <th scope="col" className="px-3 py-2 text-right">
                     Utang
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {suppliers.map((supplier) => (
-                  <tr key={supplier.id}>
-                    <td>{supplier.name}</td>
-                    <td className={styles.muted}>
+                  <tr key={supplier.id} className="border-b border-border-subtle last:border-0">
+                    <td className="px-3 py-2">{supplier.name}</td>
+                    <td className="px-3 py-2 text-text-secondary">
                       {supplier.contactName ?? supplier.phone ?? 'Belum diisi'}
                     </td>
-                    <td className={styles.muted}>
+                    <td className="px-3 py-2 text-text-secondary tabular">
                       {supplier.paymentTermDays ? `${supplier.paymentTermDays} hari` : '-'}
                     </td>
-                    <td className={styles.numeric}>
+                    <td className="px-3 py-2 text-right tabular">
                       {supplier.outstanding === null ? 'Tersedia di paket Usaha' : formatRupiah(supplier.outstanding)}
                     </td>
                   </tr>
@@ -182,15 +194,15 @@ export default function SuppliersPage() {
         </>
       ) : null}
 
-      <form className={styles.form} onSubmit={onSubmit}>
-        <h2 className={styles.cardName}>Tambah supplier</h2>
+      <form className="flex max-w-[34rem] flex-col gap-4" onSubmit={onSubmit}>
+        <h2 className="text-lg font-semibold">Tambah supplier</h2>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="nama">
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="nama">
             Nama supplier
           </label>
           <input
-            className={styles.input}
+            className={INPUT}
             id="nama"
             value={form.name}
             onChange={(event) => setForm({ ...form, name: event.target.value })}
@@ -199,24 +211,24 @@ export default function SuppliersPage() {
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="kontak">
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="kontak">
             Nama kontak
           </label>
           <input
-            className={styles.input}
+            className={INPUT}
             id="kontak"
             value={form.contactName}
             onChange={(event) => setForm({ ...form, contactName: event.target.value })}
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="telepon">
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="telepon">
             Telepon
           </label>
           <input
-            className={styles.input}
+            className={INPUT}
             id="telepon"
             type="tel"
             inputMode="tel"
@@ -225,12 +237,12 @@ export default function SuppliersPage() {
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="email">
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="email">
             Email
           </label>
           <input
-            className={styles.input}
+            className={INPUT}
             id="email"
             type="email"
             inputMode="email"
@@ -239,12 +251,12 @@ export default function SuppliersPage() {
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="termin">
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="termin">
             Termin pembayaran (hari)
           </label>
           <input
-            className={styles.input}
+            className={INPUT}
             id="termin"
             type="number"
             inputMode="numeric"
@@ -254,19 +266,23 @@ export default function SuppliersPage() {
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="alamat">
+        <div className={GROUP}>
+          <label className={LABEL} htmlFor="alamat">
             Alamat
           </label>
           <input
-            className={styles.input}
+            className={INPUT}
             id="alamat"
             value={form.address}
             onChange={(event) => setForm({ ...form, address: event.target.value })}
           />
         </div>
 
-        <button type="submit" className={styles.submit} disabled={busy || form.name.trim() === ''}>
+        <button
+          type="submit"
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center gap-2 self-start rounded-control border border-transparent bg-secondary px-4 text-base font-medium text-surface transition-colors duration-150 enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
+          disabled={busy || form.name.trim() === ''}
+        >
           {busy ? 'Menyimpan' : 'Simpan supplier'}
         </button>
       </form>

@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react'
 import { useApp } from '../components/app-context'
 import { Alert } from '../components/ui'
 import { apiGet, errorMessage, type PurchaseOrder, type SupplierDebt, type SubscriptionResponse } from '../../lib/api'
+import { cx } from '../../lib/cx'
 import { PurchasingShell } from './pembelian-shell'
 import { formatQty, rupiah } from './bagian'
-import styles from './pembelian.module.css'
 import { can } from '@sahabat/shared'
 
 /**
@@ -14,6 +14,10 @@ import { can } from '@sahabat/shared'
  * dan utang yang sudah lewat jatuh tempo. PRD 6.7 menyebut daftar tindakan untuk
  * pemilik; tiga hal ini yang paling sering butuh keputusan cepat.
  */
+
+const BADGE = 'inline-flex items-center rounded-badge border px-2 py-0.5 text-xs font-medium tabular'
+const CARD = 'flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 text-text-primary no-underline shadow-raised'
+const LINK_BUTTON = 'inline-flex min-h-touch items-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary no-underline transition-colors hover:border-text-secondary'
 
 export default function PurchasingOverviewPage() {
   const app = useApp()
@@ -58,45 +62,52 @@ export default function PurchasingOverviewPage() {
     <PurchasingShell activeHref="/pembelian" title="Pembelian">
       {error ? <Alert kind="error">{error}</Alert> : null}
 
-      <div className={styles.actions}>
+      <div className="flex flex-wrap gap-2">
         <span
-          className={`${styles.badge} ${
-            menunggu.length > 0 ? styles.badgePending : styles.badgeNeutral
-          }`}
+          className={cx(
+            BADGE,
+            menunggu.length > 0 ? 'border-warning text-warning' : 'border-border-strong text-text-secondary',
+          )}
         >
           Menunggu persetujuan {menunggu.length}
         </span>
-        <span className={`${styles.badge} ${styles.badgeNeutral}`}>
+        <span className={cx(BADGE, 'border-border-strong text-text-secondary')}>
           Diterima sebagian {berjalan.length}
         </span>
         {canSeeDebt && plan !== 'gratis' ? <>
         <span
-          className={`${styles.badge} ${
-            lewatTempo.length > 0 ? styles.badgeDanger : styles.badgeNeutral
-          }`}
+          className={cx(
+            BADGE,
+            lewatTempo.length > 0 ? 'border-danger text-danger' : 'border-border-strong text-text-secondary',
+          )}
         >
           Utang jatuh tempo {lewatTempo.length}
         </span>
-        <span className={`${styles.badge} ${totalUtang > 0 ? styles.badgePending : styles.badgeOk}`}>
+        <span className={cx(BADGE, totalUtang > 0 ? 'border-warning text-warning' : 'border-success text-success')}>
           Total utang {rupiah(totalUtang)}
         </span>
-        </> : plan === 'gratis' ? <a className={styles.paginationLink} href="/pengaturan/paket">Utang supplier tersedia di paket Usaha · Lihat paket</a> : null}
+        </> : plan === 'gratis' ? <a className={LINK_BUTTON} href="/pengaturan/paket">Utang supplier tersedia di paket Usaha · Lihat paket</a> : null}
       </div>
 
       {loading ? (
-        <p role="status">Memuat ringkasan pembelian.</p>
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat ringkasan pembelian.
+        </p>
       ) : orders && orders.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Belum ada pembelian</p>
-          <p className={styles.stateBody}>
+        <div className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Belum ada pembelian</p>
+          <p className="text-[0.9375rem] text-text-secondary">
             Mulai dari membuat supplier, lalu buat purchase order. Barang baru masuk ke stok
             setelah penerimaannya dicatat.
           </p>
-          <div className={styles.emptyActions}>
-            <a className={styles.paginationLink} href="/pembelian/supplier">
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a className={LINK_BUTTON} href="/pembelian/supplier">
               Tambah supplier
             </a>
-            <a className={styles.paginationLink} href="/pembelian/po/baru">
+            <a className={LINK_BUTTON} href="/pembelian/po/baru">
               Buat PO
             </a>
           </div>
@@ -105,16 +116,16 @@ export default function PurchasingOverviewPage() {
 
       {!loading && menunggu.length > 0 ? (
         <>
-          <h2 className={styles.cardName}>Menunggu persetujuan</h2>
-          <ul className={styles.list}>
+          <h2 className="text-lg font-semibold">Menunggu persetujuan</h2>
+          <ul className="flex flex-col gap-2">
             {menunggu.map((order) => (
               <li key={order.id}>
-                <a className={styles.card} href={`/pembelian/po/${order.id}`}>
-                  <span className={styles.cardRow}>
-                    <span className={styles.cardName}>{order.number}</span>
-                    <span className={styles.cardMeta}>{rupiah(order.totalAmount)}</span>
+                <a className={CARD} href={`/pembelian/po/${order.id}`}>
+                  <span className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-semibold text-primary tabular">{order.number}</span>
+                    <span className="text-sm text-text-secondary tabular">{rupiah(order.totalAmount)}</span>
                   </span>
-                  <span className={styles.cardMeta}>
+                  <span className="text-sm text-text-secondary">
                     {order.supplierName} · dibuat {order.createdByName}
                   </span>
                 </a>
@@ -126,18 +137,18 @@ export default function PurchasingOverviewPage() {
 
       {!loading && berjalan.length > 0 ? (
         <>
-          <h2 className={styles.cardName}>Penerimaan sebagian</h2>
-          <ul className={styles.list}>
+          <h2 className="text-lg font-semibold">Penerimaan sebagian</h2>
+          <ul className="flex flex-col gap-2">
             {berjalan.map((order) => (
               <li key={order.id}>
-                <a className={styles.card} href={`/pembelian/po/${order.id}`}>
-                  <span className={styles.cardRow}>
-                    <span className={styles.cardName}>{order.number}</span>
-                    <span className={styles.cardMeta}>
+                <a className={CARD} href={`/pembelian/po/${order.id}`}>
+                  <span className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-semibold text-primary tabular">{order.number}</span>
+                    <span className="text-sm text-text-secondary tabular">
                       {formatQty(order.receivedTotal)} sudah diterima
                     </span>
                   </span>
-                  <span className={styles.cardMeta}>
+                  <span className="text-sm text-text-secondary tabular">
                     {order.supplierName} · masih kurang {formatQty(belumDiterima(order))}
                   </span>
                 </a>

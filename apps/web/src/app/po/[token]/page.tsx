@@ -72,144 +72,132 @@ export default async function PublicPurchaseOrderPage({
   const pdfUrl = `${API_BASE}/api/public/purchase-orders/${encodeURIComponent(token)}/pdf`
 
   return (
-    <main
-      style={{
-        maxWidth: '48rem',
-        margin: '0 auto',
-        padding: '1.5rem',
-        fontFamily: 'system-ui, sans-serif',
-        color: '#1a1a1a',
-        background: '#ffffff',
-      }}
-    >
-      <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Purchase order</h1>
-      <p style={{ marginTop: 0, color: '#4a4a4a' }}>
-        {order.number} · {order.statusLabel}
-      </p>
-
-      <dl style={{ display: 'grid', gap: '0.25rem', margin: '1rem 0' }}>
-        <div>
-          <dt style={{ fontWeight: 600 }}>Pemesan</dt>
-          <dd style={{ margin: 0 }}>{order.workspaceName}</dd>
-        </div>
-        <div>
-          <dt style={{ fontWeight: 600 }}>Supplier</dt>
-          <dd style={{ margin: 0 }}>
-            {order.supplierName}
-            {order.supplierContactName ? ` · ${order.supplierContactName}` : ''}
-            {order.supplierPhone ? ` · ${order.supplierPhone}` : ''}
-          </dd>
-        </div>
-        {order.supplierAddress ? (
-          <div>
-            <dt style={{ fontWeight: 600 }}>Alamat supplier</dt>
-            <dd style={{ margin: 0 }}>{order.supplierAddress}</dd>
-          </div>
-        ) : null}
-        <div>
-          <dt style={{ fontWeight: 600 }}>Tanggal order</dt>
-          <dd style={{ margin: 0 }}>{order.orderedOn}</dd>
-        </div>
-        {order.expectedOn ? (
-          <div>
-            <dt style={{ fontWeight: 600 }}>Perkiraan tiba</dt>
-            <dd style={{ margin: 0 }}>{order.expectedOn}</dd>
-          </div>
-        ) : null}
-        <div>
-          <dt style={{ fontWeight: 600 }}>Lokasi penyimpanan</dt>
-          <dd style={{ margin: 0 }}>{order.locationName}</dd>
-        </div>
-      </dl>
-
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
-        <caption style={{ textAlign: 'left', fontWeight: 600, paddingBottom: '0.5rem' }}>
-          Barang yang dipesan
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col" style={{ textAlign: 'left', borderBottom: '1px solid #999' }}>
-              Barang
-            </th>
-            <th scope="col" style={{ textAlign: 'right', borderBottom: '1px solid #999' }}>
-              Jumlah
-            </th>
-            <th scope="col" style={{ textAlign: 'right', borderBottom: '1px solid #999' }}>
-              Harga satuan
-            </th>
-            <th scope="col" style={{ textAlign: 'right', borderBottom: '1px solid #999' }}>
-              Jumlah nilai
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {order.items.map((item) => (
-            <tr key={item.sku}>
-              <td style={{ borderBottom: '1px solid #ddd' }}>
-                {item.productName}
-                <br />
-                <small style={{ color: '#4a4a4a' }}>{item.sku}</small>
-              </td>
-              <td style={{ textAlign: 'right', borderBottom: '1px solid #ddd' }}>
-                {quantity(item.quantity)} {item.unitCode}
-              </td>
-              <td style={{ textAlign: 'right', borderBottom: '1px solid #ddd' }}>
-                {rupiah(item.unitPrice)}
-              </td>
-              <td style={{ textAlign: 'right', borderBottom: '1px solid #ddd' }}>
-                {rupiah(item.lineTotal)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={3} style={{ textAlign: 'right', fontWeight: 600, paddingTop: '0.5rem' }}>
-              Total
-            </td>
-            <td style={{ textAlign: 'right', fontWeight: 600, paddingTop: '0.5rem' }}>
-              {rupiah(order.totalAmount)}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-
-      {order.note ? (
-        <p style={{ marginTop: '1rem' }}>
-          <strong>Catatan:</strong> {order.note}
+    <main className="min-h-dvh bg-background px-4 py-8 sm:px-6">
+      <div className="mx-auto w-full max-w-3xl rounded-surface border border-border-subtle bg-surface p-6 shadow-raised sm:p-8">
+        <h1 className="text-2xl font-semibold tracking-tight">Purchase order</h1>
+        <p className="mt-1 text-text-secondary">
+          {order.number} · {order.statusLabel}
         </p>
-      ) : null}
 
-      <p style={{ marginTop: '1.5rem' }}>
-        <a href={pdfUrl} target="_blank" rel="noreferrer">
-          Unduh versi PDF
-        </a>
-      </p>
+        <dl className="mt-6 grid gap-1">
+          <div>
+            <dt className="font-semibold">Pemesan</dt>
+            <dd>{order.workspaceName}</dd>
+          </div>
+          <div>
+            <dt className="font-semibold">Supplier</dt>
+            <dd>
+              {order.supplierName}
+              {order.supplierContactName ? ` · ${order.supplierContactName}` : ''}
+              {order.supplierPhone ? ` · ${order.supplierPhone}` : ''}
+            </dd>
+          </div>
+          {order.supplierAddress ? (
+            <div>
+              <dt className="font-semibold">Alamat supplier</dt>
+              <dd>{order.supplierAddress}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt className="font-semibold">Tanggal order</dt>
+            <dd className="tabular">{order.orderedOn}</dd>
+          </div>
+          {order.expectedOn ? (
+            <div>
+              <dt className="font-semibold">Perkiraan tiba</dt>
+              <dd className="tabular">{order.expectedOn}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt className="font-semibold">Lokasi penyimpanan</dt>
+            <dd>{order.locationName}</dd>
+          </div>
+        </dl>
 
-      <p style={{ marginTop: '2rem', color: '#4a4a4a', fontSize: '0.875rem' }}>
-        Halaman ini hanya untuk dibaca. Isinya tidak bisa diubah dari sini. Kalau tautan ini
-        sudah tidak berlaku, minta pemilik toko mengirim ulang purchase order-nya.
-      </p>
+        <table className="mt-6 w-full border-collapse text-sm">
+          <caption className="pb-2 text-left font-semibold">Barang yang dipesan</caption>
+          <thead>
+            <tr>
+              <th scope="col" className="border-b border-border-strong pb-1 text-left">
+                Barang
+              </th>
+              <th scope="col" className="border-b border-border-strong pb-1 text-right">
+                Jumlah
+              </th>
+              <th scope="col" className="border-b border-border-strong pb-1 text-right">
+                Harga satuan
+              </th>
+              <th scope="col" className="border-b border-border-strong pb-1 text-right">
+                Jumlah nilai
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {order.items.map((item) => (
+              <tr key={item.sku}>
+                <td className="border-b border-border-subtle py-1.5">
+                  {item.productName}
+                  <br />
+                  <small className="text-text-secondary">{item.sku}</small>
+                </td>
+                <td className="border-b border-border-subtle py-1.5 text-right tabular">
+                  {quantity(item.quantity)} {item.unitCode}
+                </td>
+                <td className="border-b border-border-subtle py-1.5 text-right tabular">
+                  {rupiah(item.unitPrice)}
+                </td>
+                <td className="border-b border-border-subtle py-1.5 text-right tabular">
+                  {rupiah(item.lineTotal)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={3} className="pt-2 text-right font-semibold">
+                Total
+              </td>
+              <td className="pt-2 text-right font-semibold tabular">{rupiah(order.totalAmount)}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        {order.note ? (
+          <p className="mt-4">
+            <strong>Catatan:</strong> {order.note}
+          </p>
+        ) : null}
+
+        <p className="mt-6">
+          <a
+            className="inline-flex min-h-touch items-center text-secondary underline underline-offset-4"
+            href={pdfUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Unduh versi PDF
+          </a>
+        </p>
+
+        <p className="mt-8 text-sm text-text-secondary">
+          Halaman ini hanya untuk dibaca. Isinya tidak bisa diubah dari sini. Kalau tautan ini
+          sudah tidak berlaku, minta pemilik toko mengirim ulang purchase order-nya.
+        </p>
+      </div>
     </main>
   )
 }
 
 function TautanTidakBerlaku() {
   return (
-    <main
-      style={{
-        maxWidth: '40rem',
-        margin: '0 auto',
-        padding: '2rem 1.5rem',
-        fontFamily: 'system-ui, sans-serif',
-        color: '#1a1a1a',
-      }}
-    >
-      <h1 style={{ fontSize: '1.5rem' }}>Tautan sudah tidak berlaku</h1>
-      <p style={{ color: '#4a4a4a' }}>
-        Purchase order ini sudah kedaluwarsa atau tautannya sudah dicabut. Minta pemilik toko
-        mengirim ulang tautan yang baru.
-      </p>
+    <main className="flex min-h-dvh items-start justify-center bg-background px-4 py-16">
+      <div className="w-full max-w-2xl rounded-surface border border-border-subtle bg-surface p-6 shadow-raised">
+        <h1 className="text-2xl font-semibold tracking-tight">Tautan sudah tidak berlaku</h1>
+        <p className="mt-2 text-text-secondary">
+          Purchase order ini sudah kedaluwarsa atau tautannya sudah dicabut. Minta pemilik toko
+          mengirim ulang tautan yang baru.
+        </p>
+      </div>
     </main>
   )
 }

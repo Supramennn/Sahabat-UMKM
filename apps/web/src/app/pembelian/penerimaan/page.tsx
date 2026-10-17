@@ -10,9 +10,9 @@ import {
   type GoodsReceipt,
   type PurchaseOrder,
 } from '../../../lib/api'
+import { cx } from '../../../lib/cx'
 import { PurchasingShell } from '../pembelian-shell'
 import { rupiah } from '../bagian'
-import styles from '../pembelian.module.css'
 
 /**
  * PRD 5: Pembelian > Penerimaan. Daftar penerimaan dan pencatatan penerimaan baru
@@ -21,6 +21,9 @@ import styles from '../pembelian.module.css'
  * Penerimaan hanya bisa untuk PO berstatus Disetujui atau Diterima Sebagian,
  * karena barang yang tidak pernah dipesan tidak boleh masuk lewat jalur ini.
  */
+
+const CARD = 'flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 text-text-primary no-underline shadow-raised'
+const BADGE = 'inline-flex items-center rounded-badge border px-2 py-0.5 text-xs font-medium tabular'
 
 export default function GoodsReceiptsPage() {
   const app = useApp()
@@ -100,13 +103,13 @@ export default function GoodsReceiptsPage() {
       {success ? <Alert kind="success">{success}</Alert> : null}
 
       {orders.length > 0 ? (
-        <form className={styles.form} onSubmit={onSubmit}>
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="po-terima">
+        <form className="flex max-w-[34rem] flex-col gap-4" onSubmit={onSubmit}>
+          <div className="flex min-w-0 flex-[1_1_12rem] flex-col gap-1">
+            <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="po-terima">
               PO yang diterima
             </label>
             <select
-              className={styles.select}
+              className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
               id="po-terima"
               value={orderId}
               onChange={(event) => setOrderId(event.target.value)}
@@ -119,18 +122,27 @@ export default function GoodsReceiptsPage() {
               ))}
             </select>
           </div>
-          <button type="submit" className={styles.submit} disabled={busy || orderId === ''}>
+          <button
+            type="submit"
+            className="min-h-touch cursor-pointer self-start rounded-control bg-secondary px-4 font-medium text-surface transition-colors enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
+            disabled={busy || orderId === ''}
+          >
             {busy ? 'Menyimpan' : 'Catat penerimaan'}
           </button>
         </form>
       ) : null}
 
       {loading ? (
-        <p role="status">Memuat daftar penerimaan.</p>
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat daftar penerimaan.
+        </p>
       ) : receipts && receipts.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Belum ada penerimaan</p>
-          <p className={styles.stateBody}>
+        <div className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Belum ada penerimaan</p>
+          <p className="text-[0.9375rem] text-text-secondary">
             Barang baru menambah stok setelah penerimaan dicatat, jadi mencatatnya saat barang
             datang adalah langkah yang paling menentukan saldo.
           </p>
@@ -138,18 +150,18 @@ export default function GoodsReceiptsPage() {
       ) : null}
 
       {!loading && receipts && receipts.length > 0 ? (
-        <ul className={styles.list}>
+        <ul className="flex flex-col gap-2">
           {receipts.map((receipt) => (
-            <li key={receipt.receiptId} className={styles.card}>
-              <span className={styles.cardRow}>
-                <span className={styles.cardName}>{receipt.number}</span>
+            <li key={receipt.receiptId} className={CARD}>
+              <span className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-semibold text-primary tabular">{receipt.number}</span>
                 {receipt.orderNumber ? (
-                  <span className={`${styles.badge} ${styles.badgeNeutral}`}>
+                  <span className={cx(BADGE, 'border-border-strong text-text-secondary')}>
                     {receipt.orderNumber}
                   </span>
                 ) : null}
               </span>
-              <span className={styles.cardMeta}>
+              <span className="text-sm text-text-secondary tabular">
                 {receipt.supplierName} · {receipt.locationName} · {receipt.receivedOn}
               </span>
             </li>
@@ -157,7 +169,7 @@ export default function GoodsReceiptsPage() {
         </ul>
       ) : null}
 
-      <p className={styles.hint}>
+      <p className="text-sm text-text-secondary">
         Retur pembelian dan pembayaran supplier dicatat di halaman masing-masing.
       </p>
     </PurchasingShell>

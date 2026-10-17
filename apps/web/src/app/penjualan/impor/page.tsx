@@ -12,7 +12,6 @@ import {
 } from '../../../lib/api'
 import { SalesShell } from '../penjualan-shell'
 import { formatQty, rupiah } from '../bagian'
-import styles from '../penjualan.module.css'
 
 /**
  * PRD 6.4 dan 6.8: impor penjualan dari CSV dengan validasi per baris.
@@ -119,7 +118,7 @@ export default function SalesImportPage() {
       actions={
         <button
           type="button"
-          className={styles.linkButton}
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 text-base font-medium text-primary transition-colors duration-150 enabled:hover:border-text-secondary disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
           onClick={() => {
             setContent(TEMPLATE)
             setFileName('contoh-penjualan.csv')
@@ -143,27 +142,27 @@ export default function SalesImportPage() {
         </Alert>
       ) : null}
 
-      <form className={styles.form} onSubmit={onPreview}>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="berkas">
+      <form className="flex max-w-[46rem] flex-col gap-4" onSubmit={onPreview}>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="berkas">
             Berkas CSV
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="berkas"
             type="file"
             accept=".csv,text/csv"
             onChange={(event) => void bacaBerkas(event)}
           />
-          {fileName ? <p className={styles.hint}>{fileName}</p> : null}
+          {fileName ? <p className="text-sm text-text-secondary">{fileName}</p> : null}
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="konten-berkas">
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="konten-berkas">
             Isi berkas
           </label>
           <textarea
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 py-2 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="konten-berkas"
             rows={8}
             value={content}
@@ -172,13 +171,17 @@ export default function SalesImportPage() {
               if (event.target.value !== '') kunciBaru()
             }}
           />
-          <p className={styles.hint}>
+          <p className="text-sm text-text-secondary">
             Kolom wajib: tanggal, lokasi, sku, jumlah, harga jual. Tanggal ditulis YYYY-MM-DD.
             Kolom pelanggan dan diskon boleh dikosongkan.
           </p>
         </div>
 
-        <button type="submit" className={styles.submit} disabled={busy || content.trim() === ''}>
+        <button
+          type="submit"
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center self-start rounded-control bg-secondary px-4 text-base font-medium text-surface transition-colors duration-150 enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
+          disabled={busy || content.trim() === ''}
+        >
           {busy ? 'Memeriksa' : 'Periksa berkas'}
         </button>
       </form>
@@ -188,7 +191,11 @@ export default function SalesImportPage() {
           title="Impor tidak dilanjutkan"
           body={error}
           action={
-            <button type="button" className={styles.linkButton} onClick={() => setError(null)}>
+            <button
+              type="button"
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center self-start rounded-control border border-border-strong bg-surface px-4 text-base font-medium text-primary transition-colors duration-150 enabled:hover:border-text-secondary disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
+              onClick={() => setError(null)}
+            >
               Tutup
             </button>
           }
@@ -196,11 +203,11 @@ export default function SalesImportPage() {
       ) : null}
 
       {preview ? (
-        <section aria-labelledby="hasil-periksa">
-          <h2 id="hasil-periksa" className={styles.stateTitle}>
+        <section className="flex flex-col gap-2" aria-labelledby="hasil-periksa">
+          <h2 id="hasil-periksa" className="text-lg font-semibold">
             Hasil pemeriksaan
           </h2>
-          <p className={styles.stateBody}>
+          <p className="text-[0.9375rem] text-text-secondary">
             {preview.validRows} dari {preview.totalRows} baris bisa disimpan.
             {preview.problemRows > 0
               ? ` ${preview.problemRows} baris bermasalah.`
@@ -209,8 +216,8 @@ export default function SalesImportPage() {
 
           {preview.problems.length > 0 ? (
             <>
-              <p className={styles.stateBody}>Baris yang perlu diperbaiki:</p>
-              <ul className={styles.problemList}>
+              <p className="text-[0.9375rem] text-text-secondary">Baris yang perlu diperbaiki:</p>
+              <ul className="list-disc space-y-1 pl-5 text-[0.9375rem]">
                 {preview.problems.map((problem) => (
                   <li key={`${problem.rowNumber}-${problem.message}`}>
                     Baris {problem.rowNumber}: {problem.message}
@@ -222,8 +229,8 @@ export default function SalesImportPage() {
 
           {preview.sample.length > 0 ? (
             <>
-              <p className={styles.stateBody}>Contoh baris yang akan disimpan:</p>
-              <ul className={styles.problemList}>
+              <p className="text-[0.9375rem] text-text-secondary">Contoh baris yang akan disimpan:</p>
+              <ul className="list-disc space-y-1 pl-5 text-[0.9375rem]">
                 {preview.sample.map((baris) => (
                   <li key={baris.rowNumber}>
                     Baris {baris.rowNumber}: {baris.soldOn}, {baris.sku},{' '}
@@ -234,22 +241,26 @@ export default function SalesImportPage() {
             </>
           ) : null}
 
-          <div className={styles.actionsTop}>
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              className={styles.submit}
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control bg-secondary px-4 text-base font-medium text-surface transition-colors duration-150 enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
               disabled={busy || preview.problemRows > 0 || preview.validRows === 0}
               onClick={() => void onCommit()}
             >
               {busy ? 'Menyimpan' : 'Simpan penjualan'}
             </button>
-            <button type="button" className={styles.linkButton} onClick={() => setPreview(null)}>
+            <button
+              type="button"
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 text-base font-medium text-primary transition-colors duration-150 enabled:hover:border-text-secondary disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
+              onClick={() => setPreview(null)}
+            >
               Ubah berkas lagi
             </button>
           </div>
 
           {preview.problemRows > 0 ? (
-            <p className={styles.hint}>
+            <p className="text-sm text-text-secondary">
               Tombol simpan mati karena masih ada baris bermasalah. Perbaiki berkas lalu periksa
               lagi. Impor berjalan penuh atau tidak sama sekali, jadi tidak ada penjualan yang
               tersimpan sebagian.
@@ -258,8 +269,11 @@ export default function SalesImportPage() {
         </section>
       ) : null}
 
-      <p className={styles.hint}>
-        <Link className={styles.linkButton} href="/penjualan">
+      <p className="text-sm text-text-secondary">
+        <Link
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+          href="/penjualan"
+        >
           Kembali ke daftar penjualan
         </Link>
       </p>

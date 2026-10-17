@@ -6,7 +6,6 @@ import { AppShell } from '../../components/shell'
 import { Alert, ErrorState } from '../../components/ui'
 import { apiGet, apiPost, errorMessage, type Category, type CategoriesResponse } from '../../../lib/api'
 import { formatQty } from '../bagian'
-import styles from '../stok.module.css'
 
 /**
  * PRD 5: Stok > Kategori. Kategori tidak pernah dihapus, karena produk yang sudah
@@ -69,7 +68,12 @@ export default function CategoriesPage() {
       {success ? <Alert kind="success">{success}</Alert> : null}
 
       {loading ? (
-        <p role="status">Memuat daftar kategori.</p>
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat daftar kategori.
+        </p>
       ) : categories && categories.length === 0 ? (
         <ErrorState
           title="Belum ada kategori"
@@ -78,11 +82,14 @@ export default function CategoriesPage() {
       ) : null}
 
       {!loading && categories && categories.length > 0 ? (
-        <ul className={styles.list}>
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {categories.map((item) => (
-            <li key={item.id} className={styles.card}>
-              <span className={styles.cardName}>{item.name}</span>
-              <span className={styles.cardMeta}>
+            <li
+              key={item.id}
+              className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+            >
+              <span className="text-[1.0625rem] font-semibold text-primary">{item.name}</span>
+              <span className="text-sm text-text-secondary">
                 {formatQty(item.productCount)} produk memakai kategori ini
               </span>
             </li>
@@ -90,14 +97,14 @@ export default function CategoriesPage() {
         </ul>
       ) : null}
 
-      <form className={styles.form} onSubmit={onSubmit}>
-        <h2 className={styles.cardName}>Tambah kategori</h2>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="nama-kategori">
+      <form className="flex max-w-[34rem] flex-col gap-4" onSubmit={onSubmit}>
+        <h2 className="text-lg font-semibold">Tambah kategori</h2>
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="nama-kategori">
             Nama kategori
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary"
             id="nama-kategori"
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -105,7 +112,11 @@ export default function CategoriesPage() {
             placeholder="Contoh: Minuman"
           />
         </div>
-        <button type="submit" className={styles.submit} disabled={busy || name.trim() === ''}>
+        <button
+          type="submit"
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-transparent bg-secondary px-4 font-medium text-surface transition-colors enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
+          disabled={busy || name.trim() === ''}
+        >
           {busy ? 'Menyimpan' : 'Simpan kategori'}
         </button>
       </form>

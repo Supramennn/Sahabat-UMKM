@@ -5,7 +5,6 @@ import { useApp } from '../../components/app-context'
 import { AppShell } from '../../components/shell'
 import { Alert, ErrorState } from '../../components/ui'
 import { apiPost, errorMessage, type ImportPreview, type ImportResult } from '../../../lib/api'
-import styles from '../stok.module.css'
 
 /**
  * PRD 6.8: impor produk dengan pratinjau. Berkas divalidasi lebih dulu dan
@@ -102,15 +101,15 @@ export default function ImportProductsPage() {
       breadcrumb="Stok"
       title="Impor barang"
     >
-      <p className={styles.cardMeta}>
+      <p className="text-sm text-text-secondary">
         Pemisahan kolom boleh koma atau titik koma, dan angka boleh memakai titik
         sebagai pemisah ribuan. Format lain belum bisa dibaca.
       </p>
 
-      <div className={styles.emptyActions}>
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className={styles.paginationLink}
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 text-base font-medium text-primary transition-colors duration-150 enabled:hover:border-text-secondary disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
           onClick={() => {
             setContent(TEMPLATE)
             setFileName('contoh-impor.csv')
@@ -120,7 +119,7 @@ export default function ImportProductsPage() {
         </button>
         <button
           type="button"
-          className={styles.paginationLink}
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 text-base font-medium text-primary transition-colors duration-150 enabled:hover:border-text-secondary disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
           onClick={() => {
             const blob = new Blob([TEMPLATE], { type: 'text/csv;charset=utf-8' })
             const url = URL.createObjectURL(blob)
@@ -144,12 +143,15 @@ export default function ImportProductsPage() {
       ) : null}
 
       {result && result.skippedRows.length > 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Baris yang dilewati</p>
-          <ul className={styles.list}>
+        <div className="flex flex-col gap-2 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold text-text-primary">Baris yang dilewati</p>
+          <ul className="flex flex-col gap-2">
             {result.skippedRows.map((row) => (
-              <li key={row.rowNumber} className={styles.card}>
-                <span className={styles.cardMeta}>
+              <li
+                key={row.rowNumber}
+                className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+              >
+                <span className="text-sm text-text-secondary">
                   Baris {row.rowNumber}: {row.message}
                 </span>
               </li>
@@ -158,13 +160,13 @@ export default function ImportProductsPage() {
         </div>
       ) : null}
 
-      <form className={styles.form} onSubmit={(event) => event.preventDefault()}>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="berkas">
+      <form className="flex max-w-[34rem] flex-col gap-4" onSubmit={(event) => event.preventDefault()}>
+        <div className="flex flex-col gap-1">
+          <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="berkas">
             Berkas CSV
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="berkas"
             type="file"
             accept=".csv,text/csv"
@@ -173,15 +175,15 @@ export default function ImportProductsPage() {
               if (file) void bacaBerkas(file)
             }}
           />
-          {fileName ? <p className={styles.hint}>Dipilih: {fileName}</p> : null}
+          {fileName ? <p className="text-sm text-text-secondary">Dipilih: {fileName}</p> : null}
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="isi-berkas">
+        <div className="flex flex-col gap-1">
+          <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="isi-berkas">
             Isi berkas
           </label>
           <textarea
-            className={styles.textarea}
+            className="min-h-32 w-full rounded-control border border-border-strong bg-surface px-3 py-2 font-mono text-[0.9375rem] text-text-primary transition-colors duration-150 hover:border-text-secondary"
             id="isi-berkas"
             value={content}
             onChange={(event) => setContent(event.target.value)}
@@ -190,10 +192,10 @@ export default function ImportProductsPage() {
           />
         </div>
 
-        <div className={styles.actions}>
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            className={styles.paginationLink}
+            className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 text-base font-medium text-primary transition-colors duration-150 enabled:hover:border-text-secondary disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
             onClick={() => void periksa()}
             disabled={busy || content === ''}
           >
@@ -201,7 +203,7 @@ export default function ImportProductsPage() {
           </button>
           <button
             type="button"
-            className={styles.submit}
+            className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control bg-secondary px-4 text-base font-medium text-surface transition-colors duration-150 enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
             onClick={() => void simpan()}
             disabled={busy || content === '' || preview === null}
           >
@@ -211,21 +213,24 @@ export default function ImportProductsPage() {
       </form>
 
       {preview ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>
+        <div className="flex flex-col gap-2 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold text-text-primary">
             {preview.validRows} dari {preview.totalRows} baris bisa disimpan
           </p>
 
           {preview.problemRows > 0 ? (
             <>
-              <p className={styles.stateBody}>
+              <p className="text-[0.9375rem] text-text-secondary">
                 Impor berjalan penuh atau tidak sama sekali. Perbaiki {preview.problemRows}{' '}
                 baris di bawah ini, lalu periksa lagi.
               </p>
-              <ul className={styles.list}>
+              <ul className="flex flex-col gap-2">
                 {preview.problems.map((problem) => (
-                  <li key={problem.rowNumber} className={styles.card}>
-                    <span className={styles.cardMeta}>
+                  <li
+                    key={problem.rowNumber}
+                    className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+                  >
+                    <span className="text-sm text-text-secondary">
                       Baris {problem.rowNumber}: {problem.message}
                     </span>
                   </li>
@@ -233,7 +238,7 @@ export default function ImportProductsPage() {
               </ul>
             </>
           ) : (
-            <p className={styles.stateBody}>
+            <p className="text-[0.9375rem] text-text-secondary">
               Semua baris bisa disimpan. Tekan Simpan barang yang valid untuk melanjutkan.
             </p>
           )}

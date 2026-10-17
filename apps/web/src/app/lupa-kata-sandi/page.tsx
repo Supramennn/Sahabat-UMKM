@@ -3,7 +3,6 @@
 import { useState, type FormEvent } from 'react'
 import { Alert, AuthCard, AuthLink, AuthShell, Button, Field } from '../components/ui'
 import { apiPost } from '../../lib/api'
-import styles from './page.module.css'
 
 /**
  * PRD 6.1: permintaan atur ulang kata sandi.
@@ -38,12 +37,12 @@ export default function ForgotPasswordPage() {
     <AuthShell>
       <AuthCard title="Atur ulang kata sandi" subtitle="Kami kirim tautan ke email Anda.">
         {sent ? (
-          <div className={styles.stack}>
+          <div className="flex flex-col gap-4">
             <Alert kind="success">
               Jika email itu terdaftar, kami sudah mengirim tautan atur ulang kata sandi. Periksa
               kotak masuk dan folder spam.
             </Alert>
-            <p className={styles.recoveryNote}>
+            <p className="text-[0.9375rem] text-text-secondary">
               Tautan berlaku 60 menit dan hanya bisa dipakai satu kali.
             </p>
             <AuthLink href="/masuk">Kembali ke halaman masuk</AuthLink>
@@ -51,7 +50,7 @@ export default function ForgotPasswordPage() {
         ) : (
           <>
             {error ? <Alert kind="error">{error}</Alert> : null}
-            <form className={styles.form} onSubmit={onSubmit} noValidate>
+            <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
               <Field
                 id="email"
                 label="Email"

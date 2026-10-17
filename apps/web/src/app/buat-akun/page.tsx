@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 import { Alert, AuthCard, AuthLink, AuthLinkRow, AuthShell, Button, Field } from '../components/ui'
 import { apiPost, errorMessage } from '../../lib/api'
-import styles from './page.module.css'
 
 /**
  * PRD 6.1: daftar dengan email dan kata sandi, lalu verifikasi email.
@@ -47,7 +46,7 @@ export default function RegisterPage() {
       >
         {error ? <Alert kind="error">{error}</Alert> : null}
 
-        <form className={styles.form} onSubmit={onSubmit} noValidate>
+        <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
           <Field
             id="name"
             label="Nama"

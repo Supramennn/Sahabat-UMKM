@@ -13,7 +13,6 @@ import {
 } from '../../../lib/api'
 import { PurchasingShell } from '../pembelian-shell'
 import { formatQty, rupiah } from '../bagian'
-import styles from '../pembelian.module.css'
 
 /**
  * Retur pembelian (PRD 6.3: retur pembelian mengurangi stok dan mengurangi nilai
@@ -28,6 +27,11 @@ import styles from '../pembelian.module.css'
  *    bukan harga yang diketik ulang. Kalau salah ketik, utang supplier berubah
  *    tanpa jejak.
  */
+
+const CARD = 'flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 text-text-primary no-underline shadow-raised'
+const GROUP = 'flex min-w-0 flex-[1_1_12rem] flex-col gap-1'
+const LABEL = 'text-[0.9375rem] font-medium text-text-primary'
+const INPUT = 'min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base transition-colors hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary'
 
 export default function PurchaseReturnsPage() {
   const app = useApp()
@@ -152,17 +156,22 @@ export default function PurchaseReturnsPage() {
       {error ? <Alert kind="error">{error}</Alert> : null}
       {success ? <Alert kind="success">{success}</Alert> : null}
 
-      <p className={styles.cardMeta}>
+      <p className="text-sm text-text-secondary">
         Retur mengurangi stok di lokasi yang dipilih dan mengurangi utang supplier sebesar
         harga di PO. Kalau stok di lokasi tidak cukup, retur ditolak dan saldo tidak berubah.
       </p>
 
       {loading ? (
-        <p role="status">Memuat data retur.</p>
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat data retur.
+        </p>
       ) : orders.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Belum ada barang yang bisa diretur</p>
-          <p className={styles.stateBody}>
+        <div className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Belum ada barang yang bisa diretur</p>
+          <p className="text-[0.9375rem] text-text-secondary">
             Retur hanya bisa dilakukan untuk purchase order yang sudah menerima barang. Catat
             penerimaan dulu, lalu barangnya bisa diretur di halaman ini.
           </p>
@@ -170,13 +179,13 @@ export default function PurchaseReturnsPage() {
       ) : null}
 
       {!loading && orders.length > 0 ? (
-        <form className={styles.form} onSubmit={onSubmit}>
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="po-retur">
+        <form className="flex max-w-[34rem] flex-col gap-4" onSubmit={onSubmit}>
+          <div className={GROUP}>
+            <label className={LABEL} htmlFor="po-retur">
               Purchase order asal
             </label>
             <select
-              className={styles.select}
+              className={INPUT}
               id="po-retur"
               value={orderId}
               onChange={(event) => {
@@ -195,12 +204,12 @@ export default function PurchaseReturnsPage() {
 
           {detail ? (
             <>
-              <div className={styles.filterGroup}>
-                <label className={styles.label} htmlFor="lokasi-retur">
+              <div className={GROUP}>
+                <label className={LABEL} htmlFor="lokasi-retur">
                   Lokasi barang yang diretur
                 </label>
                 <select
-                  className={styles.select}
+                  className={INPUT}
                   id="lokasi-retur"
                   value={locationId}
                   onChange={(event) => setLocationId(event.target.value)}
@@ -211,29 +220,29 @@ export default function PurchaseReturnsPage() {
                     </option>
                   ))}
                 </select>
-                <p className={styles.hint}>
+                <p className="text-sm text-text-secondary">
                   Retur mengurangi stok di lokasi ini. Kalau barang disimpan di tempat lain,
                   pilih lokasi tempat barangnya benar-benar ada.
                 </p>
               </div>
 
-              <h2 className={styles.cardName}>Barang yang bisa diretur</h2>
-              <ul className={styles.list}>
+              <h2 className="text-lg font-semibold">Barang yang bisa diretur</h2>
+              <ul className="flex flex-col gap-2">
                 {detail.items.map((item) => (
-                  <li key={item.id} className={styles.card}>
-                    <span className={styles.cardRow}>
-                      <span className={styles.cardName}>{item.productName}</span>
-                      <span className={styles.cardMeta}>{rupiah(item.unitPrice)}</span>
+                  <li key={item.id} className={CARD}>
+                    <span className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="font-semibold text-primary">{item.productName}</span>
+                      <span className="text-sm text-text-secondary tabular">{rupiah(item.unitPrice)}</span>
                     </span>
-                    <span className={styles.cardMeta}>
+                    <span className="text-sm text-text-secondary tabular">
                       Diterima {formatQty(item.receivedQuantity)} {item.unitCode}
                     </span>
-                    <div className={styles.filterGroup}>
-                      <label className={styles.label} htmlFor={`retur-${item.productId}`}>
+                    <div className={GROUP}>
+                      <label className={LABEL} htmlFor={`retur-${item.productId}`}>
                         Jumlah diretur
                       </label>
                       <input
-                        className={styles.input}
+                        className={INPUT}
                         id={`retur-${item.productId}`}
                         inputMode="decimal"
                         value={jumlah[item.productId] ?? ''}
@@ -248,12 +257,12 @@ export default function PurchaseReturnsPage() {
             </>
           ) : null}
 
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="catatan-retur">
+          <div className={GROUP}>
+            <label className={LABEL} htmlFor="catatan-retur">
               Alasan retur
             </label>
             <input
-              className={styles.input}
+              className={INPUT}
               id="catatan-retur"
               value={note}
               onChange={(event) => setNote(event.target.value)}
@@ -263,7 +272,7 @@ export default function PurchaseReturnsPage() {
 
           <button
             type="submit"
-            className={styles.submit}
+            className="inline-flex min-h-touch cursor-pointer items-center justify-center gap-2 self-start rounded-control border border-transparent bg-secondary px-4 text-base font-medium text-surface transition-colors duration-150 enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
             disabled={busy || barangDiretur.length === 0 || locationId === '' || supplierId === ''}
           >
             {busy ? 'Menyimpan' : 'Catat retur'}

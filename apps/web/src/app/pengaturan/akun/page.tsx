@@ -18,7 +18,6 @@ import {
   type RecoveryCodesResponse,
   type SessionResponse,
 } from '../../../lib/api'
-import styles from './page.module.css'
 
 /**
  * PRD 6.1: pengaturan akun. Halaman ini memuat sesi dari server, jadi punya
@@ -26,8 +25,8 @@ import styles from './page.module.css'
  */
 export default function AccountSettingsPage() {
   return (
-    <div className={styles.settingsShell}>
-      <h1 className={styles.settingsTitle}>Pengaturan akun</h1>
+    <div className="min-h-dvh p-4 sm:p-8">
+      <h1 className="text-2xl font-semibold tracking-tight">Pengaturan akun</h1>
       <SettingsSections />
     </div>
   )
@@ -59,8 +58,8 @@ function SettingsSections() {
 
   if (loading) {
     return (
-      <div className={styles.settingsMain}>
-        <p role="status">Memuat pengaturan akun.</p>
+      <div className="mx-auto flex w-full max-w-[52rem] flex-col gap-6">
+        <p className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised" role="status">Memuat pengaturan akun.</p>
       </div>
     )
   }
@@ -68,7 +67,7 @@ function SettingsSections() {
 
   if (loadError) {
     return (
-      <div className={styles.settingsMain}>
+      <div className="mx-auto flex w-full max-w-[52rem] flex-col gap-6">
         <ErrorState
           title="Pengaturan akun tidak bisa dimuat"
           body={loadError}
@@ -83,10 +82,10 @@ function SettingsSections() {
   }
 
   return (
-    <div className={styles.settingsMain}>
-      <p className={styles.settingsMeta}>{session.user.email}</p>
+    <div className="mx-auto flex w-full max-w-[52rem] flex-col gap-6">
+      <p className="text-text-secondary [overflow-wrap:anywhere]">{session.user.email}</p>
 
-      <div className={styles.sectionList}>
+      <div className="flex flex-col gap-6">
         <ProfileSection name={session.user.name} />
         <PasswordSection />
         <EmailSection currentEmail={session.user.email} />
@@ -99,10 +98,10 @@ function SettingsSections() {
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <section className={styles.section}>
+    <section className="flex flex-col gap-3 border-t border-border-subtle pt-4">
       <div>
-        <h2 className={styles.sectionTitle}>{title}</h2>
-        {description ? <p className={styles.recoveryNote}>{description}</p> : null}
+        <h2 className="text-lg font-semibold">{title}</h2>
+        {description ? <p className="text-[0.9375rem] text-text-secondary">{description}</p> : null}
       </div>
       {children}
     </section>
@@ -137,7 +136,7 @@ function ProfileSection({ name }: { name: string }) {
       {error ? <Alert kind="error">{error}</Alert> : null}
       {success ? <Alert kind="success">{success}</Alert> : null}
       <form
-        className={styles.form}
+        className="flex max-w-[26rem] flex-col gap-3"
         onSubmit={(event: FormEvent) => {
           event.preventDefault()
           void run(async () => {
@@ -166,7 +165,7 @@ function PasswordSection() {
       {error ? <Alert kind="error">{error}</Alert> : null}
       {success ? <Alert kind="success">{success}</Alert> : null}
       <form
-        className={styles.form}
+        className="flex max-w-[26rem] flex-col gap-3"
         onSubmit={(event: FormEvent) => {
           event.preventDefault()
           void run(async () => {
@@ -219,7 +218,7 @@ function EmailSection({ currentEmail }: { currentEmail: string }) {
       {error ? <Alert kind="error">{error}</Alert> : null}
       {success ? <Alert kind="success">{success}</Alert> : null}
       <form
-        className={styles.form}
+        className="flex max-w-[26rem] flex-col gap-3"
         onSubmit={(event: FormEvent) => {
           event.preventDefault()
           void run(async () => {
@@ -279,32 +278,32 @@ function DevicesSection() {
       {message ? <Alert kind="success">{message}</Alert> : null}
 
       {loading ? (
-        <p role="status">Memuat daftar perangkat.</p>
+        <p className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised" role="status">Memuat daftar perangkat.</p>
       ) : devices && devices.length > 0 ? (
-        <ul className={styles.deviceList}>
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {devices.map((device) => (
-            <li key={device.id} className={styles.device}>
+            <li key={device.id} className="flex flex-col gap-1 rounded-control border border-border-subtle p-3">
               {device.current_session ? (
-                <span className={styles.deviceBadge}>Perangkat ini</span>
+                <span className="inline-flex items-center self-start rounded-badge border border-success bg-success-muted px-2 py-0.5 text-xs font-medium text-success-ink">Perangkat ini</span>
               ) : null}
               <span>{device.label}</span>
-              <span className={styles.deviceMeta}>
+              <span className="text-sm text-text-secondary">
                 Aktif sejak {new Date(device.last_seen_at).toLocaleString('id-ID')}
               </span>
             </li>
           ))}
         </ul>
       ) : (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Belum ada perangkat lain</p>
-          <p className={styles.stateBody}>
+        <div className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Belum ada perangkat lain</p>
+          <p className="text-[0.9375rem] text-text-secondary">
             Hanya perangkat yang sedang Anda gunakan yang tercatat. Daftar ini bertambah setiap kali
             Anda masuk dari perangkat lain.
           </p>
         </div>
       )}
 
-      <div className={styles.actions}>
+      <div className="flex flex-col items-start gap-2">
         <Button
           variant="danger"
           disabled={busy}
@@ -374,7 +373,7 @@ function MfaSection() {
   if (loading) {
     return (
       <Section title="Verifikasi dua langkah">
-        <p role="status">Memuat status.</p>
+        <p className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised" role="status">Memuat status.</p>
       </Section>
     )
   }
@@ -385,14 +384,14 @@ function MfaSection() {
         title="Simpan kode pemulihan"
         description="Kode ini hanya ditampilkan sekali. Cetak atau simpan di tempat aman, karena setiap kode hanya berlaku satu kali."
       >
-        <ul className={styles.recoveryGrid}>
+        <ul className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2">
           {recoveryCodes.map((code) => (
-            <li key={code} className={styles.recoveryCode}>
+            <li key={code} className="font-mono rounded-control border border-border-strong bg-background p-3 text-center">
               {code}
             </li>
           ))}
         </ul>
-        <div className={styles.actions}>
+        <div className="flex flex-col items-start gap-2">
           <Button
             onClick={() => {
               setRecoveryCodes(null)
@@ -415,10 +414,10 @@ function MfaSection() {
         description="Buka aplikasi autentikator Anda, lalu masukkan kode 6 angka yang muncul."
       >
         {error ? <Alert kind="error">{error}</Alert> : null}
-        <p className={styles.sectionTitle}>Kode rahasia</p>
-        <code className={styles.secret}>{setup.secret}</code>
+        <p className="text-lg font-semibold">Kode rahasia</p>
+        <code className="block max-w-[26rem] rounded-control border border-border-strong bg-background p-3 text-center font-mono tracking-[0.08em] [overflow-wrap:anywhere]">{setup.secret}</code>
         <form
-          className={styles.form}
+          className="flex max-w-[26rem] flex-col gap-3"
           onSubmit={(event: FormEvent) => {
             event.preventDefault()
             setBusy(true)
@@ -462,7 +461,7 @@ function MfaSection() {
       >
         {error ? <Alert kind="error">{error}</Alert> : null}
         <form
-          className={styles.form}
+          className="flex max-w-[26rem] flex-col gap-3"
           onSubmit={(event: FormEvent) => {
             event.preventDefault()
             setBusy(true)
@@ -509,8 +508,8 @@ function MfaSection() {
             {busy ? 'Memproses' : 'Buat kode baru'}
           </Button>
         </form>
-        <div className={styles.actions}>
-          <button type="button" className={styles.textButton} onClick={() => setProof(false)}>
+        <div className="flex flex-col items-start gap-2">
+          <button type="button" className="min-h-touch self-start cursor-pointer bg-transparent px-2 text-left text-[0.9375rem] text-secondary underline hover:decoration-2" onClick={() => setProof(false)}>
             Batal
           </button>
         </div>
@@ -533,15 +532,15 @@ function MfaSection() {
           Data workspace terkunci sampai verifikasi dua langkah aktif di akun ini.
         </Alert>
       ) : null}
-      <div className={styles.state}>
-        <p className={styles.stateTitle}>{status?.enabled ? 'Aktif' : 'Belum aktif'}</p>
-        <p className={styles.stateBody}>
+      <div className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+        <p className="font-semibold">{status?.enabled ? 'Aktif' : 'Belum aktif'}</p>
+        <p className="text-[0.9375rem] text-text-secondary">
           {status?.enabled
             ? 'Kode dari aplikasi autentikator diminta setiap kali Anda masuk.'
             : 'Belum ada aplikasi autentikator yang terhubung ke akun ini.'}
         </p>
       </div>
-      <div className={styles.actions}>
+      <div className="flex flex-col items-start gap-2">
         <Button
           disabled={busy}
           onClick={() => {

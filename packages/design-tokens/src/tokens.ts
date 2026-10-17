@@ -39,6 +39,28 @@ export const colors = {
   borderSubtle: '#8A94A6',
   /** Cincin fokus. 4,96:1 di background, jauh di atas 3:1. */
   focusRing: '#0B7A6B',
+
+  /*
+   * Warna turunan untuk keadaan komponen. Semuanya sudah dihitung terhadap latar
+   * pemakaiannya, dan dipakai lewat tema Tailwind di apps/web/src/styles/globals.css.
+   */
+
+  /** Keadaan hover tombol utama. 7,47:1 dengan teks putih. */
+  secondaryDeep: '#096053',
+  /** Latar pesan galat dan hover tombol bahaya. */
+  dangerSurface: '#FEF2F2',
+  /** Teks pesan galat di atas dangerSurface. 9,16:1. */
+  dangerInk: '#7F1D1D',
+  /** Latar pesan sukses. */
+  successSurface: '#F0FDF4',
+  /** Teks pesan sukses di atas successSurface. 8,70:1. */
+  successInk: '#14532D',
+  /** Lencana sesi yang sedang dipakai; batas success 4,76:1 di atasnya. */
+  successMuted: '#ECFDF5',
+  /** Keterangan di bilah atas berlatar primary. 10,92:1. */
+  onPrimaryMuted: '#DBE3F0',
+  /** Latar tombol yang belum bisa dipakai; 4,70:1 dengan teks putih. */
+  disabledBackground: '#69748A',
 } as const
 
 export type ColorToken = keyof typeof colors

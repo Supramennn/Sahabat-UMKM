@@ -6,7 +6,6 @@ import { useApp } from '../../../components/app-context'
 import { AppShell } from '../../../components/shell'
 import { Alert } from '../../../components/ui'
 import { apiGet, apiPost, errorMessage, type CategoriesResponse } from '../../../../lib/api'
-import styles from '../../stok.module.css'
 
 /**
  * Formulir produk. Satuan memakai daftar sarat, bukan teks bebas, supaya laporan
@@ -86,13 +85,13 @@ export default function NewProductPage() {
     >
       {error ? <Alert kind="error">{error}</Alert> : null}
 
-      <form className={styles.form} onSubmit={onSubmit} noValidate>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="nama">
+      <form className="flex max-w-[34rem] flex-col gap-4" onSubmit={onSubmit} noValidate>
+        <div className="flex flex-col gap-1">
+          <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="nama">
             Nama barang
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="nama"
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -101,12 +100,12 @@ export default function NewProductPage() {
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="sku">
+        <div className="flex flex-col gap-1">
+          <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="sku">
             SKU
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="sku"
             value={sku}
             onChange={(event) => setSku(event.target.value)}
@@ -115,12 +114,12 @@ export default function NewProductPage() {
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="satuan">
+        <div className="flex flex-col gap-1">
+          <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="satuan">
             Satuan
           </label>
           <select
-            className={styles.select}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="satuan"
             value={unitCode}
             onChange={(event) => setUnitCode(event.target.value)}
@@ -133,12 +132,12 @@ export default function NewProductPage() {
           </select>
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="kategori">
+        <div className="flex flex-col gap-1">
+          <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="kategori">
             Kategori (opsional)
           </label>
           <select
-            className={styles.select}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="kategori"
             value={categoryId}
             onChange={(event) => setCategoryId(event.target.value)}
@@ -152,12 +151,12 @@ export default function NewProductPage() {
           </select>
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="harga-jual">
+        <div className="flex flex-col gap-1">
+          <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="harga-jual">
             Harga jual (opsional)
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="harga-jual"
             inputMode="numeric"
             value={sellingPrice}
@@ -165,24 +164,28 @@ export default function NewProductPage() {
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="stok-minimum">
+        <div className="flex flex-col gap-1">
+          <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="stok-minimum">
             Batas minimum stok (opsional)
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="stok-minimum"
             inputMode="decimal"
             value={minStock}
             onChange={(event) => setMinStock(event.target.value)}
           />
-          <p className={styles.hint}>
+          <p className="text-sm text-text-secondary">
             Batas minimum dipakai untuk peringatan stok rendah dan untuk membuat daftar barang
             yang perlu dibeli.
           </p>
         </div>
 
-        <button type="submit" className={styles.submit} disabled={busy || sku === '' || name === ''}>
+        <button
+          type="submit"
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control bg-secondary px-4 text-base font-medium text-surface transition-colors duration-150 enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
+          disabled={busy || sku === '' || name === ''}
+        >
           {busy ? 'Menyimpan' : 'Simpan barang'}
         </button>
       </form>

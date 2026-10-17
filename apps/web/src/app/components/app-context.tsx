@@ -4,7 +4,6 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { roleLabels, type Role } from '@sahabat/shared'
 import { apiGet, errorMessage, type SessionResponse, type WorkspaceResponse } from '../../lib/api'
 import { AuthLink, ErrorState } from './ui'
-import styles from './shell.module.css'
 
 /**
  * Konteks aplikasi: sesi, workspace aktif, dan peran. Halaman di dalam modul stok
@@ -94,8 +93,8 @@ export function AppProvider({ children, title = 'Stok' }: { children: ReactNode;
   // ini tentang apa. Judulnya milik halaman pemanggil, bukan selalu "Stok".
   if (loading) {
     return (
-      <div className={styles.loading}>
-        <h1 className={styles.loadingTitle}>{title}</h1>
+      <div className="flex flex-col gap-3 px-4 py-8">
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <p role="status">Memuat data workspace.</p>
       </div>
     )
@@ -103,8 +102,8 @@ export function AppProvider({ children, title = 'Stok' }: { children: ReactNode;
 
   if (error || !context) {
     return (
-      <div className={styles.loading}>
-        <h1 className={styles.loadingTitle}>{title}</h1>
+      <div className="flex flex-col gap-3 px-4 py-8">
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <ErrorState
           title="Halaman ini belum bisa dibuka"
           body={error ?? 'Workspace tidak ditemukan.'}

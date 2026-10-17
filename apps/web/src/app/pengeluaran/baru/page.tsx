@@ -7,7 +7,6 @@ import { can } from '@sahabat/shared'
 import { Alert, ErrorState } from '../../components/ui'
 import { useApp } from '../../components/app-context'
 import { ExpensesShell } from '../pengeluaran-shell'
-import styles from '../pengeluaran.module.css'
 import { looksLikeStockPurchase, stockPurchaseWarning } from '@sahabat/shared'
 
 export default function NewExpensePage() {
@@ -81,48 +80,48 @@ export default function NewExpensePage() {
   return (
     <ExpensesShell activeHref="/pengeluaran" title="Catat pengeluaran">
       {error ? <Alert kind="error">{error}</Alert> : null}
-      {warning ? <div className={styles.warning} role="note"><p>{warning}</p><label><input type="checkbox" checked={warningAccepted} onChange={(event) => setWarningAccepted(event.target.checked)} /> Ini biaya lain, bukan pembelian barang dagangan.</label></div> : null}
-      <form className={styles.form} onSubmit={(event) => void submit(event)}>
-        <div className={styles.formRow}>
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="expense-date">Tanggal</label>
-            <input className={styles.input} id="expense-date" type="date" value={spentOn} onChange={(event) => setSpentOn(event.target.value)} />
+      {warning ? <div className="rounded-control border border-warning p-3 text-text-primary" role="note"><p>{warning}</p><label className="inline-flex min-h-touch cursor-pointer items-center gap-2"><input type="checkbox" checked={warningAccepted} onChange={(event) => setWarningAccepted(event.target.checked)} /> Ini biaya lain, bukan pembelian barang dagangan.</label></div> : null}
+      <form className="flex max-w-[42rem] flex-col gap-3 sm:gap-4" onSubmit={(event) => void submit(event)}>
+        <div className="sm:grid sm:grid-cols-2 sm:gap-3">
+          <div className="flex min-w-[min(100%,12rem)] grow basis-48 flex-col gap-1">
+            <label className="text-sm text-text-secondary" htmlFor="expense-date">Tanggal</label>
+            <input className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary" id="expense-date" type="date" value={spentOn} onChange={(event) => setSpentOn(event.target.value)} />
           </div>
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="expense-category">Kategori yang sudah ada</label>
-            <select className={styles.select} id="expense-category" value={categoryId} onChange={(event) => { setCategoryId(event.target.value); setCategoryName(''); setWarningAccepted(false) }}>
+          <div className="flex min-w-[min(100%,12rem)] grow basis-48 flex-col gap-1">
+            <label className="text-sm text-text-secondary" htmlFor="expense-category">Kategori yang sudah ada</label>
+            <select className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary" id="expense-category" value={categoryId} onChange={(event) => { setCategoryId(event.target.value); setCategoryName(''); setWarningAccepted(false) }}>
               <option value="">Ketik kategori baru atau lanjut tanpa kategori</option>
               {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
             </select>
           </div>
         </div>
-        {!categoryId ? <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="expense-category-name">Nama kategori (opsional)</label>
-          <input className={styles.input} id="expense-category-name" value={categoryName} onChange={(event) => { setCategoryName(event.target.value); setWarningAccepted(false) }} maxLength={120} />
+        {!categoryId ? <div className="flex min-w-[min(100%,12rem)] grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="expense-category-name">Nama kategori (opsional)</label>
+          <input className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary" id="expense-category-name" value={categoryName} onChange={(event) => { setCategoryName(event.target.value); setWarningAccepted(false) }} maxLength={120} />
         </div> : null}
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="expense-description">Deskripsi</label>
-          <input className={styles.input} id="expense-description" value={description} onChange={(event) => setDescription(event.target.value)} minLength={2} maxLength={300} required />
+        <div className="flex min-w-[min(100%,12rem)] grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="expense-description">Deskripsi</label>
+          <input className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary" id="expense-description" value={description} onChange={(event) => setDescription(event.target.value)} minLength={2} maxLength={300} required />
         </div>
-        <div className={styles.formRow}>
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="expense-amount">Nominal (Rupiah)</label>
-            <input className={`${styles.input} ${styles.amountInput}`} id="expense-amount" type="text" inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="150000" required />
+        <div className="sm:grid sm:grid-cols-2 sm:gap-3">
+          <div className="flex min-w-[min(100%,12rem)] grow basis-48 flex-col gap-1">
+            <label className="text-sm text-text-secondary" htmlFor="expense-amount">Nominal (Rupiah)</label>
+            <input className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-left text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary" id="expense-amount" type="text" inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="150000" required />
           </div>
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="expense-reference">Referensi (opsional)</label>
-            <input className={styles.input} id="expense-reference" value={reference} onChange={(event) => setReference(event.target.value)} maxLength={120} />
+          <div className="flex min-w-[min(100%,12rem)] grow basis-48 flex-col gap-1">
+            <label className="text-sm text-text-secondary" htmlFor="expense-reference">Referensi (opsional)</label>
+            <input className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary" id="expense-reference" value={reference} onChange={(event) => setReference(event.target.value)} maxLength={120} />
           </div>
         </div>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="expense-order">Tautkan ke purchase order (opsional)</label>
-          <select className={styles.select} id="expense-order" value={purchaseOrderId} onChange={(event) => setPurchaseOrderId(event.target.value)}>
+        <div className="flex min-w-[min(100%,12rem)] grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="expense-order">Tautkan ke purchase order (opsional)</label>
+          <select className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary" id="expense-order" value={purchaseOrderId} onChange={(event) => setPurchaseOrderId(event.target.value)}>
             <option value="">Tidak ditautkan</option>
             {orders.map((order) => <option key={order.id} value={order.id}>{order.number} · {order.supplierName}</option>)}
           </select>
-          <p className={styles.hint}>Satu purchase order hanya dapat ditautkan ke satu pengeluaran.</p>
+          <p className="text-sm text-text-secondary">Satu purchase order hanya dapat ditautkan ke satu pengeluaran.</p>
         </div>
-        <button className={styles.button} type="submit" disabled={busy || Boolean(warning && !warningAccepted)}>{busy ? 'Menyimpan' : 'Simpan pengeluaran'}</button>
+        <button className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-transparent bg-secondary px-4 font-medium text-surface transition-colors enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface" type="submit" disabled={busy || Boolean(warning && !warningAccepted)}>{busy ? 'Menyimpan' : 'Simpan pengeluaran'}</button>
       </form>
     </ExpensesShell>
   )

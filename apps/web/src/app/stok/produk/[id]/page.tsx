@@ -6,7 +6,6 @@ import { AppShell } from '../../../components/shell'
 import { Alert, ErrorState } from '../../../components/ui'
 import { API_BASE, apiGet, apiPost, errorMessage, type ProductSummary } from '../../../../lib/api'
 import { formatQty } from '../../bagian'
-import styles from '../../stok.module.css'
 
 /**
  * Detail satu barang: saldo per lokasi, tanggal kedaluwarsa paling awal dari
@@ -130,28 +129,31 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
       {detail ? (
         <>
-          <p className={styles.cardMeta}>
+          <p className="text-sm text-text-secondary">
             {detail.product.sku}
             {detail.product.categoryName ? ` · ${detail.product.categoryName}` : ''} · Status{' '}
             {detail.product.status}
           </p>
 
-          <h2 className={styles.cardName}>Saldo per lokasi</h2>
+          <h2 className="text-lg font-semibold text-primary">Saldo per lokasi</h2>
           {detail.balances.length === 0 ? (
-            <p className={styles.cardMeta}>
+            <p className="text-sm text-text-secondary">
               Barang ini belum punya saldo. Catat stok masuk untuk menambahkannya.
             </p>
           ) : (
-            <ul className={styles.list}>
+            <ul className="flex flex-col gap-2">
               {detail.balances.map((balance) => (
-                <li key={balance.locationId} className={styles.card}>
-                  <span className={styles.cardRow}>
-                    <span className={styles.cardName}>{balance.locationName}</span>
-                    <span className={styles.quantity}>
+                <li
+                  key={balance.locationId}
+                  className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+                >
+                  <span className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-semibold text-primary">{balance.locationName}</span>
+                    <span className="tabular font-bold">
                       {formatQty(balance.quantity)} {detail.product.unitCode}
                     </span>
                   </span>
-                  <span className={styles.cardMeta}>
+                  <span className="text-sm text-text-secondary">
                     {balance.earliestExpiry
                       ? `Kedaluwarsa pertama ${balance.earliestExpiry}`
                       : 'Tanpa tanggal kedaluwarsa'}
@@ -161,28 +163,28 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             </ul>
           )}
 
-          <h2 className={styles.cardName}>Foto barang</h2>
+          <h2 className="text-lg font-semibold text-primary">Foto barang</h2>
           {detail.product.photoKey ? (
             // Foto dilayani API, bukan direktori statis, karena pembacaannya harus
             // memeriksa keanggotaan workspace. Lebar dan tingginya ditetapkan supaya
             // tata letak tidak bergeser saat gambar dimuat.
             <img
-              className={styles.photo}
+              className="h-auto max-w-xs rounded-surface border border-border-subtle"
               src={`${API_BASE}/api/workspaces/${app.workspaceId}/media/${encodeURIComponent(detail.product.photoKey)}`}
               alt={`Foto ${detail.product.name}`}
               width={320}
               height={240}
             />
           ) : (
-            <p className={styles.cardMeta}>Belum ada foto untuk barang ini.</p>
+            <p className="text-sm text-text-secondary">Belum ada foto untuk barang ini.</p>
           )}
 
-          <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="foto">
+          <div className="flex flex-col gap-1">
+            <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor="foto">
               {detail.product.photoKey ? 'Ganti foto' : 'Unggah foto'}
             </label>
             <input
-              className={styles.input}
+              className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
               id="foto"
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -192,7 +194,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 if (file) void unggahFoto(file)
               }}
             />
-            <p className={styles.hint}>JPEG, PNG, atau WebP, maksimal 2 MB.</p>
+            <p className="text-sm text-text-secondary">JPEG, PNG, atau WebP, maksimal 2 MB.</p>
           </div>
 
           {photoMessage ? (
@@ -201,11 +203,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             </Alert>
           ) : null}
 
-          <h2 className={styles.cardName}>Harga</h2>
-          <ul className={styles.list}>
-            <li className={styles.card}>
-              <span className={styles.cardMeta}>Harga pokok rata-rata bergerak</span>
-              <span className={styles.quantity}>
+          <h2 className="text-lg font-semibold text-primary">Harga</h2>
+          <ul className="flex flex-col gap-2">
+            <li className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+              <span className="text-sm text-text-secondary">Harga pokok rata-rata bergerak</span>
+              <span className="tabular font-bold">
                 {formatQty(detail.product.averageCost)} per {detail.product.unitCode}
               </span>
             </li>

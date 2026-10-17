@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 import { Alert, AuthCard, AuthLink, AuthLinkRow, AuthShell, Button, Field } from '../components/ui'
 import { apiPost, errorMessage, type LoginResponse, type MessageResponse } from '../../lib/api'
-import styles from './page.module.css'
 
 /**
  * PRD 6.1: masuk. Kesalahan dan keadaan memuat ditangani di sini, dan tidak ada
@@ -104,7 +103,7 @@ export default function LoginForm({
         {error ? <Alert kind="error">{error}</Alert> : null}
         {resendMessage ? <Alert kind="info">{resendMessage}</Alert> : null}
 
-        <form className={styles.form} onSubmit={onSubmit} noValidate>
+        <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
           <Field
             id="email"
             label="Email"
@@ -132,10 +131,10 @@ export default function LoginForm({
         </form>
 
         {needsVerification ? (
-          <p className={styles.actions}>
+          <p className="flex flex-col gap-2 min-[30rem]:flex-row min-[30rem]:flex-wrap">
             <button
               type="button"
-              className={styles.textButton}
+              className="min-h-touch self-start cursor-pointer bg-transparent px-2 text-left text-[0.9375rem] text-secondary underline enabled:hover:decoration-2 disabled:cursor-not-allowed disabled:text-text-secondary"
               onClick={resendVerification}
               disabled={resending || email.trim() === ''}
             >

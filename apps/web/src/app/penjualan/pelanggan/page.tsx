@@ -7,7 +7,6 @@ import { Alert, ErrorState } from '../../components/ui'
 import { apiGet, apiPost, errorMessage, type Customer, type CustomersResponse } from '../../../lib/api'
 import { SalesShell } from '../penjualan-shell'
 import { rupiah } from '../bagian'
-import styles from '../penjualan.module.css'
 
 /**
  * PRD 5: Penjualan > Pelanggan. Pelanggan bersifat opsional pada penjualan, jadi
@@ -81,7 +80,10 @@ export default function CustomersPage() {
       activeHref="/penjualan/pelanggan"
       title="Pelanggan"
       actions={
-        <Link className={styles.submit} href="/penjualan/baru">
+        <Link
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control bg-secondary px-4 font-medium text-surface transition-colors hover:bg-secondary-deep"
+          href="/penjualan/baru"
+        >
           Catat penjualan
         </Link>
       }
@@ -89,13 +91,13 @@ export default function CustomersPage() {
       {error ? <Alert kind="error">{error}</Alert> : null}
       {success ? <Alert kind="success">{success}</Alert> : null}
 
-      <form className={styles.form} onSubmit={onSubmit}>
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="pelanggan-nama">
+      <form className="flex max-w-[46rem] flex-col gap-4" onSubmit={onSubmit}>
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="pelanggan-nama">
             Nama
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="pelanggan-nama"
             type="text"
             value={name}
@@ -105,18 +107,18 @@ export default function CustomersPage() {
             aria-describedby={nameError ? 'pelanggan-nama-error' : undefined}
           />
           {nameError ? (
-            <p className={styles.hint} id="pelanggan-nama-error" role="alert">
+            <p className="text-sm text-danger" id="pelanggan-nama-error" role="alert">
               {nameError}
             </p>
           ) : null}
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="pelanggan-telepon">
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="pelanggan-telepon">
             Telepon
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="pelanggan-telepon"
             type="tel"
             inputMode="tel"
@@ -125,12 +127,12 @@ export default function CustomersPage() {
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.label} htmlFor="pelanggan-catatan">
+        <div className="flex min-w-0 grow basis-48 flex-col gap-1">
+          <label className="text-sm text-text-secondary" htmlFor="pelanggan-catatan">
             Catatan
           </label>
           <input
-            className={styles.input}
+            className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
             id="pelanggan-catatan"
             type="text"
             value={note}
@@ -138,19 +140,34 @@ export default function CustomersPage() {
           />
         </div>
 
-        <button type="submit" className={styles.submit} disabled={busy}>
+        <button
+          type="submit"
+          className="inline-flex min-h-touch cursor-pointer items-center justify-center self-start rounded-control bg-secondary px-4 text-base font-medium text-surface transition-colors duration-150 enabled:hover:bg-secondary-deep disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
+          disabled={busy}
+        >
           {busy ? 'Menyimpan' : 'Tambah pelanggan'}
         </button>
       </form>
 
-      {loading ? <p role="status">Memuat daftar pelanggan.</p> : null}
+      {loading ? (
+        <p
+          className="rounded-surface border border-border-subtle bg-surface p-4 text-[0.9375rem] text-text-secondary shadow-raised"
+          role="status"
+        >
+          Memuat daftar pelanggan.
+        </p>
+      ) : null}
 
       {error && customers ? (
         <ErrorState
           title="Daftar pelanggan gagal dimuat"
           body={error}
           action={
-            <button type="button" className={styles.linkButton} onClick={() => void muat()}>
+            <button
+              type="button"
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center self-start rounded-control border border-border-strong bg-surface px-4 text-base font-medium text-primary transition-colors duration-150 enabled:hover:border-text-secondary disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled-background disabled:text-surface"
+              onClick={() => void muat()}
+            >
               Coba lagi
             </button>
           }
@@ -158,14 +175,17 @@ export default function CustomersPage() {
       ) : null}
 
       {!loading && customers && customers.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>Belum ada pelanggan</p>
-          <p className={styles.stateBody}>
+        <div className="rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <p className="font-semibold">Belum ada pelanggan</p>
+          <p className="mt-1 text-[0.9375rem] text-text-secondary">
             Pelanggan opsional. Penjualan tetap bisa dicatat sebagai penjualan umum, dan
             menambahkan nama membuat laporan per pelanggan bisa dibaca nanti.
           </p>
-          <div className={styles.emptyActions}>
-            <Link className={styles.linkButton} href="/penjualan/baru">
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              className="inline-flex min-h-touch cursor-pointer items-center justify-center rounded-control border border-border-strong bg-surface px-4 font-medium text-primary transition-colors hover:border-text-secondary"
+              href="/penjualan/baru"
+            >
               Catat penjualan umum
             </Link>
           </div>
@@ -174,44 +194,51 @@ export default function CustomersPage() {
 
       {!loading && customers && customers.length > 0 ? (
         <>
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <caption className={styles.visuallyHidden}>
+          <div className="hidden overflow-x-auto rounded-surface border border-border-subtle bg-surface shadow-raised desktop:block">
+            <table className="w-full text-sm">
+              <caption className="visually-hidden">
                 Daftar pelanggan beserta jumlah dan total pembeliannya
               </caption>
-              <thead>
+              <thead className="bg-background text-text-secondary">
                 <tr>
-                  <th scope="col">Nama</th>
-                  <th scope="col">Telepon</th>
-                  <th scope="col" className={styles.numeric}>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    Nama
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left font-semibold">
+                    Telepon
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-right font-semibold tabular">
                     Pembelian
                   </th>
-                  <th scope="col" className={styles.numeric}>
+                  <th scope="col" className="px-3 py-2 text-right font-semibold tabular">
                     Total
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {customers.map((customer) => (
-                  <tr key={customer.id}>
-                    <td>{customer.name}</td>
-                    <td>{customer.phone ?? '-'}</td>
-                    <td className={styles.numeric}>{customer.saleCount}</td>
-                    <td className={styles.numeric}>{rupiah(customer.saleTotal)}</td>
+                  <tr key={customer.id} className="border-b border-border-subtle last:border-b-0">
+                    <td className="px-3 py-2">{customer.name}</td>
+                    <td className="px-3 py-2">{customer.phone ?? '-'}</td>
+                    <td className="px-3 py-2 text-right tabular">{customer.saleCount}</td>
+                    <td className="px-3 py-2 text-right tabular">{rupiah(customer.saleTotal)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <ul className={styles.list}>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0 desktop:hidden">
             {customers.map((customer) => (
-              <li key={customer.id} className={styles.card}>
-                <span className={styles.cardRow}>
-                  <span className={styles.cardName}>{customer.name}</span>
-                  <span className={styles.cardTotal}>{rupiah(customer.saleTotal)}</span>
+              <li
+                key={customer.id}
+                className="flex flex-col gap-1 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised"
+              >
+                <span className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-[1.0625rem] font-semibold text-primary">{customer.name}</span>
+                  <span className="font-semibold tabular">{rupiah(customer.saleTotal)}</span>
                 </span>
-                <span className={styles.cardMeta}>
+                <span className="text-sm text-text-secondary">
                   {customer.phone ?? 'Tanpa telepon'} · {customer.saleCount} pembelian
                 </span>
               </li>
