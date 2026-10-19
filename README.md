@@ -63,6 +63,13 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"  
 Perintah API dan migrasi membaca `.env` dari akar repositori, jadi nilainya tidak
 perlu di-export manual. Berkas `.env` tidak pernah ikut ke git.
 
+Penagihan langganan (PRD 6.10) mati secara bawaan. Ia hanya menyala kalau
+`MIDTRANS_SERVER_KEY`, `BILLING_SELLER_NAME`, `BILLING_SELLER_ADDRESS`,
+`BILLING_SELLER_EMAIL`, dan `BILLING_REFUND_POLICY_URL` diisi; tanpa itu halaman paket
+menjelaskan bahwa pembayaran belum diaktifkan dan uji coba 14 hari tetap bisa dipakai.
+Untuk pemeriksaan manual tanpa kunci Midtrans, `npx tsx scripts/dev-api.mts` sudah
+menyalakan gateway simulasi (`PAYMENT_SIMULATION=1`, diabaikan di produksi).
+
 ### 3. Nyalakan PostgreSQL dan MinIO
 
 ```bash
@@ -213,6 +220,8 @@ docs/
 | Pengeluaran | daftar, pencatatan, detail, kategori, lampiran foto/PDF | 6.5 |
 | Laporan dan ekspor | laporan usaha, pengaturan impor dan ekspor | 6.6, 6.8 |
 | Dashboard | ringkasan usaha, menu lainnya di ponsel | 6.7, 10 |
+| Notifikasi | daftar notifikasi, pengaturan notifikasi | 6.9 |
+| Langganan dan tagihan | paket dan langganan, riwayat pembayaran, faktur PDF | 6.10 |
 
 ## Paket dan langganan
 
@@ -220,12 +229,13 @@ Workspace dimulai pada paket Gratis. Katalog paket, batas produk aktif, anggota,
 lokasi, fitur penjualan, retur/utang, opname, dan uji coba 14 hari diterapkan di API;
 permintaan bersamaan untuk menambah pemakaian dibatasi dengan kunci workspace.
 Workspace baru mendapat baris langganan melalui migrasi database. Harga di katalog
-masih usulan PRD, pembayaran dan penagihan belum aktif, dan uji coba tidak memerlukan
-kartu. Setelah masa uji coba berakhir, workspace kembali ke Gratis tanpa menghapus
-datanya. Fitur yang tidak termasuk paket ditolak pada server, termasuk untuk sesi
-opname yang sudah terbuka. Penagihan produksi tetap ditahan sampai harga final,
-penjual dan rekening, kewajiban pajak, kebijakan refund, serta dokumen hukum pada
-`docs/KEPUTUSAN-TEKNIS.md` dikonfirmasi.
+masih usulan PRD, dan uji coba tidak memerlukan kartu. Setelah masa uji coba berakhir,
+workspace kembali ke Gratis tanpa menghapus datanya; sejak Fase 11 aturan yang sama
+berlaku untuk masa berbayar yang tidak diperpanjang. Fitur yang tidak termasuk paket
+ditolak pada server, termasuk untuk sesi opname yang sudah terbuka. Penagihan hanya
+menyala kalau kunci Midtrans, identitas penjual, dan tautan kebijakan refund diisi
+lewat environment (K-21); selama itu kosong, tombol bayar tidak muncul dan batasan
+usaha pada `docs/KEPUTUSAN-TEKNIS.md` masih berlaku.
 
 Fase 6 selesai: migrasi dan katalog paket, aktivasi uji coba, downgrade otomatis,
 pemeriksaan batas dan fitur di server, serta pengaturan paket. Verifikasi Fase 6
@@ -340,6 +350,37 @@ tandai semua dibaca, dan pengaturan tersimpan setelah muat ulang). Yang belum:
 email masih dikirim ke penyedia log, bukan penyedia sungguhan (PRD 15), dan antrean
 email masih dikuras penjadwal di dalam proses API karena pg-boss (K-02) belum
 dipasang.
+
+Fase 11 menambahkan penagihan dan faktur PDF sesuai PRD 6.10. Pemilik memilih paket dan
+masa pembayaran (bulanan, atau tahunan dengan harga sepuluh bulan) di
+`/pengaturan/paket`; server menulis baris tagihan bernomor `INV-<tahun>-<urut>` lebih
+dulu, baru meminta tautan pembayaran Midtrans, sehingga tautan yang dipegang pengguna
+selalu punya baris yang bisa ditelusuri. Pelunasan hanya dipercaya dari notifikasi
+Midtrans yang ditandatangani SHA-512 dengan kunci server; nominalnya diperiksa ulang
+terhadap tagihan, tagihan yang sudah lunas tidak diperpanjang dua kali, dan tagihan yang
+lewat batas 24 jam ditutup tugas harian. Masa berbayar menumpuk dari ujung masa berjalan,
+jadi memperpanjang lebih awal atau berganti paket di tengah masa tidak menghanguskan sisa
+waktunya, dan setelah masa itu lewat tanpa pembayaran workspace kembali ke Gratis tanpa
+kehilangan data. Riwayat pembayaran dan faktur PDF, memuat identitas penjual dan pembeli,
+nomor, paket, masa, metode, tanggal pelunasan, dan nominal yang ditagih, hanya tersedia
+untuk Owner; fakturnya tidak memuat baris pajak karena perlakuan pajak langganan masih
+menunggu keputusan. Pengingat perpanjangan dikirim ke Owner tujuh hari dan satu hari
+sebelum jatuh tempo, sekali untuk tiap tenggat.
+
+Pembayaran tetap mati sampai `MIDTRANS_SERVER_KEY`, nama, alamat, dan email penjual,
+serta `BILLING_REFUND_POLICY_URL` diisi lewat environment (K-21). Selama itu kosong,
+tombol bayar tidak muncul, uji coba 14 hari tetap tersedia, dan halaman paket menjelaskan
+keadaannya. Untuk pemeriksaan manual tanpa kunci Midtrans, `npx tsx scripts/dev-api.mts`
+menyalakan gateway simulasi; nilainya diabaikan di produksi.
+
+Verifikasi Fase 11 lulus: `npm run verify` (447 tes lulus, 8 dilewati), `npm run
+test:contrast` (35 pasangan lolos), `npm run test:postgres:local` (9 lulus, 1 dilewati),
+build produksi, `npm run test:e2e` (182 lulus di ponsel dan desktop), dan uji asap
+peramban sungguhan untuk alur penagihan: checkout, notifikasi pembayaran bertanda tangan,
+status menjadi lunas, dan faktur PDF terunduh. Yang belum: pembayaran sungguhan Midtrans
+belum pernah dijalankan karena kunci sandbox dan produksi belum tersedia, jadi butir uji
+pembayaran pada PRD 17 masih tertahan bersama butir lain di bagian 8
+`docs/KEPUTUSAN-TEKNIS.md`.
 
 Penjualan memakai `recordMovement` yang sama dengan stok keluar, jadi penjualan yang
 menyentuh barang terakhir menghasilkan satu transaksi berhasil dan satu penolakan,

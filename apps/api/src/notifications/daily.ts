@@ -1,6 +1,7 @@
 import type { Database } from '@sahabat/db'
-import { fileDateStamp, formatRupiah, planCatalog } from '@sahabat/shared'
+import { fileDateStamp, formatRupiah, planCatalog, type PlanCode } from '@sahabat/shared'
 import type { EmailMessage } from '../auth/routes.ts'
+import { expirePendingPayments } from '../plans/billing-service.ts'
 import { readEffectivePlan } from '../plans/service.ts'
 import { createReport } from '../reports/service.ts'
 import { recipientsFor } from './hooks.ts'
@@ -8,7 +9,8 @@ import { createNotifications, flushNotificationEmails, type NotificationSenderDe
 
 /**
  * Tugas harian notifikasi PRD 6.9: utang supplier yang sudah lewat jatuh tempo
- * dan ringkasan harian opsional.
+ * dan ringkasan harian opsional, ditambah pengingat perpanjangan langganan
+ * (PRD 6.10) dan penutupan tagihan yang lewat waktu.
  *
  * Keduanya dijalankan dari penjadwal dalam proses (`startNotificationScheduler`)
  * karena server ini tidak memakai worker terpisah. KEPUTUSAN-TEKNIS mencatat
@@ -35,7 +37,9 @@ export interface DailyNotificationDeps {
 
 export interface DailyNotificationResult {
   debtWorkspaces: number
+  renewalReminders: number
   digestsSent: number
+  expiredPayments: number
 }
 
 function zonedClock(date: Date, timeZone: string): { date: string; hour: number } {
@@ -217,13 +221,162 @@ async function sendDailyDigests(deps: DailyNotificationDeps, now: Date): Promise
   return sent
 }
 
+interface RenewalRow {
+  workspace_id: number
+  workspace_name: string
+  timezone: string
+  plan_code: PlanCode
+  status: string
+  trial_ends_at: Date | string | null
+  current_period_end: Date | string | null
+  renewal_reminder_7d_at: Date | string | null
+  renewal_reminder_1d_at: Date | string | null
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function tanggalPengingat(value: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat('id-ID', { dateStyle: 'long', timeZone }).format(value)
+}
+
+/**
+ * Pengingat perpanjangan (PRD 6.10): email tujuh hari dan satu hari sebelum
+ * jatuh tempo, untuk masa uji coba maupun masa berlangganan berbayar.
+ *
+ * Suratnya dikirim ke pemegang izin `subscription.manage`, yaitu Owner, sama
+ * seperti aturan akses langganan di PRD 8. Pengingat ini tidak mengikuti
+ * preferensi notifikasi seperti PRD 6.9: tagihan adalah urusan langganan yang
+ * berlaku untuk semua pemilik, bukan pemberitahuan yang boleh dimatikan.
+ *
+ * Cap waktu disimpan per masa di `workspace_subscriptions`, jadi menjalankan
+ * tugas dua kali tidak mengirim surat kedua, dan masa baru mengosongkannya lagi.
+ */
+async function notifyRenewals(deps: DailyNotificationDeps, now: Date): Promise<number> {
+  const rows = await deps.db.query<RenewalRow>(
+    `select s.workspace_id, w.name as workspace_name, w.timezone, s.plan_code, s.status,
+            s.trial_ends_at, s.current_period_end, s.renewal_reminder_7d_at, s.renewal_reminder_1d_at
+       from workspace_subscriptions s
+       join workspaces w on w.id = s.workspace_id
+      where w.deleted_at is null
+        and s.plan_code <> 'gratis'
+        and (s.trial_ends_at is not null or s.current_period_end is not null)`,
+  )
+
+  let sent = 0
+  for (const row of rows.rows) {
+    const dueValue = row.current_period_end ?? row.trial_ends_at
+    if (!dueValue) {
+      continue
+    }
+    const due = new Date(dueValue)
+    const sisaHari = due.getTime() - now.getTime()
+    // Jatuh tempo yang sudah lewat ditangani `effectivePlan`, bukan surat.
+    if (sisaHari <= 0) {
+      continue
+    }
+
+    // Kalau tugas sempat tidak berjalan, hanya pengingat terdekat yang dikirim:
+    // dua surat untuk tenggat yang sama justru membingungkan.
+    const hari = sisaHari <= DAY_MS ? 1 : sisaHari <= 7 * DAY_MS ? 7 : 0
+    if (hari === 0) {
+      continue
+    }
+
+    const workspaceId = Number(row.workspace_id)
+    const recipients = await recipientsFor(deps.db, workspaceId, 'subscription.manage')
+    if (recipients.length === 0) {
+      continue
+    }
+
+    // Klaim cap waktunya lebih dulu supaya dua penjadwal tidak mengirim surat
+    // yang sama. Pengingat sehari sebelum jatuh tempo sekaligus menandai
+    // pengingat tujuh hari, karena tenggatnya sudah lewat.
+    const claimed = hari === 1
+      ? await deps.db.query(
+          `update workspace_subscriptions
+              set renewal_reminder_1d_at = now(),
+                  renewal_reminder_7d_at = coalesce(renewal_reminder_7d_at, now())
+            where workspace_id = $1 and renewal_reminder_1d_at is null`,
+          [workspaceId],
+        )
+      : await deps.db.query(
+          `update workspace_subscriptions set renewal_reminder_7d_at = now()
+            where workspace_id = $1 and renewal_reminder_7d_at is null`,
+          [workspaceId],
+        )
+    if (claimed.affected === 0) {
+      continue
+    }
+
+    const placeholders = recipients.map((_, index) => `$${index + 1}`).join(', ')
+    const emails = await deps.db.query<{ email: string }>(
+      `select email from users where deleted_at is null and id in (${placeholders})`,
+      recipients,
+    )
+
+    const ujiCoba = row.status === 'uji_coba'
+    const namaPaket = planCatalog[row.plan_code].name
+    const tanggal = tanggalPengingat(due, row.timezone)
+    const isi = ujiCoba
+      ? [
+          `Uji coba paket ${namaPaket} untuk usaha ${row.workspace_name} berakhir ${tanggal}, ${hari} hari lagi.`,
+          '',
+          'Setelah uji coba berakhir tanpa pembayaran, workspace kembali ke paket Gratis. Data tetap tersimpan, ' +
+            'hanya fitur di atas batas paket Gratis yang terkunci.',
+          '',
+          `Pilih paket berbayar di ${deps.webOrigin}/pengaturan/paket`,
+        ]
+      : [
+          `Langganan paket ${namaPaket} untuk usaha ${row.workspace_name} berakhir ${tanggal}, ${hari} hari lagi.`,
+          '',
+          'Perpanjang dari halaman paket supaya fitur paket berbayar tetap bisa dipakai: ' +
+            `${deps.webOrigin}/pengaturan/paket`,
+        ]
+
+    let gagal = false
+    for (const penerima of emails.rows) {
+      try {
+        await deps.sendEmail({
+          to: penerima.email,
+          subject: ujiCoba
+            ? `Uji coba paket ${namaPaket} berakhir dalam ${hari} hari`
+            : `Langganan paket ${namaPaket} berakhir dalam ${hari} hari`,
+          body: isi.join('\n'),
+        })
+      } catch (error) {
+        deps.onError?.(error, `pengingat perpanjangan workspace ${workspaceId}`)
+        gagal = true
+      }
+    }
+
+    if (gagal) {
+      // Cap waktunya dilepas supaya percobaan berikutnya mengirim ulang. Sebagian
+      // penerima bisa menerima surat dua kali, dan itu lebih baik daripada
+      // pengingat tagihan yang hilang.
+      await deps.db.query(
+        hari === 1
+          ? 'update workspace_subscriptions set renewal_reminder_1d_at = null where workspace_id = $1'
+          : 'update workspace_subscriptions set renewal_reminder_7d_at = null where workspace_id = $1',
+        [workspaceId],
+      )
+      continue
+    }
+
+    sent += 1
+  }
+
+  return sent
+}
+
 export async function runDailyNotifications(
   deps: DailyNotificationDeps,
   now: Date = new Date(),
 ): Promise<DailyNotificationResult> {
   const debtWorkspaces = await notifyOverdueDebts(deps, now)
+  const renewalReminders = await notifyRenewals(deps, now)
   const digestsSent = await sendDailyDigests(deps, now)
-  return { debtWorkspaces, digestsSent }
+  const expiredPayments = await expirePendingPayments(deps.db, now)
+  return { debtWorkspaces, renewalReminders, digestsSent, expiredPayments }
 }
 
 export interface NotificationSchedulerOptions {

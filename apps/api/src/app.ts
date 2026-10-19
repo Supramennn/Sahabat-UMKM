@@ -24,8 +24,10 @@ import { registerReportRoutes } from './reports/routes.ts'
 import { registerExportRoutes } from './export/routes.ts'
 import { registerDashboardRoutes } from './dashboard/routes.ts'
 import { registerNotificationRoutes } from './notifications/routes.ts'
+import { createPaymentGateway, readBillingConfigFromEnv, type BillingConfig } from './plans/billing.ts'
 import { StockError } from './stock/movements.ts'
 import { createLogEmailProvider, type EmailProvider } from './services/email.ts'
+import type { PaymentGateway } from './services/payment-gateway.ts'
 
 export interface BuildOptions {
   logger?: boolean
@@ -37,6 +39,10 @@ export interface BuildOptions {
   secureCookies?: boolean
   /** Kunci enkripsi rahasia MFA. Nilai pengembangan dipakai kalau tidak diisi. */
   encryptionSecret?: string
+  /** Konfigurasi penagihan. Bawaannya dibaca dari environment. */
+  billing?: BillingConfig
+  /** Gateway pembayaran. Null berarti penagihan tidak punya jalan bayar. */
+  paymentGateway?: PaymentGateway | null
 }
 
 export async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
@@ -126,7 +132,15 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     registerPurchaseOrderShareRoutes(app, { db: options.db, webOrigin: origin, sendEmail: deps.sendEmail })
     registerSalesRoutes(app, { db: options.db })
     registerExpenseRoutes(app, { db: options.db })
-    registerPlanRoutes(app, { db: options.db })
+    const billing = options.billing ?? readBillingConfigFromEnv()
+    registerPlanRoutes(app, {
+      db: options.db,
+      billing,
+      gateway: options.paymentGateway ?? createPaymentGateway(billing),
+      sendEmail: deps.sendEmail,
+      webOrigin: origin,
+      onError: (error, context) => app.log.error({ err: error }, `penagihan gagal: ${context}`),
+    })
     registerReportRoutes(app, { db: options.db })
     registerExportRoutes(app, { db: options.db })
     registerDashboardRoutes(app, { db: options.db })

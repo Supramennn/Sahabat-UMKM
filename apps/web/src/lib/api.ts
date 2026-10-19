@@ -595,6 +595,26 @@ export type ExpenseDetailResponse = {
   }>
 }
 
+export type BillingPeriod = 'bulanan' | 'tahunan'
+
+export type PaymentItem = {
+  id: number
+  number: string
+  plan: 'usaha' | 'bisnis'
+  planName: string
+  period: BillingPeriod
+  periodLabel: string
+  amount: number
+  status: 'menunggu' | 'dibayar' | 'gagal' | 'kedaluwarsa'
+  statusLabel: string
+  paymentMethod: string | null
+  paymentMethodLabel: string | null
+  redirectUrl: string | null
+  createdAt: string
+  paidAt: string | null
+  expiresAt: string
+}
+
 export type SubscriptionResponse = {
   subscription: {
     plan: 'gratis' | 'usaha' | 'bisnis'
@@ -602,6 +622,8 @@ export type SubscriptionResponse = {
     trialStartedAt: string | null
     trialEndsAt: string | null
     trialUsed: boolean
+    currentPeriodEnd: string | null
+    billingPeriod: BillingPeriod | null
   }
   plans: Array<{
     code: 'gratis' | 'usaha' | 'bisnis'
@@ -618,8 +640,16 @@ export type SubscriptionResponse = {
     auditLogDays: number
   }>
   pricingNote: string
-  billingEnabled: false
+  billingEnabled: boolean
+  billing: {
+    refundPolicyUrl: string | null
+    yearlyMonths: number
+  }
 }
+
+export type CheckoutResponse = { payment: PaymentItem }
+
+export type PaymentsResponse = { payments: PaymentItem[] }
 
 /* Notifikasi ------------------------------------------------------------------ */
 

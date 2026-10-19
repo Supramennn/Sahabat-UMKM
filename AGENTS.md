@@ -54,15 +54,20 @@ dan keputusan yang dibutuhkan.
 Fase 0 fondasi, Fase 1 autentikasi dan UI, Fase 2 stok, Fase 3 pembelian, Fase 4
 penjualan, Fase 5 pengeluaran operasional, Fase 6 paket, batas paket, uji coba,
 dan langganan, Fase 7 laporan dan ekspor, Fase 8 dashboard, Fase 9 impor
-lengkap (XLSX, template, riwayat, pembatalan impor), serta Fase 10 notifikasi
-email dan di dalam aplikasi (PRD 6.9) selesai. Berikutnya Fase 11: penagihan dan
-faktur PDF dengan PRD 6.10.
+lengkap (XLSX, template, riwayat, pembatalan impor), Fase 10 notifikasi
+email dan di dalam aplikasi (PRD 6.9), serta Fase 11 penagihan dan faktur PDF
+(PRD 6.10) selesai. Berikutnya Fase 12: situs publik, pusat bantuan, status, dan
+kontak dengan PRD 11 dan 15.
+
+Penagihan sengaja mati sampai kunci Midtrans, identitas penjual, dan tautan kebijakan
+refund diisi lewat environment; selama itu kosong, tombol bayar tidak muncul dan
+paket berbayar tetap hanya bisa diuji 14 hari. Rinciannya di K-21
+`docs/KEPUTUSAN-TEKNIS.md`, termasuk penghalang uji pembayaran sungguhan.
 
 Urutan fase yang tersisa, supaya tidak ada tumpang tindih:
 
 | Fase | Isi | PRD |
 | --- | --- | --- |
-| 11 | Penagihan dan faktur PDF | 6.10 |
 | 12 | Situs publik, pusat bantuan, status, kontak | 11, 15 |
 | 13 | PWA, antrean offline, daftar periksa aktivasi | 10, 12 |
 

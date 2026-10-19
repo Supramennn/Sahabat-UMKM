@@ -11,6 +11,7 @@
 
 import { createPgliteDatabase, migrate } from '@sahabat/db'
 import { createLogEmailProvider } from '../apps/api/src/services/email.ts'
+import { createSimulatedGateway, type PaymentGateway } from '../apps/api/src/services/payment-gateway.ts'
 import { startNotificationScheduler } from '../apps/api/src/notifications/daily.ts'
 import { buildApp } from '../apps/api/src/app.ts'
 
@@ -23,15 +24,48 @@ try {
   // Tanpa .env pun skrip ini jalan dengan nilai pengembangan.
 }
 
+// Penagihan disimulasikan supaya alur setelah pembayaran bisa diperiksa tanpa
+// kunci Midtrans: checkout membuat tagihan tanpa tautan bayar, lalu notifikasi
+// pembayaran yang ditandatangani dengan kunci di bawah menandainya lunas. Nilai
+// kosong di .env dianggap belum diisi, bukan nilai yang dipakai. Tautan
+// kebijakan pengembalian dana menunjuk halaman yang baru ada di Fase 12, jadi
+// tautannya masih 404 di jalur ini.
+function bawaan(nama: string, nilai: string): void {
+  if (!process.env[nama]) {
+    process.env[nama] = nilai
+  }
+}
+
+bawaan('PAYMENT_SIMULATION', '1')
+bawaan('MIDTRANS_SERVER_KEY', 'kunci-simulasi-pengembangan')
+bawaan('BILLING_SELLER_NAME', 'Penjual Contoh (simulasi pengembangan)')
+bawaan('BILLING_SELLER_ADDRESS', 'Alamat contoh, hanya untuk simulasi')
+bawaan('BILLING_SELLER_EMAIL', 'penjual@contoh.test')
+bawaan('BILLING_REFUND_POLICY_URL', 'http://localhost:3000/kebijakan-refund')
+
 const db = await createPgliteDatabase()
 await migrate(db)
 
 const email = createLogEmailProvider()
+
+// Gateway simulasi dibungkus pencatat sederhana: nomor pesanan yang dicetak di
+// sini yang dipakai untuk mengirim notifikasi pembayaran tiruan saat memeriksa
+// alur setelah pembayaran di peramban.
+const gatewaySimulasi = createSimulatedGateway()
+const gateway: PaymentGateway = {
+  async createTransaction(request) {
+    const hasil = await gatewaySimulasi.createTransaction(request)
+    console.log(`[gateway:simulasi] tagihan ${request.orderId} sebesar ${request.amount} dibuat`)
+    return hasil
+  },
+}
+
 const app = await buildApp({
   db,
   email,
   sessionSecret: process.env.SESSION_SECRET || 'rahasia-pengembangan-manual',
   origin: 'http://localhost:3000',
+  paymentGateway: gateway,
 })
 
 // Penjadwal notifikasi yang sama dengan server produksi, jadi email yang

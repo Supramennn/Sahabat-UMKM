@@ -3,16 +3,37 @@ import { planCatalog, planLimitMessage, type PlanCode } from '@sahabat/shared'
 import { StockError } from '../stock/movements.ts'
 
 export async function effectivePlan(db: Sql, workspaceId: number): Promise<PlanCode> {
-  const found = await db.query<{ plan_code: PlanCode; trial_ends_at: Date | string | null }>(
-    `select plan_code, trial_ends_at from workspace_subscriptions where workspace_id = $1`,
+  const found = await db.query<{
+    plan_code: PlanCode
+    trial_ends_at: Date | string | null
+    current_period_end: Date | string | null
+  }>(
+    `select plan_code, trial_ends_at, current_period_end from workspace_subscriptions where workspace_id = $1`,
     [workspaceId],
   )
   const subscription = found.rows[0]
   if (!subscription) throw new StockError('langganan_tidak_ditemukan', 'Paket workspace tidak ditemukan.', 404)
-  if (subscription.trial_ends_at && new Date(subscription.trial_ends_at).getTime() <= Date.now()) {
+  const sekarang = Date.now()
+
+  // Uji coba yang berakhir tanpa pembayaran (PRD 6.6) dan masa berlangganan yang
+  // tidak diperpanjang (PRD 6.10) berakhir dengan cara yang sama: workspace
+  // kembali ke paket Gratis. Baris langganannya tidak dihapus, jadi data dan
+  // riwayat pembayaran tetap utuh; hanya fitur di atas batas Gratis yang
+  // terkunci lagi.
+  if (subscription.trial_ends_at && new Date(subscription.trial_ends_at).getTime() <= sekarang) {
     await db.query(
       `update workspace_subscriptions set plan_code = 'gratis', status = 'aktif',
               trial_started_at = null, trial_ends_at = null, updated_at = now() where workspace_id = $1`,
+      [workspaceId],
+    )
+    return 'gratis'
+  }
+  if (subscription.current_period_end && new Date(subscription.current_period_end).getTime() <= sekarang) {
+    await db.query(
+      `update workspace_subscriptions set plan_code = 'gratis', status = 'aktif',
+              current_period_end = null, billing_period = null,
+              renewal_reminder_7d_at = null, renewal_reminder_1d_at = null,
+              updated_at = now() where workspace_id = $1`,
       [workspaceId],
     )
     return 'gratis'

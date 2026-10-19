@@ -30,6 +30,7 @@ Terakhir diperbarui: 19 Oktober 2026.
 | K-18 | Isi dan akses dashboard | Setiap bagian dashboard memakai izin laporan yang sama dengan halaman laporan, jadi peran yang tidak boleh membaca laporan pembelian atau utang juga tidak menerimanya di dashboard. Grafik dibuat dari elemen dasar tanpa pustaka grafik, selalu disertai ringkasan teks dan tabel data yang bisa dibuka. Navigasi bawah ponsel memakai lima tujuan PRD 10 termasuk halaman Lainnya | PRD 6.7, PRD 8, PRD 10 |
 | K-19 | Gaya frontend | Tailwind CSS v4 dan Motion (Framer Motion) untuk seluruh antarmuka, menggantikan K-16. Nilai warna tetap hanya dari `packages/design-tokens`; blok `@theme` di `apps/web/src/styles/globals.css` wajib sama persis dan dijaga tes `theme-sync`. Gerak dibatasi pada animasi transformasi masuk yang terukur dan menghormati `prefers-reduced-motion` | Permintaan pemilik produk, 17 Okt 2026; PRD 13 |
 | K-20 | Notifikasi dan email | Baris notifikasi ditulis di dalam transaksi peristiwanya; email diambil dari antrean `emailed_at is null` oleh penjadwal dalam proses, tidak pernah dikirim dari dalam transaksi. Penerima dihitung dari izin (capability), pelaku sendiri dikecualikan, dan preferensi pengguna hanya bisa mematikan kanal. Notifikasi keamanan bersifat tingkat akun (`workspace_id null`) sehingga tampil di daftar semua usaha pemiliknya. Utang jatuh tempo memakai ambang `overdueDays > 0` yang sama dengan dashboard dan hanya untuk paket dengan fitur `returns`. Ringkasan harian opt-in, dikirim setelah pukul 7 pagi waktu usaha | PRD 6.9, PRD 6.2, PRD 8, PRD 16 |
+| K-21 | Penagihan langganan | Midtrans Snap lewat halaman pembayaran Midtrans, bukan Snap tertanam. Baris tagihan di-commit sebelum tautan bayar diminta, pelunasan hanya dipercaya dari notifikasi bertanda tangan, faktur PDF dibuat dengan pdfkit, masa berbayar menumpuk dari ujung masa berjalan, dan pembayaran hanya menyala kalau identitas penjual serta tautan kebijakan refund diisi lewat environment | PRD 6.10, PRD 15, PRD 16 |
 
 ### Alasan K-12
 
@@ -240,6 +241,66 @@ impor, ekspor, dan email; ketika dipasang, isi `daily.ts` dan `flushNotification
 dipindahkan menjadi job, bukan ditulis ulang. Selama itu, dua panggilan idempoten di
 timer satu jam sudah cukup: keduanya aman dijalankan berulang.
 
+### Alasan K-21
+
+PRD 6.10 menyebut alurnya, yaitu checkout, notifikasi, faktur PDF, dan pengingat
+perpanjangan, tetapi tidak menentukan urutan penulisan baris, sumber kebenaran
+pelunasan, dan apa yang terjadi pada masa berbayar yang belum habis. Semua itu
+diputuskan di sini.
+
+Baris tagihan ditulis dan di-commit lebih dulu, tautan pembayaran diminta ke Midtrans
+setelahnya. Urutan sebaliknya berbahaya: kalau tautan sudah ada di tangan pengguna
+sementara baris tagihannya gagal tersimpan, uang bisa masuk untuk pesanan yang tidak
+dikenal aplikasi. Panggilan jaringan tidak pernah berada di dalam transaksi database,
+jadi Midtrans yang lambat atau menolak tidak menahan kunci baris apa pun; kegagalannya
+menandai tagihan `gagal` dan pengguna bisa memulai tagihan baru. Satu tagihan berlaku
+24 jam dan sisanya ditutup oleh tugas harian lewat `expires_at`, bukan dibiarkan
+menunggu tanpa batas.
+
+Sumber kebenaran pelunasan adalah notifikasi Midtrans yang ditandatangani
+(`sha512(order_id + status_code + gross_amount + server_key)`), bukan halaman yang
+dibuka pengguna setelah membayar. Halaman itu hanya menampilkan riwayat terbaru.
+Notifikasi yang sah dijawab 200 walau pesanannya tidak dikenal supaya Midtrans tidak
+mengirim ulang pesan yang tidak akan berubah hasilnya, nominalnya diperiksa lagi
+terhadap baris tagihan sebelum melunasi, dan tagihan yang sudah `dibayar` tidak
+diperpanjang dua kali sehingga kiriman berulang aman. `deny`, `cancel`, dan `failure`
+menjadi `gagal`, `expire` menjadi `kedaluwarsa`, sedangkan refund dan chargeback
+diabaikan karena PRD 6.10 tidak mengaturnya: menebak prosesnya sendiri berarti
+menghapus catatan uang yang sebenarnya ada.
+
+Masa berbayar menumpuk dari ujung masa yang sedang berjalan, bukan dari waktu
+pembayaran. Pemilik yang memperpanjang lebih awal tidak kehilangan sisa harinya, dan
+pembelian paket berbeda di tengah masa berjalan berganti paket dengan masa yang
+bertambah, bukan mengulang dari nol. Setelah masa itu lewat tanpa pembayaran, paket
+turun ke Gratis lewat `effectivePlan`, jalur yang sama dengan uji coba yang berakhir;
+baris langganan dan seluruh data usaha tidak dihapus. Uji coba tidak bisa dimulai
+selama masa berbayar berjalan, karena uji coba adalah cara menilai paket, bukan cara
+memperpanjang tanpa membayar.
+
+Faktur PDF memuat identitas penjual dari environment dan identitas pembeli dari
+workspace serta akun pemesan, nomor `INV-<tahun>-<urut>`, paket, masa, metode, tanggal
+pelunasan, dan nominal yang benar-benar ditagih. Baris pajak tidak dibuat: perlakuan
+pajak langganan masih menunggu konfirmasi konsultan pajak (bagian 8), dan mencantumkan
+angka pajak yang belum diputuskan lebih buruk daripada tidak mencantumkannya. Faktur
+memakai urutan nomor global lewat `payment_numbers`, bukan `document_sequences` per
+workspace, karena faktur diterbitkan penjual untuk semua pelanggan. Tanggal faktur
+memakai zona waktu penjual (`BILLING_SELLER_TIMEZONE`, bawaan WIB) dan tanggal pada
+tanda terima email memakai zona waktu usaha, supaya tanggal yang dibaca pembeli sama
+dengan tanggal di aplikasinya.
+
+Pembayaran hanya menyala kalau `MIDTRANS_SERVER_KEY`, nama, alamat, dan email penjual,
+serta `BILLING_REFUND_POLICY_URL` sudah diisi. Faktur tanpa identitas penjual tidak
+sah, dan PRD 15 meminta kebijakan refund tertulis tampil sebelum membayar. Selama itu
+kosong, halaman paket menjelaskan bahwa pembayaran belum diaktifkan, uji coba 14 hari
+tetap bisa dipakai, dan tombol bayar tidak muncul. `PAYMENT_SIMULATION=1` menyediakan
+gateway tanpa jaringan untuk pengembangan dan pemeriksaan manual; nilainya diabaikan
+di produksi supaya tidak ada tagihan yang bisa dianggap lunas tanpa uang masuk.
+Pengingat perpanjangan tujuh hari dan satu hari dikirim ke pemegang izin
+`subscription.manage` (Owner) dan tidak mengikuti preferensi notifikasi PRD 6.9,
+karena tagihan adalah urusan langganan yang berlaku untuk semua pemilik. Cap waktunya
+disimpan per masa di `workspace_subscriptions`, jadi satu tenggat hanya menghasilkan
+satu surat, dan cap itu direset saat masa baru dimulai.
+
 ### Alasan K-02
 
 Satu basis kode untuk situs publik dan aplikasi. Situs publik butuh SSR untuk LCP 2,5 detik
@@ -441,6 +502,8 @@ bisa diselesaikan dengan menulis kode.
 | Uji penetrasi oleh pihak yang bukan pengembang produk | 17 | belum |
 | Penanggung jawab dukungan dan jam layanan ditunjuk | 15, 20 | belum |
 | Tarif resmi payment gateway dibaca dari sumber resmi | 6.10 | belum |
+| Kunci Midtrans sandbox dan produksi, identitas penjual pada faktur, dan tautan kebijakan refund tersedia | 6.10, 15 | belum, pembayaran tetap mati sampai semuanya diisi |
+| Pembayaran sungguhan diuji dari checkout sampai faktur tersimpan, termasuk penerimaan notifikasi Midtrans | 17 | belum, butuh kunci sandbox atau produksi |
 
 ## 9. Aturan kerja yang berlaku di semua fase
 

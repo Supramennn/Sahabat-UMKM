@@ -10,9 +10,9 @@ baru dibuat, sekaligus mengisi workspace yang sudah ada. `apps/api/src/plans/ser
 menyimpan aturan paket dan mengambil kunci baris workspace sebelum memeriksa kuota
 atau fitur, sehingga pergantian paket dan penambahan pemakaian tidak saling mendahului.
 Masa uji coba yang kedaluwarsa diturunkan saat paket dibaca atau operasi berfitur
-dijalankan. Pembayaran produksi sengaja belum aktif sampai keputusan usaha dan hukum
-pada `docs/KEPUTUSAN-TEKNIS.md` diselesaikan. Fase 6 telah diverifikasi dengan lint,
-typecheck, 352 tes unit/integrasi, tes PostgreSQL lokal, pemeriksaan kontras, build
+dijalankan. Pembayaran produksi hanya menyala kalau konfigurasi penjual dan kebijakan
+refund diisi (K-21); harga di katalog masih usulan PRD. Fase 6 telah diverifikasi dengan
+lint, typecheck, 352 tes unit/integrasi, tes PostgreSQL lokal, pemeriksaan kontras, build
 produksi, dan 128 tes E2E. Detail hasil dan batasan billing dicatat di `README.md`.
 
 ## Laporan dan ekspor
@@ -89,6 +89,40 @@ halaman terkait; jumlah belum dibaca muncul di bilah atas semua halaman lewat
 `app-context`. Pengaturan per jenis dan ringkasan harian ada di
 `/pengaturan/notifikasi`. Keduanya memanggil endpoint yang memeriksa sesi dan
 keanggotaan workspace di server, bukan hanya menyembunyikan tombol.
+
+## Penagihan langganan
+
+Penagihan PRD 6.10 ada di `apps/api/src/plans/` (`billing.ts`, `billing-service.ts`,
+`invoice-pdf.ts`, `routes.ts`) dengan tabel `payments` dari migrasi
+`0012_billing.sql`. Satu checkout menulis baris tagihan beserta nomor
+`INV-<tahun>-<urut>` dari sequence global `payment_numbers`, baru kemudian meminta
+tautan pembayaran Midtrans lewat `apps/api/src/services/payment-gateway.ts`. Urutan itu
+penting: tautan yang sudah dipegang pengguna selalu punya baris yang bisa ditelusuri.
+Panggilan jaringan tidak pernah berada di dalam transaksi database, dan kegagalannya
+menandai tagihan `gagal`, bukan menggantung transaksi. Nomor faktur memakai sequence
+global, bukan `document_sequences` per workspace, karena faktur diterbitkan penjual
+untuk semua pelanggan.
+
+Pelunasan hanya dipercaya dari notifikasi
+`POST /api/payments/midtrans/notification` yang ditandatangani SHA-512 dengan kunci
+server. Nominalnya diperiksa ulang terhadap baris tagihan sebelum melunasi, dan baris
+yang sudah `dibayar` tidak diproses dua kali, jadi notifikasi yang datang berulang aman.
+Masa berbayar menumpuk dari ujung masa berjalan, jadi memperpanjang lebih awal atau
+berganti paket di tengah masa tidak menghanguskan sisa waktunya. Masa berbayar yang
+lewat dan uji coba yang berakhir sama-sama ditangani `effectivePlan`, jalur yang sama
+seperti Fase 6, tanpa menghapus data usaha.
+
+`invoice-pdf.ts` memakai pola pdfkit yang sama dengan PO (K-15): hanya data yang benar
+tercatat, identitas penjual dari environment, dan tanpa baris pajak karena perlakuan
+pajak langganan belum ditetapkan. Riwayat pembayaran dan faktur hanya untuk Owner lewat
+izin `subscription.manage`. Pembayaran hanya menyala kalau `MIDTRANS_SERVER_KEY`,
+identitas penjual, dan `BILLING_REFUND_POLICY_URL` terisi; `PAYMENT_SIMULATION=1`
+menyediakan gateway tanpa jaringan untuk pengembangan dan diabaikan di produksi.
+
+Pengingat perpanjangan tujuh hari dan satu hari dijalankan tugas harian
+`apps/api/src/notifications/daily.ts` bersama penutupan tagihan yang lewat batas
+24 jam. Cap waktunya disimpan per masa di `workspace_subscriptions`, jadi satu tenggat
+hanya menghasilkan satu surat, dan masa baru mengosongkannya lagi.
 
 ## Bentuk sistem
 

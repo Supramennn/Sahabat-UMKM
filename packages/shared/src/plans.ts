@@ -33,6 +33,27 @@ export const planCatalog: Record<PlanCode, {
 
 export const TRIAL_DAYS = 14
 
+export const billingPeriods = ['bulanan', 'tahunan'] as const
+export type BillingPeriod = (typeof billingPeriods)[number]
+
+export const billingPeriodLabels: Record<BillingPeriod, string> = {
+  bulanan: 'Bulanan',
+  tahunan: 'Tahunan',
+}
+
+/** Bulan yang dibayar pada paket tahunan: 12 bulan dengan harga 10 bulan (PRD 16). */
+export const YEARLY_MONTHS = 10
+
+/**
+ * Harga satu masa berlangganan. Nilainya masih usulan PRD 16 yang sama dengan
+ * tabel paket sampai harga disahkan; nominal yang benar-benar ditagih disimpan
+ * di baris pembayaran, jadi mengubah katalog tidak mengubah tagihan lama.
+ */
+export function planPrice(plan: PlanCode, period: BillingPeriod): number {
+  const monthly = planCatalog[plan].proposedMonthlyPrice
+  return period === 'tahunan' ? monthly * YEARLY_MONTHS : monthly
+}
+
 export function planLimitMessage(resource: 'produk' | 'anggota' | 'lokasi', limit: number): string {
   const names = { produk: 'produk aktif', anggota: 'anggota', lokasi: 'lokasi' }
   return `Batas paket untuk ${names[resource]} adalah ${limit}. Turunkan jumlah yang digunakan atau pilih paket lain di Pengaturan.`
