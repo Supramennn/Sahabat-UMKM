@@ -19,9 +19,8 @@ export function cookieOf(response: LightMyRequestResponse): string {
 }
 
 /**
- * Ambil token dari email terakhir. Tautan verifikasi dan atur ulang kata sandi
- * memakai bentuk URL, undangan masih berupa token di akhir baris, jadi keduanya
- * harus terbaca di sini.
+ * Ambil token dari email terakhir. Verifikasi email, atur ulang kata sandi, dan
+ * undangan semuanya memakai tautan dengan parameter token.
  */
 export function tokenFromLastEmail(email: CapturedEmail): string {
   const message = email.messages.at(-1)

@@ -1096,7 +1096,13 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
     await deps.sendEmail({
       to: input.email,
       subject: 'Anda diundang ke workspace Sahabat UMKM',
-      body: `Token undangan: ${rawToken}`,
+      body: [
+        'Anda diundang bergabung ke workspace Sahabat UMKM.',
+        '',
+        `Buka tautan ini untuk menerima undangan: ${deps.webOrigin}/undangan?token=${rawToken}`,
+        '',
+        `Tautan berlaku ${INVITATION_TTL_DAYS} hari dan hanya bisa dipakai sekali.`,
+      ].join('\n'),
     })
 
     await writeAudit(db, {

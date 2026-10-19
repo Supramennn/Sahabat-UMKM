@@ -37,6 +37,11 @@ const HALAMAN = [
   { path: '/pengeluaran/kategori', nama: 'kategori pengeluaran' },
   { path: '/pengaturan/paket', nama: 'paket dan langganan' },
   { path: '/pengaturan/impor-ekspor', nama: 'impor dan ekspor' },
+  { path: '/pengaturan/usaha', nama: 'profil usaha' },
+  { path: '/pengaturan/anggota', nama: 'anggota dan peran' },
+  { path: '/pengaturan/akun', nama: 'pengaturan akun' },
+  { path: '/buat-usaha', nama: 'buat usaha' },
+  { path: '/undangan', nama: 'terima undangan' },
   { path: '/laporan', nama: 'laporan usaha' },
   { path: '/dashboard', nama: 'dashboard' },
   { path: '/lainnya', nama: 'menu lainnya' },
@@ -153,6 +158,19 @@ test.describe('keterbacaan', () => {
     )
     const ringkasan = serius.map((v) => `${v.id}: ${v.nodes.length} node`)
     expect(ringkasan, ringkasan.join(' | ')).toHaveLength(0)
+  })
+
+  test('tidak ada pelanggaran axe pada buat usaha dan terima undangan', async ({ page }) => {
+    for (const path of ['/buat-usaha', '/undangan']) {
+      await page.goto(path)
+
+      const hasil = await new AxeBuilder({ page }).analyze()
+      const serius = hasil.violations.filter(
+        (v) => v.impact === 'serious' || v.impact === 'critical',
+      )
+      const ringkasan = serius.map((v) => `${path} ${v.id}: ${v.nodes.length} node`)
+      expect(ringkasan, ringkasan.join(' | ')).toHaveLength(0)
+    }
   })
 })
 

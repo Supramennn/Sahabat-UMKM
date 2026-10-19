@@ -1,7 +1,10 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import type { ChangeEvent, ReactNode } from 'react'
+import { useState } from 'react'
+import { apiPost, errorMessage } from '../../lib/api'
 import { cx } from '../../lib/cx'
+import { useApp } from './app-context'
 import { PageTransition } from './motion'
 
 /**
@@ -39,6 +42,8 @@ export const moduleNav: NavItem[] = [
   { href: '/laporan', label: 'Laporan', short: 'Lapor' },
   { href: '/pengaturan/paket', label: 'Paket dan langganan', short: 'Paket' },
   { href: '/pengaturan/impor-ekspor', label: 'Impor dan ekspor', short: 'Data' },
+  { href: '/pengaturan/usaha', label: 'Profil usaha', short: 'Usaha' },
+  { href: '/pengaturan/anggota', label: 'Anggota dan peran', short: 'Anggota' },
   { href: '/penjualan/baru', label: 'Catat penjualan', short: 'Jual' },
   { href: '/penjualan/pelanggan', label: 'Pelanggan', short: 'Pelanggan' },
   { href: '/penjualan/impor', label: 'Impor penjualan', short: 'Impor' },
@@ -59,6 +64,62 @@ export const bottomNav: NavItem[] = [
   { href: '/penjualan', label: 'Penjualan', short: 'Jual' },
   { href: '/lainnya', label: 'Menu lainnya', short: 'Lainnya' },
 ]
+
+/**
+ * PRD 6.1: satu akun bisa menjadi anggota beberapa workspace dan berpindah lewat
+ * pemilih workspace. Pemilih hanya muncul saat jumlahnya lebih dari satu.
+ */
+function WorkspaceSwitcher({ fallbackName }: { fallbackName: string }) {
+  const app = useApp()
+  const [busy, setBusy] = useState(false)
+  const [switchError, setSwitchError] = useState<string | null>(null)
+
+  if (app.workspaces.length < 2) {
+    return <span className="truncate text-sm text-on-primary-muted">{fallbackName}</span>
+  }
+
+  async function pilih(event: ChangeEvent<HTMLSelectElement>) {
+    const workspaceId = Number(event.target.value)
+    if (!Number.isFinite(workspaceId) || workspaceId === app.workspaceId) return
+
+    setBusy(true)
+    setSwitchError(null)
+    const result = await apiPost('/api/auth/switch-workspace', { workspaceId })
+    if (!result.ok) {
+      setBusy(false)
+      setSwitchError(errorMessage(result.error, 'Usaha tidak bisa diganti.'))
+      return
+    }
+    window.location.reload()
+  }
+
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <label className="visually-hidden" htmlFor="pemilih-usaha">
+        Pilih usaha
+      </label>
+      <select
+        className="min-h-touch w-full cursor-pointer truncate rounded-control border border-on-primary-muted bg-primary px-2 text-base text-white disabled:cursor-wait"
+        id="pemilih-usaha"
+        value={app.workspaceId}
+        onChange={pilih}
+        disabled={busy}
+        aria-busy={busy || undefined}
+      >
+        {app.workspaces.map((workspace) => (
+          <option key={workspace.id} value={workspace.id}>
+            {workspace.name}
+          </option>
+        ))}
+      </select>
+      {switchError ? (
+        <p className="text-sm text-white" role="alert">
+          Gagal: {switchError}
+        </p>
+      ) : null}
+    </div>
+  )
+}
 
 export function AppShell({
   workspaceName,
@@ -84,9 +145,9 @@ export function AppShell({
       </a>
 
       <header className="flex items-center justify-between gap-3 bg-primary px-4 py-3 text-white">
-        <div className="flex min-w-0 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <span className="font-bold tracking-[0.01em]">Sahabat UMKM</span>
-          <span className="truncate text-sm text-on-primary-muted">{workspaceName}</span>
+          <WorkspaceSwitcher fallbackName={workspaceName} />
         </div>
         <p className="shrink-0 text-sm text-on-primary-muted">{roleLabel}</p>
       </header>

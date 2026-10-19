@@ -117,6 +117,70 @@ export function Field({
   )
 }
 
+interface SelectFieldProps {
+  id: string
+  label: string
+  value: string
+  onChange: (value: string) => void
+  options: Array<{ value: string; label: string }>
+  required?: boolean | undefined
+  disabled?: boolean | undefined
+  hint?: string | undefined
+  error?: string | undefined
+}
+
+/** Isian pilihan dengan susunan label dan pesan galat yang sama dengan Field. */
+export function SelectField({
+  id,
+  label,
+  value,
+  onChange,
+  options,
+  required,
+  disabled,
+  hint,
+  error,
+}: SelectFieldProps) {
+  const hintId = hint ? `${id}-hint` : undefined
+  const errorId = error ? `${id}-error` : undefined
+  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined
+
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-[0.9375rem] font-medium text-text-primary" htmlFor={id}>
+        {label}
+      </label>
+      <select
+        className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary disabled:cursor-not-allowed disabled:bg-background disabled:text-text-secondary"
+        id={id}
+        name={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required={required}
+        disabled={disabled}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {hint ? (
+        <p className="text-sm text-text-secondary" id={hintId}>
+          {hint}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="text-sm text-danger" id={errorId}>
+          {error}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 export function Button({
   children,
   onClick,

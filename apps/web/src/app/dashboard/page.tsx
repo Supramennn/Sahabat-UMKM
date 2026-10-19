@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { can } from '@sahabat/shared'
 import { useApp, AppProvider } from '../components/app-context'
 import { AppShell } from '../components/shell'
 import { ErrorState } from '../components/ui'
@@ -90,10 +91,16 @@ function DashboardPageContent() {
   }, [from, locationId, to])
 
   useEffect(() => {
+    // Staf tidak boleh membaca daftar lokasi, jadi filter lokasi juga tidak
+    // diminta supaya tidak ada permintaan yang pasti ditolak di konsol.
+    if (!can(app.role, 'products.manage')) {
+      setLocations([])
+      return
+    }
     void apiGet<LocationsResponse>(`/api/workspaces/${app.workspaceId}/locations`).then((result) => {
       if (result.ok) setLocations(result.data.locations)
     })
-  }, [app.workspaceId])
+  }, [app.role, app.workspaceId])
 
   useEffect(() => {
     let cancelled = false
@@ -137,13 +144,15 @@ function DashboardPageContent() {
             <label className="text-sm text-text-secondary" htmlFor="tanggal-sampai">Sampai tanggal</label>
             <input className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary" id="tanggal-sampai" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
           </div>
-          <div className="flex min-w-[min(100%,12rem)] grow basis-48 flex-col gap-1">
-            <label className="text-sm text-text-secondary" htmlFor="filter-lokasi">Lokasi</label>
-            <select className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary" id="filter-lokasi" value={locationId} onChange={(event) => setLocationId(event.target.value)}>
-              <option value="">Semua lokasi</option>
-              {locations.filter((item) => !item.archived).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </div>
+          {can(app.role, 'products.manage') ? (
+            <div className="flex min-w-[min(100%,12rem)] grow basis-48 flex-col gap-1">
+              <label className="text-sm text-text-secondary" htmlFor="filter-lokasi">Lokasi</label>
+              <select className="min-h-touch w-full rounded-control border border-border-strong bg-surface px-3 text-base text-text-primary transition-colors duration-150 hover:border-text-secondary" id="filter-lokasi" value={locationId} onChange={(event) => setLocationId(event.target.value)}>
+                <option value="">Semua lokasi</option>
+                {locations.filter((item) => !item.archived).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </div>
+          ) : null}
           {loading ? <p className="text-text-secondary" role="status">Memperbarui angka.</p> : null}
         </div> : null}
 

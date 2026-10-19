@@ -295,6 +295,20 @@ Verifikasi Fase 9 lulus: `npm run verify` (415 tes lulus, 8 dilewati),
 `npm run test:contrast` (35 pasangan lolos), `npm run test:postgres:local` (9 lulus,
 1 dilewati), build produksi, dan `npm run test:e2e` (152 lulus di ponsel dan desktop).
 
+Celah UI akun dan workspace dari PRD 6.1 ditutup setelah Fase 9. Akun yang belum punya
+usaha diarahkan ke `/buat-usaha`, dan akun yang menjadi anggota beberapa usaha mendapat
+pemilih usaha di bilah atas. Halaman `/pengaturan/usaha` mengubah nama, jenis usaha, dan
+zona waktu (mata uang tetap Rupiah), `/pengaturan/anggota` mengirim undangan, mengubah
+peran, dan mengeluarkan anggota sesuai matriks izin PRD 8, dan `/undangan` menerima
+undangan. Email undangan kini berisi tautan halaman itu, bukan token mentah; tautannya
+sekali pakai dan kedaluwarsa. Dashboard juga tidak lagi meminta daftar lokasi untuk
+peran yang tidak boleh membacanya. Verifikasi celah ini: `npm run verify` (419 tes
+lulus, 8 dilewati), `npm run test:contrast` (35 pasangan), `npm run test:postgres:local`
+(9 lulus, 1 dilewati), build produksi, dan `npm run test:e2e` (174 lulus di ponsel dan
+desktop). Belum ada: penghapusan usaha dengan masa tenggang 30 hari dan unggah logo
+usaha karena endpoint-nya belum dibuat, serta format tanggal per usaha yang belum
+dipakai di tampilan.
+
 Penjualan memakai `recordMovement` yang sama dengan stok keluar, jadi penjualan yang
 menyentuh barang terakhir menghasilkan satu transaksi berhasil dan satu penolakan,
 sama seperti entri stok manual. Harga pokok disimpan sebagai snapshot di setiap baris

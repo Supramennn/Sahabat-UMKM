@@ -14,12 +14,16 @@ import { AuthLink, ErrorState } from './ui'
 export interface AppContextValue {
   workspaceId: number
   workspaceName: string
+  workspaces: SessionResponse['workspaces']
+  renameWorkspace: (name: string) => void
   role: Role
   roleLabel: string
   userName: string
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
+
+type AppContextState = Omit<AppContextValue, 'renameWorkspace'>
 
 export function useApp(): AppContextValue {
   const value = useContext(AppContext)
@@ -30,8 +34,9 @@ export function useApp(): AppContextValue {
 }
 
 export function AppProvider({ children, title = 'Stok' }: { children: ReactNode; title?: string }) {
-  const [context, setContext] = useState<AppContextValue | null>(null)
+  const [context, setContext] = useState<AppContextState | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [tanpaWorkspace, setTanpaWorkspace] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -53,7 +58,8 @@ export function AppProvider({ children, title = 'Stok' }: { children: ReactNode;
       }
 
       if (sesi.data.activeWorkspaceId === null) {
-        setError('Akun ini belum punya workspace. Pilih atau buat workspace terlebih dulu.')
+        setTanpaWorkspace(true)
+        setError('Akun ini belum punya usaha. Buat usaha dulu supaya data stok dan penjualan punya tempat.')
         setLoading(false)
         return
       }
@@ -75,6 +81,7 @@ export function AppProvider({ children, title = 'Stok' }: { children: ReactNode;
       setContext({
         workspaceId,
         workspaceName: workspace.data.workspace.name,
+        workspaces: sesi.data.workspaces,
         role,
         roleLabel: roleLabels[role] ?? role,
         userName: sesi.data.user.name,
@@ -87,6 +94,19 @@ export function AppProvider({ children, title = 'Stok' }: { children: ReactNode;
       berhenti = true
     }
   }, [])
+
+  function renameWorkspace(name: string) {
+    setContext((previous) => {
+      if (!previous) return previous
+      return {
+        ...previous,
+        workspaceName: name,
+        workspaces: previous.workspaces.map((workspace) =>
+          workspace.id === previous.workspaceId ? { ...workspace, name } : workspace,
+        ),
+      }
+    })
+  }
 
   // PRD 10: judul utama harus ada di setiap keadaan halaman, termasuk saat memuat
   // dan saat gagal. Tanpa itu, pembaca layar dan mesin pencari tidak tahu halaman
@@ -107,11 +127,19 @@ export function AppProvider({ children, title = 'Stok' }: { children: ReactNode;
         <ErrorState
           title="Halaman ini belum bisa dibuka"
           body={error ?? 'Workspace tidak ditemukan.'}
-          action={<AuthLink href="/masuk">Buka halaman masuk</AuthLink>}
+          action={
+            <AuthLink href={tanpaWorkspace ? '/buat-usaha' : '/masuk'}>
+              {tanpaWorkspace ? 'Buat usaha' : 'Buka halaman masuk'}
+            </AuthLink>
+          }
         />
       </div>
     )
   }
 
-  return <AppContext.Provider value={context}>{children}</AppContext.Provider>
+  return (
+    <AppContext.Provider value={{ ...context, renameWorkspace }}>
+      {children}
+    </AppContext.Provider>
+  )
 }

@@ -6,6 +6,7 @@ import { buildApp } from '../src/app.ts'
 import { createCapturingEmailProvider } from '../src/services/email.ts'
 import {
   registerVerifyAndLogin,
+  tokenFromLastEmail,
   type CapturedEmail,
 } from './account-helpers.ts'
 
@@ -178,8 +179,11 @@ describe('IDOR, akses lintas workspace (PRD 9)', () => {
     // akan salah mengambil pesan yang berbeda.
     const invitationMail = email.messages.at(-1)
     expect(invitationMail?.to).toBe('staf5@contoh.test')
-    const token = invitationMail?.body.match(/: (\S+)\s*$/)?.[1]
-    expect(token, 'isi email undangan harus memuat token').toBeDefined()
+    expect(
+      invitationMail?.body,
+      'email undangan harus menautkan halaman penerimaan undangan',
+    ).toContain('/undangan?token=')
+    const token = tokenFromLastEmail(email)
 
     const staf = await register('staf5@contoh.test')
 
