@@ -309,6 +309,38 @@ desktop). Belum ada: penghapusan usaha dengan masa tenggang 30 hari dan unggah l
 usaha karena endpoint-nya belum dibuat, serta format tanggal per usaha yang belum
 dipakai di tampilan.
 
+Fase 10 menambahkan notifikasi email dan di dalam aplikasi sesuai PRD 6.9. Jenisnya
+tujuh — stok rendah, PO menunggu persetujuan, PO disetujui, PO ditolak, utang jatuh
+tempo, undangan diterima, dan aktivitas keamanan akun — ditambah ringkasan harian
+opsional berisi pemberitahuan sejak ringkasan terakhir. Barisnya ditulis di dalam
+transaksi peristiwanya (pergerakan stok, pengajuan dan keputusan PO, penerimaan
+undangan, ganti kata sandi dan email, MFA, perangkat dicabut), sedangkan emailnya
+diambil dari antrean `emailed_at is null` oleh penjadwal di dalam proses API, jadi
+kegagalan email tidak pernah membatalkan transaksi bisnis. Penerima dihitung dari
+izin, pelaku sendiri dikecualikan, dan tiap pengguna mengatur kanalnya di
+`/pengaturan/notifikasi`. Halaman `/notifikasi` menampilkan daftar dengan penanda
+belum dibaca, saringan belum dibaca, dan tautan ke halaman terkait; jumlah belum
+dibaca muncul di bilah atas semua halaman. Notifikasi keamanan bersifat tingkat akun
+sehingga terlihat dari usaha mana pun milik pengguna itu, pengingat utang memakai
+ambang yang sama dengan dashboard dan mengikuti fitur utang paketnya, dan peringatan
+pergantian alamat email tetap dikirim ke alamat lama di luar preferensi.
+
+Uji asap di peramban sungguhan menemukan cacat lama di luar notifikasi: sesi
+kehilangan workspace aktif setiap kali diputar ulang — setelah verifikasi dua langkah
+dan setelah ganti kata sandi — sehingga pengguna yang usahanya sudah ada disuruh
+membuat usaha baru. `issueSession` sekarang menulis `active_workspace_id`, dan
+putaran ulang ganti kata sandi membawa status MFA sesi sebelumnya. Keduanya
+disertai tes regresi.
+
+Verifikasi Fase 10 lulus: `npm run verify` (428 tes lulus, 8 dilewati),
+`npm run test:contrast` (35 pasangan lolos), `npm run test:postgres:local` (9 lulus,
+1 dilewati), build produksi, `npm run test:e2e` (182 lulus di ponsel dan desktop),
+dan uji asap peramban sungguhan untuk alur notifikasi (daftar, penanda belum dibaca,
+tandai semua dibaca, dan pengaturan tersimpan setelah muat ulang). Yang belum:
+email masih dikirim ke penyedia log, bukan penyedia sungguhan (PRD 15), dan antrean
+email masih dikuras penjadwal di dalam proses API karena pg-boss (K-02) belum
+dipasang.
+
 Penjualan memakai `recordMovement` yang sama dengan stok keluar, jadi penjualan yang
 menyentuh barang terakhir menghasilkan satu transaksi berhasil dan satu penolakan,
 sama seperti entri stok manual. Harga pokok disimpan sebagai snapshot di setiap baris

@@ -25,6 +25,7 @@ export interface NavItem {
 
 export const moduleNav: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', short: 'Dasbor' },
+  { href: '/notifikasi', label: 'Notifikasi', short: 'Notifikasi' },
   { href: '/stok', label: 'Stok', short: 'Stok' },
   { href: '/stok/input', label: 'Catat stok', short: 'Catat' },
   { href: '/stok/peringatan', label: 'Perlu perhatian', short: 'Perhatian' },
@@ -51,6 +52,7 @@ export const moduleNav: NavItem[] = [
   { href: '/stok/opname', label: 'Stok opname', short: 'Opname' },
   { href: '/stok/lokasi', label: 'Lokasi', short: 'Lokasi' },
   { href: '/pengaturan/akun', label: 'Pengaturan akun', short: 'Akun' },
+  { href: '/pengaturan/notifikasi', label: 'Pengaturan notifikasi', short: 'Notifikasi' },
 ]
 
 /**
@@ -138,6 +140,9 @@ export function AppShell({
   actions?: ReactNode
   children: ReactNode
 }) {
+  const app = useApp()
+  const unread = app.unreadCount ?? 0
+
   return (
     <div className="flex min-h-screen flex-col">
       <a className="absolute -left-[9999px] top-2 z-10 rounded-control bg-surface px-3 py-2 focus:left-2" href="#konten-utama">
@@ -149,7 +154,19 @@ export function AppShell({
           <span className="font-bold tracking-[0.01em]">Sahabat UMKM</span>
           <WorkspaceSwitcher fallbackName={workspaceName} />
         </div>
-        <p className="shrink-0 text-sm text-on-primary-muted">{roleLabel}</p>
+        <div className="flex shrink-0 flex-col items-end">
+          {/* PRD 6.9: pemberitahuan yang belum dibaca terlihat dari semua halaman. */}
+          <a
+            className="inline-flex min-h-touch items-center rounded-control px-3 text-sm font-semibold text-white underline-offset-4 hover:underline"
+            href="/notifikasi"
+            aria-label={
+              unread > 0 ? `Notifikasi, ${unread} belum dibaca` : 'Notifikasi'
+            }
+          >
+            Notifikasi{unread > 0 ? ` (${unread})` : ''}
+          </a>
+          <p className="px-3 text-sm text-on-primary-muted">{roleLabel}</p>
+        </div>
       </header>
 
       <div className="flex flex-1 flex-col gap-6 p-4 pb-24 desktop:flex-row desktop:gap-8 desktop:px-8 desktop:py-6 desktop:pb-8">

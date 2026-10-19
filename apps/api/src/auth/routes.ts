@@ -4,6 +4,7 @@ import { hashForLookup, hashToken } from './token.ts'
 import { checkPasswordPolicy, dummyPasswordHash, hashPassword, passwordMatchesAny } from './password.ts'
 import { writeAudit } from './audit.ts'
 import { ensurePlanCapacity } from '../plans/service.ts'
+import { notifyInvitationAccepted, notifySecurityActivity } from '../notifications/hooks.ts'
 import { consumeMfaRecoveryCode, mfaVerifySchema } from './mfa-routes.ts'
 import { decryptSecret, verifyMfaToken } from './mfa.ts'
 import { loadMfaGate } from './mfa-policy.ts'
@@ -434,14 +435,6 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       mfaSatisfied: !needsMfaStep,
     })
 
-    // issueSession tidak menulis active_workspace_id, jadi harus diisi di sini.
-    // Tanpa itu sesi masuk tidak punya workspace aktif dan setiap endpoint
-    // workspace akan meminta pengguna memilih workspace lebih dulu.
-    await db.query(
-      `update sessions set active_workspace_id = $1 where id = $2`,
-      [workspaceId, issued.sessionId],
-    )
-
     setSessionCookie(reply, issued.token, secureCookies)
 
     await writeAudit(db, {
@@ -648,6 +641,12 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       userAgent: request.headers['user-agent'] ?? null,
     })
 
+    await notifySecurityActivity(db, {
+      userId: matched.userId,
+      title: 'Kata sandi diatur ulang',
+      body: 'Kata sandi akun Anda baru saja diatur ulang lewat tautan atur ulang, dan semua sesi yang sedang masuk sudah dikeluarkan. Kalau bukan Anda, atur ulang lagi kata sandi akun ini sekarang.',
+    })
+
     return reply.code(200).send({ message: 'Kata sandi sudah diperbarui. Silakan masuk.' })
   })
 
@@ -710,10 +709,14 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
         token,
         reply,
         {
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-        workspaceId: session.workspaceId,
-      },
+          ip: request.ip ?? null,
+          userAgent: request.headers['user-agent'] ?? null,
+          workspaceId: session.workspaceId,
+          // Pengguna baru saja membuktikan kata sandi lamanya dari sesi ini,
+          // jadi sesi pengganti tetap memenuhi MFA. Tanpa itu pengguna dengan
+          // MFA diminta kode lagi hanya karena mengganti kata sandi.
+          mfaSatisfied: session.mfaSatisfiedAt !== null,
+        },
         secureCookies,
       )
     }
@@ -729,6 +732,12 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       userAgent: request.headers['user-agent'] ?? null,
     })
 
+    await notifySecurityActivity(db, {
+      userId: session.userId,
+      title: 'Kata sandi diubah',
+      body: 'Kata sandi akun Anda baru saja diubah, dan sesi di perangkat lain sudah dikeluarkan. Kalau bukan Anda, atur ulang kata sandi sekarang.',
+    })
+
     return reply.code(200).send({ message: 'Kata sandi sudah diperbarui.' })
   })
 
@@ -736,8 +745,8 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
     const session = requireSession(request)
     const input = changeEmailSchema.parse(request.body)
 
-    const current = await db.query<{ password_hash: string }>(
-      'select password_hash from users where id = $1',
+    const current = await db.query<{ email: string; password_hash: string }>(
+      'select email, password_hash from users where id = $1',
       [session.userId],
     )
     const currentHash = current.rows[0]?.password_hash ?? (await dummyPasswordHash())
@@ -765,6 +774,24 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       objectId: String(session.userId),
       ip: request.ip ?? null,
       userAgent: request.headers['user-agent'] ?? null,
+    })
+
+    // Peringatan ke alamat lama dikirim langsung, bukan lewat antrean notifikasi:
+    // alamat itu sudah tidak tersimpan di akun ini, dan justru pemilik alamat lama
+    // yang perlu tahu bahwa alamat tersebut tidak lagi dipakai akun ini.
+    const previousEmail = current.rows[0]?.email
+    if (previousEmail && previousEmail !== input.newEmail) {
+      await deps.sendEmail({
+        to: previousEmail,
+        subject: 'Email akun Sahabat UMKM diubah',
+        body: `Email akun ini baru saja diubah menjadi ${input.newEmail}. Kalau bukan Anda yang mengubahnya, segera hubungi kami lewat halaman bantuan.`,
+      })
+    }
+
+    await notifySecurityActivity(db, {
+      userId: session.userId,
+      title: 'Email akun diubah',
+      body: `Email akun Anda sekarang ${input.newEmail}. Kalau bukan Anda, ganti kata sandi dan keluarkan semua perangkat sekarang.`,
     })
 
     return reply.code(200).send({ message: 'Email sudah diperbarui.' })
@@ -896,6 +923,15 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       metadata: { revokedSessions: result.affected },
       ip: request.ip ?? null,
       userAgent: request.headers['user-agent'] ?? null,
+    })
+
+    await notifySecurityActivity(db, {
+      userId: session.userId,
+      title: 'Perangkat lain dikeluarkan',
+      body:
+        result.affected > 0
+          ? `${result.affected} sesi di perangkat lain dikeluarkan dari akun Anda. Sesi di perangkat ini tetap masuk.`
+          : 'Tidak ada sesi lain yang sedang aktif, jadi tidak ada perangkat yang perlu dikeluarkan.',
     })
 
     return reply.code(200).send({ revoked: result.affected })
@@ -1131,8 +1167,9 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       workspace_id: number
       email: string
       role: Role
+      invited_by: string | null
     }>(
-      `select id, workspace_id, email, role
+      `select id, workspace_id, email, role, invited_by
          from workspace_invitations
         where token_hash = $1
           and accepted_at is null
@@ -1153,6 +1190,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       workspaceId: matchedRow.workspace_id,
       email: matchedRow.email,
       role: matchedRow.role,
+      inviterUserId: matchedRow.invited_by === null ? null : Number(matchedRow.invited_by),
     }
 
     if (matched.email !== session.email) {
@@ -1177,7 +1215,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
         `insert into memberships (workspace_id, user_id, role, invited_by)
          values ($1, $2, $3, $4)
          on conflict do nothing`,
-        [matched.workspaceId, session.userId, matched.role, session.userId],
+        [matched.workspaceId, session.userId, matched.role, matched.inviterUserId],
       )
     })
 
@@ -1190,6 +1228,15 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       objectId: String(matched.workspaceId),
       ip: request.ip ?? null,
       userAgent: request.headers['user-agent'] ?? null,
+    })
+
+    await notifyInvitationAccepted(db, {
+      workspaceId: matched.workspaceId,
+      invitationId: matched.id,
+      inviterUserId: matched.inviterUserId,
+      memberUserId: session.userId,
+      memberName: session.name,
+      role: matched.role,
     })
 
     return reply.code(200).send({ workspaceId: matched.workspaceId, role: matched.role })

@@ -330,6 +330,62 @@ describe('kode pemulihan (B-09)', () => {
 })
 
 describe('MFA saat masuk (PRD 9)', () => {
+  it('membawa workspace aktif ke sesi hasil putaran ulang setelah MFA', async () => {
+    const emailAddress = 'mfa-workspace@contoh.test'
+    const cookie = await registerAndVerify(emailAddress)
+    const userId = await userIdFor(emailAddress)
+    await enableMfa(cookie, userId)
+    const workspaceId = await createWorkspaceWithRole('toko-mfa-workspace', 'Toko MFA', userId, 'owner')
+    const secret = await currentSecretFor(userId)
+
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: emailAddress, password: PASSWORD },
+    })
+    const pending = cookieOf(login)
+    const token = await generate({ secret })
+
+    const verified = await app.inject({
+      method: 'POST',
+      url: '/api/auth/mfa/verify',
+      headers: { cookie: pending },
+      payload: { token },
+    })
+    expect(verified.statusCode, verified.body).toBe(200)
+    expect(verified.json().workspaceId).toBe(workspaceId)
+
+    // Sesi hasil putaran ulang harus tetap menunjuk usaha yang sama; kalau
+    // tidak, halaman menuduh pengguna belum punya usaha setelah tiap MFA.
+    const setelah = await app.inject({
+      method: 'GET',
+      url: '/api/auth/session',
+      headers: { cookie: cookieOf(verified) },
+    })
+    expect(setelah.json().activeWorkspaceId).toBe(workspaceId)
+    expect(setelah.json().mfaSatisfied).toBe(true)
+
+    // Ganti kata sandi juga memutar ulang sesi; keduanya harus bertahan.
+    const ganti = await app.inject({
+      method: 'POST',
+      url: '/api/auth/change-password',
+      headers: { cookie: cookieOf(verified) },
+      payload: {
+        currentPassword: PASSWORD,
+        newPassword: 'kata-sandi-mfa-baru-2026-yang-panjang',
+      },
+    })
+    expect(ganti.statusCode, ganti.body).toBe(200)
+
+    const setelahGanti = await app.inject({
+      method: 'GET',
+      url: '/api/auth/session',
+      headers: { cookie: cookieOf(ganti) },
+    })
+    expect(setelahGanti.json().activeWorkspaceId).toBe(workspaceId)
+    expect(setelahGanti.json().mfaSatisfied).toBe(true)
+  })
+
   it('meminta kode kedua dan tidak memberi akses sebelum kode diberikan', async () => {
     const emailAddress = 'mfa-masuk@contoh.test'
     const cookie = await registerAndVerify(emailAddress)

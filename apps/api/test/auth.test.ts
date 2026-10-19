@@ -349,6 +349,35 @@ describe('memutar ulang sesi (PRD 9)', () => {
     })
     expect(denganTokenLama.statusCode).toBe(401)
   })
+
+  it('mempertahankan workspace aktif setelah kata sandi diganti', async () => {
+    const cookie = await registerAndVerify('rotasi-workspace@contoh.test')
+    const dibuat = await app.inject({
+      method: 'POST',
+      url: '/api/workspaces',
+      headers: { cookie },
+      payload: { name: 'Toko Rotasi', businessType: 'kedai kopi' },
+    })
+    expect(dibuat.statusCode, dibuat.body).toBe(201)
+    const workspaceId = dibuat.json().workspaceId
+
+    const change = await app.inject({
+      method: 'POST',
+      url: '/api/auth/change-password',
+      headers: { cookie },
+      payload: { currentPassword: PASSWORD, newPassword: 'kata-sandi-baru-2026-yang-panjang' },
+    })
+    expect(change.statusCode).toBe(200)
+
+    const sesi = await app.inject({
+      method: 'GET',
+      url: '/api/auth/session',
+      headers: { cookie: cookieOf(change) },
+    })
+    // Tanpa ini pengguna disuruh membuat usaha baru tepat setelah ganti kata
+    // sandi, karena sesi hasil putaran ulang kehilangan workspace aktifnya.
+    expect(sesi.json().activeWorkspaceId).toBe(workspaceId)
+  })
 })
 
 describe('ubah kata sandi (PRD 6.1)', () => {

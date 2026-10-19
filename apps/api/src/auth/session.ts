@@ -151,9 +151,14 @@ export async function issueSession(
     [input.userId, deviceLabel(input.userAgent ?? undefined), input.userAgent ?? null],
   )
 
+  // Workspace aktif ikut ditulis di sini, bukan hanya di pemanggilnya. Sesi
+  // hasil putaran ulang (setelah MFA dan setelah ganti kata sandi) juga lewat
+  // fungsi ini, dan sesi yang lahir tanpa workspace aktif membuat pengguna
+  // diminta membuat usaha baru walaupun usahanya sudah ada.
   const session = await db.query<{ id: string }>(
-    `insert into sessions (user_id, device_id, token_hash, ip, user_agent, mfa_satisfied_at, expires_at)
-     values ($1, $2, $3, $4, $5, $6, now() + make_interval(days => $7))
+    `insert into sessions
+       (user_id, device_id, token_hash, ip, user_agent, mfa_satisfied_at, active_workspace_id, expires_at)
+     values ($1, $2, $3, $4, $5, $6, $7, now() + make_interval(days => $8))
      returning id`,
     [
       input.userId,
@@ -162,6 +167,7 @@ export async function issueSession(
       input.ip ?? null,
       input.userAgent ?? null,
       input.mfaSatisfied ? new Date() : null,
+      input.workspaceId ?? null,
       SESSION_TTL_DAYS,
     ],
   )

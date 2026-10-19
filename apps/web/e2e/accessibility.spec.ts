@@ -40,6 +40,8 @@ const HALAMAN = [
   { path: '/pengaturan/usaha', nama: 'profil usaha' },
   { path: '/pengaturan/anggota', nama: 'anggota dan peran' },
   { path: '/pengaturan/akun', nama: 'pengaturan akun' },
+  { path: '/pengaturan/notifikasi', nama: 'pengaturan notifikasi' },
+  { path: '/notifikasi', nama: 'daftar notifikasi' },
   { path: '/buat-usaha', nama: 'buat usaha' },
   { path: '/undangan', nama: 'terima undangan' },
   { path: '/laporan', nama: 'laporan usaha' },

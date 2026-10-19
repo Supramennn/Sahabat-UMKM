@@ -1,5 +1,7 @@
 import { createPostgresDatabase } from '@sahabat/db'
 import { buildApp } from './app.ts'
+import { startNotificationScheduler } from './notifications/daily.ts'
+import { createLogEmailProvider } from './services/email.ts'
 
 // Nilai dari .env dimuat lebih dulu supaya perintah npm, yang berjalan di
 // direktori workspace, tetap menemukan berkas di akar repositori. Variabel
@@ -35,6 +37,22 @@ const db = createPostgresDatabase(
 )
 const app = await buildApp({ db, logger: true })
 
+// Penjadwal dalam proses: mengirim email notifikasi yang menunggu (PRD 6.9) dan
+// menjalankan tugas harian utang jatuh tempo serta ringkasan harian. Penyedia
+// log ini sebentuk dengan yang dipakai rute; begitu penyedia email sungguhan
+// dipasang untuk PRD 15, buat satu instance di sini lalu kirimkan juga lewat
+// opsi `email` ke buildApp supaya keduanya memakai penyedia yang sama.
+const webOrigin = process.env.WEB_ORIGIN || 'http://localhost:3000'
+const email = createLogEmailProvider(app.log)
+const stopNotificationScheduler = startNotificationScheduler({
+  db,
+  sendEmail: email.send.bind(email),
+  webOrigin,
+  onError: (error, context) => {
+    app.log.error({ err: error }, `notifikasi gagal: ${context}`)
+  },
+})
+
 try {
   await app.listen({ host, port })
 } catch (error) {
@@ -46,6 +64,7 @@ try {
 // Tutup koneksi database saat proses dihentikan supaya PostgreSQL tidak
 // menyisakan koneksi menggantung.
 const shutdown = async () => {
+  stopNotificationScheduler()
   await app.close()
   await db.close()
   process.exit(0)

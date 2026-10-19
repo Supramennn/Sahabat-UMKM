@@ -23,6 +23,7 @@ import { registerPlanRoutes } from './plans/routes.ts'
 import { registerReportRoutes } from './reports/routes.ts'
 import { registerExportRoutes } from './export/routes.ts'
 import { registerDashboardRoutes } from './dashboard/routes.ts'
+import { registerNotificationRoutes } from './notifications/routes.ts'
 import { StockError } from './stock/movements.ts'
 import { createLogEmailProvider, type EmailProvider } from './services/email.ts'
 
@@ -129,6 +130,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     registerReportRoutes(app, { db: options.db })
     registerExportRoutes(app, { db: options.db })
     registerDashboardRoutes(app, { db: options.db })
+    registerNotificationRoutes(app, { db: options.db })
   }
 
   app.get('/health', async () => ({ status: 'ok' }))

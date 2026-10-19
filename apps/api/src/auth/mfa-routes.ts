@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { Database } from '@sahabat/db'
 import { requireSession } from './session.ts'
 import { writeAudit } from './audit.ts'
+import { notifySecurityActivity } from '../notifications/hooks.ts'
 import { hashToken, tokenMatches } from './token.ts'
 import { loadMfaGate } from './mfa-policy.ts'
 import {
@@ -168,6 +169,12 @@ export function registerMfaRoutes(app: FastifyInstance, deps: AuthDeps): void {
       metadata: { recoveryCodes: codes.length },
     })
 
+    await notifySecurityActivity(db, {
+      userId: session.userId,
+      title: 'Verifikasi dua langkah diaktifkan',
+      body: 'Akun Anda sekarang meminta kode dari aplikasi autentikator saat masuk. Simpan kode pemulihan di tempat yang aman.',
+    })
+
     return reply.code(200).send({
       confirmed: true,
       // Kode pemulihan hanya ditampilkan sekali. Yang tersimpan adalah hash-nya.
@@ -221,6 +228,12 @@ export function registerMfaRoutes(app: FastifyInstance, deps: AuthDeps): void {
       ip: request.ip ?? null,
       userAgent: request.headers['user-agent'] ?? null,
       metadata: { usedRecoveryCode: !withToken.valid },
+    })
+
+    await notifySecurityActivity(db, {
+      userId: session.userId,
+      title: 'Verifikasi dua langkah dimatikan',
+      body: 'Verifikasi dua langkah dinonaktifkan dari akun Anda. Kalau bukan Anda, aktifkan kembali lalu ganti kata sandi.',
     })
 
     return reply.code(200).send({ disabled: true })

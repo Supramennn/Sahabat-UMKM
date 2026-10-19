@@ -4,7 +4,7 @@ Status: aktif. Sumber kebenaran produk tetap `docs/PRD-Sahabat-UMKM.md`. Dokumen
 keputusan yang PRD delegasikan ke tim, beserta alasannya, supaya setiap fase bisa merujuk
 nomor yang sama.
 
-Terakhir diperbarui: 17 Oktober 2026.
+Terakhir diperbarui: 19 Oktober 2026.
 
 ## 1. Keputusan yang sudah dikunci
 
@@ -29,6 +29,7 @@ Terakhir diperbarui: 17 Oktober 2026.
 | K-17 | Bentuk ekspor seluruh data | Satu arsip ZIP berisi satu CSV per tabel bisnis plus PANDUAN.txt, diunduh Owner atau Admin kapan saja, tersedia di semua paket, dan dijalankan langsung pada permintaan (belum lewat antrean). Berkas lampiran biner, riwayat impor, log audit, dan data teknis tidak ikut | PRD 6.8, PRD 16 |
 | K-18 | Isi dan akses dashboard | Setiap bagian dashboard memakai izin laporan yang sama dengan halaman laporan, jadi peran yang tidak boleh membaca laporan pembelian atau utang juga tidak menerimanya di dashboard. Grafik dibuat dari elemen dasar tanpa pustaka grafik, selalu disertai ringkasan teks dan tabel data yang bisa dibuka. Navigasi bawah ponsel memakai lima tujuan PRD 10 termasuk halaman Lainnya | PRD 6.7, PRD 8, PRD 10 |
 | K-19 | Gaya frontend | Tailwind CSS v4 dan Motion (Framer Motion) untuk seluruh antarmuka, menggantikan K-16. Nilai warna tetap hanya dari `packages/design-tokens`; blok `@theme` di `apps/web/src/styles/globals.css` wajib sama persis dan dijaga tes `theme-sync`. Gerak dibatasi pada animasi transformasi masuk yang terukur dan menghormati `prefers-reduced-motion` | Permintaan pemilik produk, 17 Okt 2026; PRD 13 |
+| K-20 | Notifikasi dan email | Baris notifikasi ditulis di dalam transaksi peristiwanya; email diambil dari antrean `emailed_at is null` oleh penjadwal dalam proses, tidak pernah dikirim dari dalam transaksi. Penerima dihitung dari izin (capability), pelaku sendiri dikecualikan, dan preferensi pengguna hanya bisa mematikan kanal. Notifikasi keamanan bersifat tingkat akun (`workspace_id null`) sehingga tampil di daftar semua usaha pemiliknya. Utang jatuh tempo memakai ambang `overdueDays > 0` yang sama dengan dashboard dan hanya untuk paket dengan fitur `returns`. Ringkasan harian opt-in, dikirim setelah pukul 7 pagi waktu usaha | PRD 6.9, PRD 6.2, PRD 8, PRD 16 |
 
 ### Alasan K-12
 
@@ -186,6 +187,58 @@ Untuk animasi, aturannya: konten masuk memakai transformasi halus tanpa perubaha
 sehingga pemeriksaan kontras tidak pernah mengukur teks yang setengah transparan;
 `MotionConfig reducedMotion="user"` mematikan animasi bagi pengguna yang memintanya; dan
 suite E2E dijalankan dengan `reducedMotion` agar hasilnya deterministik.
+
+### Alasan K-20
+
+PRD 6.9 hanya menyebut jenis notifikasi dan dua kanalnya, jadi bentuk teknisnya
+diputuskan di sini. Aturan pertama mengikuti PRD 9: email tidak boleh dikirim dari
+dalam transaksi bisnis. Kalau pengiriman email dilakukan di tengah transaksi stok,
+satu penyedia email yang lambat menahan kunci baris saldo, dan kegagalan email bisa
+membatalkan pencatatan yang sebenarnya sah. Karena itu baris notifikasi ditulis di
+dalam transaksi (supaya tidak pernah ada surat untuk transaksi yang batal), lalu
+pengirim (`flushNotificationEmails`) mengambilnya setelah transaksi selesai. Klaim
+lewat `update ... where emailed_at is null` membuat dua pengirim bersamaan tidak
+mengirim pesan yang sama dua kali, dan klaim dilepas lagi bila pengiriman gagal.
+
+Penerima ditentukan dari izin, bukan daftar nama: stok rendah ke pemegang
+`purchase_orders.create` (Owner, Admin, Purchasing), utang ke pemegang `reports.debt`
+(Owner dan Admin, sama seperti laporan), PO menunggu persetujuan ke pemegang
+`purchase_orders.approve`. Pelaku sendiri dikecualikan untuk stok rendah, pengajuan
+PO, keputusan PO, dan undangan diterima, karena memberi tahu orang yang baru
+melakukannya hanya menambah bising. Pengaturan pengguna di halaman
+`/pengaturan/notifikasi` hanya mematikan kanal in-app atau email per jenis; ia tidak
+bisa menambah penerima, karena penerima adalah soal izin.
+
+Notifikasi aktivitas keamanan (ganti kata sandi, ganti email, MFA dinyalakan atau
+dimatikan, perangkat dicabut) tidak melekat pada satu usaha: `workspace_id`-nya
+`null`, dan daftar notifikasi workspace mana pun milik pengguna itu menampilkannya.
+Kalau baris seperti ini diikatkan ke workspace, pengguna yang sedang membuka usaha
+lain tidak akan pernah melihat peringatan keamanannya. Peringatan perubahan email
+juga dikirim langsung ke alamat lama, di luar preferensi, karena itu satu-satunya
+kanal yang masih dipegang pemilik sah saat alamat barunya dikuasai orang lain.
+
+Kunci dedupe menahan baris kembar dengan pola `peristiwa:id:konteks`, misalnya
+`stok_rendah:{produk}:{tanggal}`, `po_diajukan:{po}`, dan
+`utang_jatuh_tempo:{workspace}:{tanggal}`. Kolomnya `nullable` dengan indeks unik
+parsial `(user_id, dedupe_key)`, jadi notifikasi tanpa kunci (keamanan) tetap boleh
+berulang, sedangkan yang berkunci hanya muncul sekali.
+
+Ringkasan harian adalah Opt-in (bawaan mati) karena PRD 6.9 menyebutnya opsional.
+Jam kirimnya 07.00 di zona waktu usaha, dihitung dari keanggotaan terlama pengguna,
+karena jam per pengguna tidak ada di PRD. Isinya hanya baris yang diminta lewat
+email, dan waktunya dibatasi sejak ringkasan terakhir (atau 24 jam terakhir).
+
+Ambang utang jatuh tempo sengaja memakai `overdueDays > 0` dan laporan `debts` yang
+sama dengan dashboard, supaya angka di surel tidak pernah berbeda dari angka di
+aplikasi. Laporan itu terikat fitur `returns` (PRD 16), jadi paket Gratis tidak
+menerima pengingat utang — bukan karena pesan email lebih mahal, tetapi karena ia
+tidak bisa membuka halaman yang disebut di pesan itu.
+
+Penjadwal berjalan di dalam proses (`startNotificationScheduler`), bukan worker
+terpisah, karena server ini belum punya pg-boss. K-02 mencatat pg-boss untuk antrean
+impor, ekspor, dan email; ketika dipasang, isi `daily.ts` dan `flushNotificationEmails`
+dipindahkan menjadi job, bukan ditulis ulang. Selama itu, dua panggilan idempoten di
+timer satu jam sudah cukup: keduanya aman dijalankan berulang.
 
 ### Alasan K-02
 

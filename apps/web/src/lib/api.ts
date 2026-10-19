@@ -621,6 +621,43 @@ export type SubscriptionResponse = {
   billingEnabled: false
 }
 
+/* Notifikasi ------------------------------------------------------------------ */
+
+export type NotificationItem = {
+  id: number
+  kind: string
+  kindLabel: string
+  title: string
+  body: string
+  href: string | null
+  workspaceId: number | null
+  read: boolean
+  createdAt: string
+}
+
+export type NotificationsResponse = {
+  notifications: NotificationItem[]
+  total: number
+  unreadCount: number
+  limit: number
+  offset: number
+}
+
+export type UnreadCountResponse = { unreadCount: number }
+
+export type MarkReadResponse = { marked: number }
+
+export type NotificationPreferencesResponse = {
+  preferences: Array<{
+    kind: string
+    label: string
+    description: string
+    inApp: boolean
+    email: boolean
+  }>
+  digestEnabled: boolean
+}
+
 /* Berkas impor --------------------------------------------------------------- */
 
 export interface ImportFilePayload {

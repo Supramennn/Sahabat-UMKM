@@ -11,6 +11,7 @@
 
 import { createPgliteDatabase, migrate } from '@sahabat/db'
 import { createLogEmailProvider } from '../apps/api/src/services/email.ts'
+import { startNotificationScheduler } from '../apps/api/src/notifications/daily.ts'
 import { buildApp } from '../apps/api/src/app.ts'
 
 // Ikut memuat .env supaya rahasia dan pengaturan penyimpanan lokal dari
@@ -25,17 +26,32 @@ try {
 const db = await createPgliteDatabase()
 await migrate(db)
 
+const email = createLogEmailProvider()
 const app = await buildApp({
   db,
-  email: createLogEmailProvider(),
+  email,
   sessionSecret: process.env.SESSION_SECRET || 'rahasia-pengembangan-manual',
   origin: 'http://localhost:3000',
+})
+
+// Penjadwal notifikasi yang sama dengan server produksi, jadi email yang
+// menunggu dan tugas harian bisa diamati di jalur PGlite juga. Jeda pengirim
+// dipercepat supaya pemeriksaan manual tidak menunggu 15 detik.
+const stopNotificationScheduler = startNotificationScheduler({
+  db,
+  sendEmail: email.send.bind(email),
+  webOrigin: 'http://localhost:3000',
+  senderIntervalMs: 5_000,
+  onError: (error, context) => {
+    console.error(`notifikasi gagal (${context}):`, error instanceof Error ? error.message : error)
+  },
 })
 
 await app.listen({ host: '127.0.0.1', port: 4000 })
 console.log('API berjalan di http://127.0.0.1:4000 dengan database PGlite dalam memori')
 
 const shutdown = async () => {
+  stopNotificationScheduler()
   await app.close()
   await db.close()
   process.exit(0)

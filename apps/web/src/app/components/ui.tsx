@@ -181,6 +181,54 @@ export function SelectField({
   )
 }
 
+/**
+ * Kotak centang dengan label sebagai satu kesatuan yang bisa diklik, jadi
+ * target sentuhnya memenuhi 44 px (PRD 10). Keterangan tambahan terhubung lewat
+ * aria-describedby.
+ */
+export function CheckboxField({
+  id,
+  label,
+  checked,
+  onChange,
+  hint,
+  ariaLabel,
+}: {
+  id: string
+  label: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+  hint?: string
+  ariaLabel?: string
+}) {
+  const hintId = hint ? `${id}-hint` : undefined
+
+  return (
+    <label className="flex min-h-touch cursor-pointer items-start gap-3 py-1" htmlFor={id}>
+      <input
+        className="mt-1 size-5 shrink-0 cursor-pointer accent-secondary"
+        id={id}
+        name={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        aria-describedby={hintId}
+        // Dipakai bila beberapa kotak centang berlabel sama di satu halaman,
+        // supaya pembaca layar tidak menyebut "Email" tanpa konteks.
+        aria-label={ariaLabel}
+      />
+      <span className="flex flex-col gap-0.5">
+        <span className="text-[0.9375rem] font-medium text-text-primary">{label}</span>
+        {hint ? (
+          <span className="text-sm text-text-secondary" id={hintId}>
+            {hint}
+          </span>
+        ) : null}
+      </span>
+    </label>
+  )
+}
+
 export function Button({
   children,
   onClick,

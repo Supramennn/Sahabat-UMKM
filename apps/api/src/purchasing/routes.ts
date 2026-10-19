@@ -6,6 +6,7 @@ import { AuthorizationError, loadWorkspaceRole, requireSession } from '../auth/s
 import { writeAudit } from '../auth/audit.ts'
 import { assertFeature, effectivePlan, ensureFeature, lockWorkspace } from '../plans/service.ts'
 import { StockError, recordMovement, asNumber } from '../stock/movements.ts'
+import { notifyPurchaseOrderDecision, notifyPurchaseOrderSubmitted } from '../notifications/hooks.ts'
 import { allocateDocumentNumber, toDateString, todayInWorkspace } from './documents.ts'
 import {
   closeOrderSchema,
@@ -492,6 +493,12 @@ function registerOrderRoutes(app: FastifyInstance, db: Database): void {
       objectId: String(orderId),
     })
 
+    await notifyPurchaseOrderSubmitted(db, {
+      workspaceId: context.workspaceId,
+      orderId,
+      actorUserId: session.userId,
+    })
+
     return reply.code(200).send({ message: 'PO diajukan untuk persetujuan.' })
   })
 
@@ -557,6 +564,13 @@ function registerOrderRoutes(app: FastifyInstance, db: Database): void {
       objectId: String(orderId),
     })
 
+    await notifyPurchaseOrderDecision(db, {
+      workspaceId: context.workspaceId,
+      orderId,
+      decision: 'disetujui',
+      actorUserId: session.userId,
+    })
+
     return reply.code(200).send({ message: 'PO disetujui.' })
   })
 
@@ -607,6 +621,14 @@ function registerOrderRoutes(app: FastifyInstance, db: Database): void {
       objectType: 'purchase_order',
       objectId: String(orderId),
       metadata: { reason: input.reason ?? null },
+    })
+
+    await notifyPurchaseOrderDecision(db, {
+      workspaceId: context.workspaceId,
+      orderId,
+      decision: 'ditolak',
+      actorUserId: session.userId,
+      reason: input.reason ?? null,
     })
 
     return reply.code(200).send({ message: 'PO ditolak.' })

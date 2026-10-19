@@ -55,6 +55,41 @@ pustaka grafik; setiap grafik punya ringkasan teks dan tabel data yang bisa dibu
 Workspace tanpa catatan menampilkan penjelasan dan tombol langkah berikutnya, tanpa
 angka contoh (K-07).
 
+## Notifikasi
+
+Notifikasi PRD 6.9 memakai antrean di database, bukan pengiriman langsung dari
+transaksi bisnis. Baris `notifications` ditulis di dalam transaksi peristiwanya
+(pergerakan stok, pengajuan dan keputusan PO, penerimaan undangan, aktivitas akun),
+jadi tidak pernah ada surat untuk transaksi yang batal. Emailnya baru diambil oleh
+`flushNotificationEmails` setelah transaksi selesai: baris dengan `emailed_at is
+null` diklaim lewat `update ... where emailed_at is null`, sehingga dua pengirim
+bersamaan tidak mengirim pesan yang sama dua kali, dan klaimnya dilepas lagi bila
+pengiriman gagal. Kegagalan email karena itu tidak pernah membatalkan pencatatan
+stok atau pembelian.
+
+Penerima dihitung dari izin (`capability`), bukan dari daftar nama: stok rendah ke
+pemegang `purchase_orders.create`, utang jatuh tempo ke pemegang `reports.debt`, PO
+menunggu persetujuan ke pemegang `purchase_orders.approve`. Aturan itu ada di
+`apps/api/src/notifications/hooks.ts`, dan pelaku sendiri dikecualikan supaya tidak
+memberi tahu orang yang baru melakukan tindakannya. Preferensi pengguna di
+`notification_preferences` hanya mematikan kanal, tidak bisa menambah penerima.
+Notifikasi keamanan akun disimpan dengan `workspace_id` kosong supaya tetap terlihat
+dari usaha mana pun milik pengguna itu (K-20).
+
+`apps/api/src/notifications/daily.ts` menjalankan dua tugas berkala: pengingat
+utang jatuh tempo (memakai laporan `debts` yang sama dengan dashboard) dan ringkasan
+harian opsional. Penjadwalnya berjalan di dalam proses API lewat
+`startNotificationScheduler`, dengan `setInterval` satu jam dan pengirim email setiap
+15 detik; keduanya idempoten dan dijalankan sekali di awal agar antrean yang menunggu
+saat server dinyalakan tidak menunggu satu putaran. Ketika pg-boss dipasang (K-02),
+isi dua tugas ini yang dipindahkan menjadi job, bukan ditulis ulang.
+
+Halaman `/notifikasi` menampilkan daftar dengan penanda belum dibaca dan tautan ke
+halaman terkait; jumlah belum dibaca muncul di bilah atas semua halaman lewat
+`app-context`. Pengaturan per jenis dan ringkasan harian ada di
+`/pengaturan/notifikasi`. Keduanya memanggil endpoint yang memeriksa sesi dan
+keanggotaan workspace di server, bukan hanya menyembunyikan tombol.
+
 ## Bentuk sistem
 
 Modular monolith, sesuai PRD 13. Dua proses yang berjalan terpisah:
@@ -68,7 +103,8 @@ Basis data PostgreSQL accessed langsung oleh API. Antrean tugas (impor, ekspor,
 email) direncanakan berjalan di atas PostgreSQL dengan pg-boss agar tidak ada
 layanan tambahan yang harus dipantau dan dicadangkan; pada fase ini impor dan
 ekspor masih dijalankan langsung saat permintaan datang karena volumenya belum
-menuntut antrean.
+menuntut antrean. Email notifikasi sudah memakai antrean di database yang dikuras
+oleh penjadwal dalam proses (`apps/api/src/notifications`), lihat bagian Notifikasi.
 
 ## Mengapa tanpa ORM
 

@@ -1,5 +1,6 @@
 import type { Transaction } from '@sahabat/db'
 import { inventoryValueAfterOut, recalculateMovingAverage } from '@sahabat/shared'
+import { notifyLowStock } from '../notifications/hooks.ts'
 
 /**
  * Inti integritas stok. Setiap perubahan stok melewati fungsi ini, dan tidak ada
@@ -109,6 +110,7 @@ interface ProductRow {
   sku: string
   unit_code: string
   status: string
+  min_stock: string | null
 }
 
 interface LocationRow {
@@ -268,6 +270,13 @@ export async function recordMovement(
 
   const cost = await updateCost(tx, input, balanceBefore, balanceAfter, addsStock)
 
+  // PRD 6.9: stok rendah memberi tahu saat saldo pertama kali menyentuh batas
+  // minimum, bukan setiap kali turun. Barisnya memakai transaksi ini, dan kunci
+  // dedupe menahan pengulangan pada hari yang sama.
+  if (!addsStock && product.min_stock !== null) {
+    await notifyIfStockCrossedMinimum(tx, input, product)
+  }
+
   return {
     movementId,
     balanceBefore,
@@ -278,11 +287,47 @@ export async function recordMovement(
   }
 }
 
+/**
+ * Memeriksa apakah pergerakan ini menurunkan saldo total sampai atau melewati
+ * batas minimum. Saldo total dijumlahkan setelah baris saldo di transaksi ini
+ * diperbarui, dan saldo sebelum dihitung dari jumlah itu, jadi tidak ada kueri
+ * tambahan ke ledger.
+ */
+async function notifyIfStockCrossedMinimum(
+  tx: Transaction,
+  input: RecordMovementInput,
+  product: ProductRow,
+): Promise<void> {
+  const minStock = asNumber(product.min_stock)
+  const total = await tx.query<{ total: string }>(
+    `select coalesce(sum(quantity), 0)::text as total
+       from stock_balances
+      where workspace_id = $1 and product_id = $2`,
+    [input.workspaceId, input.productId],
+  )
+  const totalAfter = asNumber(total.rows[0]?.total)
+  const totalBefore = totalAfter + input.quantity
+  if (totalBefore <= minStock || totalAfter > minStock) {
+    return
+  }
+
+  await notifyLowStock(tx, {
+    workspaceId: input.workspaceId,
+    productId: input.productId,
+    productName: product.name,
+    unitCode: product.unit_code,
+    totalAfter,
+    minStock,
+    occurredOn: input.occurredOn,
+    actorUserId: input.actorUserId,
+  })
+}
+
 async function lockProduct(tx: Transaction, workspaceId: number, productId: number): Promise<ProductRow> {
   // workspace_id ikut dikueri, jadi ID produk milik workspace lain tidak bisa
   // dipakai di sini meski pemanggil sudah punya sesi yang sah (PRD 9).
   const found = await tx.query<ProductRow>(
-    `select id, name, sku, unit_code, status
+    `select id, name, sku, unit_code, status, min_stock
        from products
       where id = $1 and workspace_id = $2
       for update`,

@@ -1,8 +1,8 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { roleLabels, type Role } from '@sahabat/shared'
-import { apiGet, errorMessage, type SessionResponse, type WorkspaceResponse } from '../../lib/api'
+import { apiGet, errorMessage, type SessionResponse, type UnreadCountResponse, type WorkspaceResponse } from '../../lib/api'
 import { AuthLink, ErrorState } from './ui'
 
 /**
@@ -19,11 +19,15 @@ export interface AppContextValue {
   role: Role
   roleLabel: string
   userName: string
+  /** Jumlah notifikasi yang belum dibaca di workspace aktif (PRD 6.9). */
+  unreadCount: number | null
+  /** Ambil ulang jumlah belum dibaca dari server setelah pengguna menandai dibaca. */
+  refreshUnreadCount: () => Promise<void>
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
 
-type AppContextState = Omit<AppContextValue, 'renameWorkspace'>
+type AppContextState = Omit<AppContextValue, 'renameWorkspace' | 'unreadCount' | 'refreshUnreadCount'>
 
 export function useApp(): AppContextValue {
   const value = useContext(AppContext)
@@ -38,6 +42,7 @@ export function AppProvider({ children, title = 'Stok' }: { children: ReactNode;
   const [error, setError] = useState<string | null>(null)
   const [tanpaWorkspace, setTanpaWorkspace] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [unreadCount, setUnreadCount] = useState<number | null>(null)
 
   useEffect(() => {
     let berhenti = false
@@ -108,6 +113,25 @@ export function AppProvider({ children, title = 'Stok' }: { children: ReactNode;
     })
   }
 
+  // Jumlah notifikasi belum dibaca dimuat setelah workspace diketahui, dan bisa
+  // disegarkan halaman notifikasi setelah pengguna menandai sesuatu dibaca
+  // (PRD 6.9). Kegagalan memuat diabaikan: hitungan ini pelengkap, bukan syarat
+  // halaman bisa dipakai.
+  const workspaceId = context?.workspaceId
+  const refreshUnreadCount = useCallback(async () => {
+    if (workspaceId === undefined) return
+    const hasil = await apiGet<UnreadCountResponse>(
+      `/api/workspaces/${workspaceId}/notifications/unread-count`,
+    )
+    if (hasil.ok) {
+      setUnreadCount(hasil.data.unreadCount)
+    }
+  }, [workspaceId])
+
+  useEffect(() => {
+    void refreshUnreadCount()
+  }, [refreshUnreadCount])
+
   // PRD 10: judul utama harus ada di setiap keadaan halaman, termasuk saat memuat
   // dan saat gagal. Tanpa itu, pembaca layar dan mesin pencari tidak tahu halaman
   // ini tentang apa. Judulnya milik halaman pemanggil, bukan selalu "Stok".
@@ -138,7 +162,7 @@ export function AppProvider({ children, title = 'Stok' }: { children: ReactNode;
   }
 
   return (
-    <AppContext.Provider value={{ ...context, renameWorkspace }}>
+    <AppContext.Provider value={{ ...context, renameWorkspace, unreadCount, refreshUnreadCount }}>
       {children}
     </AppContext.Provider>
   )

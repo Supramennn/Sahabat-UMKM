@@ -15,3 +15,10 @@ export type { DerivedStockStatus, MovingAverageInput, MovingAverageResult } from
 export { looksLikeStockPurchase, stockPurchaseWarning } from './expenses.ts'
 export { planCatalog, planCodes, planLimitMessage, TRIAL_DAYS } from './plans.ts'
 export type { PlanCode } from './plans.ts'
+export {
+  notificationKindDescriptions,
+  notificationKindLabel,
+  notificationKindLabels,
+  notificationKinds,
+} from './notifications.ts'
+export type { NotificationKind } from './notifications.ts'
