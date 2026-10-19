@@ -30,3 +30,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.tsbuildinfo
+
+# konfigurasi lokal opencode, berisi kunci API; jangan masuk repositori
+opencode.json
