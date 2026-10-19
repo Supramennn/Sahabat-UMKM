@@ -47,6 +47,21 @@ export function formatNumber(value: number): string {
   return `${negative ? '-' : ''}${groupThousands(digits)}`
 }
 
+/**
+ * Jumlah barang boleh pecahan (dua perempat kilo gula), jadi pemisah desimalnya
+ * koma seperti di Indonesia dan nol di ujung sudah dihapus saat disimpan. Empat
+ * angka desimal adalah batas presisi yang disimpan database.
+ */
+export function formatQuantity(value: number): string {
+  if (!Number.isFinite(value)) {
+    throw new RangeError(`Jumlah tidak valid: ${value}`)
+  }
+  const bulat = Number.isInteger(value) ? String(value) : String(Number(value.toFixed(4)))
+  const [bagianBulat, bagianDesimal] = bulat.split('.')
+  const denganPemisah = groupThousands(bagianBulat ?? '0')
+  return bagianDesimal ? `${denganPemisah},${bagianDesimal}` : denganPemisah
+}
+
 export interface DateParts {
   year: number
   month: number

@@ -1,0 +1,13 @@
+-- 0010_import_cancel_supplier.sql
+-- B-04: hasil impor data master bisa dibatalkan selama belum ada transaksi turunan
+-- yang menyentuhnya. Pembatalan impor supplier berarti menghapus supplier yang baru
+-- dibuat oleh impor itu, dan trigger suppliers_no_mutation menolak setiap
+-- penghapusan supplier sehingga pembatalan itu mustahil.
+--
+-- Yang benar-benar menjaga riwayat pembelian adalah foreign key komposit
+-- (id, workspace_id) di purchase_orders, goods_receipts, purchase_returns,
+-- supplier_payments, dan supplier_debt_entries. Tidak ada satu pun yang memakai
+-- on delete cascade, jadi supplier yang sudah dipakai dokumen tetap tidak bisa
+-- dihapus di level database. Aplikasi memeriksa daftar yang sama sebelum menghapus,
+-- dan pemeriksaan itu diulang di dalam transaksi pembatalan.
+drop trigger if exists suppliers_no_mutation on suppliers;

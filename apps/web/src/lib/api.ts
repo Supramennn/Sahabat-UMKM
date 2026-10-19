@@ -357,23 +357,99 @@ export type CategoriesResponse = { categories: Category[] }
 
 export type ImportProblem = { rowNumber: number; message: string }
 
-export type ImportPreview = {
+/** Empat jenis impor PRD 6.8. Nilainya sama dengan kolom kind di tabel import_jobs. */
+export type ImportKind = 'produk' | 'supplier' | 'saldo_awal' | 'penjualan'
+
+export type ImportPreviewBase = {
   totalRows: number
   validRows: number
   problemRows: number
   problems: ImportProblem[]
-  sample: Array<{ rowNumber: number; sku: string; name: string; unitCode: string }>
   maxRowsPerImport: number
   exceedsRowLimit: boolean
 }
 
+export type ImportPreview = ImportPreviewBase & {
+  sample: Array<{
+    rowNumber: number
+    sku: string
+    name: string
+    unitCode: string
+    categoryName: string | null
+    purchasePrice: number | null
+    sellingPrice: number | null
+    minStock: number | null
+  }>
+}
+
 export type ImportResult = {
   replayed: boolean
+  importJobId: number
   imported: number
   skipped: number
   categoriesCreated: number
   skippedRows: Array<{ rowNumber: number; sku: string; message: string }>
 }
+
+export type SupplierImportPreview = ImportPreviewBase & {
+  sample: Array<{
+    rowNumber: number
+    name: string
+    contactName: string | null
+    phone: string | null
+  }>
+}
+
+export type SupplierImportResult = {
+  replayed: boolean
+  importJobId: number
+  imported: number
+  skipped: number
+  skippedRows: Array<{ rowNumber: number; name: string; message: string }>
+}
+
+export type OpeningImportPreview = ImportPreviewBase & {
+  sample: Array<{
+    rowNumber: number
+    sku: string
+    locationName: string
+    quantity: number
+    unitCost: number | null
+    occurredOn: string | null
+  }>
+}
+
+export type OpeningImportResult = {
+  replayed: boolean
+  importJobId: number
+  imported: number
+  totalQuantity: number
+}
+
+/** Satu pekerjaan impor di riwayat (PRD 6.8), beserta alasan tidak bisa dibatalkan. */
+export type ImportJob = {
+  id: number
+  kind: ImportKind
+  kindLabel: string
+  fileName: string | null
+  totalRows: number
+  importedRows: number
+  skippedRows: number
+  createdAt: string
+  createdByName: string | null
+  cancelledAt: string | null
+  cancelledByName: string | null
+  status: 'selesai' | 'dibatalkan'
+  cancelable: boolean
+  cancelBlockedReason: string | null
+}
+
+export type ImportJobsResponse = {
+  jobs: ImportJob[]
+  pagination: { limit: number; offset: number; total: number }
+}
+
+export type CancelImportResult = { cancelled: number; replayed: boolean }
 
 export type Sale = {
   id: number
@@ -456,11 +532,7 @@ export type PaymentMethod = { id: number; name: string; archived: boolean }
 
 export type PaymentMethodsResponse = { paymentMethods: PaymentMethod[] }
 
-export type SalesImportPreview = {
-  totalRows: number
-  validRows: number
-  problemRows: number
-  problems: ImportProblem[]
+export type SalesImportPreview = ImportPreviewBase & {
   sample: Array<{
     rowNumber: number
     soldOn: string
@@ -468,8 +540,6 @@ export type SalesImportPreview = {
     quantity: number
     unitPrice: number
   }>
-  maxRowsPerImport: number
-  exceedsRowLimit: boolean
 }
 
 export type SalesImportResult = {
@@ -549,4 +619,114 @@ export type SubscriptionResponse = {
   }>
   pricingNote: string
   billingEnabled: false
+}
+
+/* Berkas impor --------------------------------------------------------------- */
+
+export interface ImportFilePayload {
+  fileName: string
+  content?: string
+  contentBase64?: string
+}
+
+/**
+ * Membaca berkas yang dipilih pengguna menjadi isi yang siap dikirim. XLSX dikirim
+ * sebagai base64 karena JSON tidak membawa biner; CSV dikirim sebagai teks supaya
+ * isinya bisa ditampilkan dan diperbaiki di kotak isian.
+ *
+ * Jenis berkas ditentukan dari penanda PK di awal isinya, sama seperti yang
+ * diperiksa server, bukan dari nama berkas. Nama yang salah atau tanpa ekstensi
+ * tidak membuat isi spreadsheet dibaca sebagai teks dan gagal dengan pesan kolom
+ * yang membingungkan.
+ */
+export async function readImportPayload(file: File): Promise<ApiResult<ImportFilePayload>> {
+  try {
+    const penanda = new Uint8Array(await file.slice(0, 2).arrayBuffer())
+    const xlsx = penanda[0] === 0x50 && penanda[1] === 0x4b
+
+    if (xlsx) {
+      if (file.size > 7_000_000) {
+        return {
+          ok: false,
+          error: {
+            error: 'berkas_terlalu_besar',
+            message: 'Berkas XLSX lebih dari 7 MB. Pecah berkasnya menjadi beberapa bagian.',
+          },
+        }
+      }
+
+      const bytes = new Uint8Array(await file.arrayBuffer())
+      let binary = ''
+      const potongan = 8192
+      for (let index = 0; index < bytes.length; index += potongan) {
+        binary += String.fromCharCode(...bytes.subarray(index, index + potongan))
+      }
+      return { ok: true, data: { fileName: file.name, contentBase64: btoa(binary) } }
+    }
+
+    if (file.size > 5_000_000) {
+      return {
+        ok: false,
+        error: {
+          error: 'berkas_terlalu_besar',
+          message: 'Berkas teks lebih dari 5 MB. Pecah berkasnya menjadi beberapa bagian.',
+        },
+      }
+    }
+
+    return { ok: true, data: { fileName: file.name, content: await file.text() } }
+  } catch {
+    return { ok: false, error: { error: 'berkas_tidak_bisa_dibaca', message: 'Berkas tidak bisa dibaca.' } }
+  }
+}
+
+/** Template CSV sebagai teks, untuk diisi ke kotak isian di layar. */
+export async function importTemplateCsv(
+  workspaceId: number,
+  kind: ImportKind,
+): Promise<ApiResult<string>> {
+  try {
+    const response = await fetch(
+      `${API_BASE}/api/workspaces/${workspaceId}/imports/templates/${kind}?format=csv`,
+      { credentials: 'include' },
+    )
+    if (!response.ok) {
+      return { ok: false, error: (await response.json().catch(() => ({}))) as ApiError }
+    }
+    return { ok: true, data: await response.text() }
+  } catch {
+    return { ok: false, error: { error: 'jaringan', message: 'Tidak bisa menghubungi server.' } }
+  }
+}
+
+/**
+ * Mengunduh template dari server. Template dibuat server, bukan di halaman, supaya
+ * contoh kolomnya selalu sama dengan yang diterima validator impor.
+ */
+export async function downloadImportTemplate(
+  workspaceId: number,
+  kind: ImportKind,
+  format: 'csv' | 'xlsx',
+): Promise<ApiResult<true>> {
+  try {
+    const response = await fetch(
+      `${API_BASE}/api/workspaces/${workspaceId}/imports/templates/${kind}?format=${format}`,
+      { credentials: 'include' },
+    )
+    if (!response.ok) {
+      return { ok: false, error: (await response.json().catch(() => ({}))) as ApiError }
+    }
+
+    const url = URL.createObjectURL(await response.blob())
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `template-impor-${kind.replace(/_/g, '-')}.${format}`
+    document.body.append(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    return { ok: true, data: true }
+  } catch {
+    return { ok: false, error: { error: 'jaringan', message: 'Tidak bisa menghubungi server.' } }
+  }
 }

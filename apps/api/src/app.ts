@@ -11,6 +11,9 @@ import { AuthenticationError, AuthorizationError, registerSessionLoader } from '
 import { registerStockRoutes } from './stock/routes.ts'
 import { registerImportRoutes } from './import/routes.ts'
 import { registerSalesImportRoutes } from './import/sales-routes.ts'
+import { registerSupplierImportRoutes } from './import/supplier-routes.ts'
+import { registerOpeningImportRoutes } from './import/opening-routes.ts'
+import { registerImportHistoryRoutes } from './import/history-routes.ts'
 import { registerMediaRoutes } from './media/routes.ts'
 import { registerPurchasingRoutes } from './purchasing/routes.ts'
 import { registerPurchaseOrderShareRoutes } from './purchasing/share.ts'
@@ -114,6 +117,9 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     registerStockRoutes(app, { db: options.db })
     registerImportRoutes(app, { db: options.db })
     registerSalesImportRoutes(app, { db: options.db })
+    registerSupplierImportRoutes(app, { db: options.db })
+    registerOpeningImportRoutes(app, { db: options.db })
+    registerImportHistoryRoutes(app, { db: options.db })
     registerMediaRoutes(app, { db: options.db })
     registerPurchasingRoutes(app, { db: options.db })
     registerPurchaseOrderShareRoutes(app, { db: options.db, webOrigin: origin, sendEmail: deps.sendEmail })

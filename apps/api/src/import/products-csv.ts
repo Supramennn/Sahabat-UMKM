@@ -1,10 +1,9 @@
 import { createHash } from 'node:crypto'
-import { z } from 'zod'
 import { MAX_QUANTITY_DECIMALS } from '@sahabat/shared'
 import { unitCodes } from '../stock/schemas.ts'
 
 /**
- * Impor produk dari CSV (PRD 6.8 dan skenario 1 PRD 3).
+ * Baris produk untuk impor CSV atau XLSX (PRD 6.8 dan skenario 1 PRD 3).
  *
  * Aturan yang dipegang:
  *
@@ -19,9 +18,14 @@ import { unitCodes } from '../stock/schemas.ts'
  * Pemisahan kolom dan desimal dilakukan manual, bukan pustaka, supaya formatnya
  * ditebak: berkas yang dibuat di ponsel dan yang dibuat di Excel bisa dibaca
  * keduanya.
+ *
+ * Saldo awal bukan bagian dari berkas ini. Impor saldo awal butuh kolom lokasi dan
+ * menghasilkan baris ledger, jadi ia punya alur dan template sendiri; kalau kolom
+ * "stok awal" muncul di sini, pengguna diberi tahu ke mana harus pindah, bukan
+ * diam-diam diabaikan.
  */
 
-const REQUIRED_HEADERS = ['sku', 'nama', 'satuan'] as const
+export const requiredProductHeaders = ['sku', 'nama', 'satuan'] as const
 
 const COLUMN_ALIASES: Record<string, string> = {
   sku: 'sku',
@@ -36,7 +40,6 @@ const COLUMN_ALIASES: Record<string, string> = {
   'harga_acuan': 'hargaBeli',
   'harga jual': 'hargaJual',
   'stok minimum': 'stokMinimum',
-  'stok awal': 'stokAwal',
 }
 
 export interface ParsedRow {
@@ -58,7 +61,7 @@ export interface CsvParseResult {
  */
 export function parseCsv(
   content: string,
-  normalize: (header: string) => string = normalizeHeader,
+  normalize: (header: string) => string = normalizeProductHeader,
 ): CsvParseResult {
   // BOM sering muncul dari ekspor Excel dan akan menempel pada nama kolom pertama.
   const text = content.replace(/^\uFEFF/, '')
@@ -150,7 +153,7 @@ export function parseCsv(
   return { headers, rows: parsed, problems }
 }
 
-function normalizeHeader(header: string): string {
+export function normalizeProductHeader(header: string): string {
   const cleaned = header
     .trim()
     .toLowerCase()
@@ -170,7 +173,6 @@ export interface ValidatedRow {
   purchasePrice: number | null
   sellingPrice: number | null
   minStock: number | null
-  openingQuantity: number | null
 }
 
 export interface RowProblem {
@@ -237,7 +239,6 @@ export function validateProductRows(rows: ParsedRow[]): ValidationResult {
     const purchasePrice = parseRupiah(row.values.harga_beli ?? row.values.hargaBeli)
     const sellingPrice = parseRupiah(row.values.harga_jual ?? row.values.hargaJual)
     const minStock = parseQuantity(row.values.stok_minimum ?? row.values.stokMinimum)
-    const openingQuantity = parseQuantity(row.values.stok_awal ?? row.values.stokAwal)
 
     if (row.values.harga_beli && purchasePrice === null) {
       problems.push({
@@ -260,13 +261,6 @@ export function validateProductRows(rows: ParsedRow[]): ValidationResult {
       })
       continue
     }
-    if ((row.values.stok_awal ?? row.values.stokAwal) && openingQuantity === null) {
-      problems.push({
-        rowNumber: row.rowNumber,
-        message: `Stok awal "${row.values.stok_awal ?? row.values.stokAwal}" bukan jumlah yang valid.`,
-      })
-      continue
-    }
 
     valid.push({
       rowNumber: row.rowNumber,
@@ -277,7 +271,6 @@ export function validateProductRows(rows: ParsedRow[]): ValidationResult {
       purchasePrice,
       sellingPrice,
       minStock,
-      openingQuantity,
     })
   }
 
@@ -285,7 +278,7 @@ export function validateProductRows(rows: ParsedRow[]): ValidationResult {
 }
 
 /** Nomor 12.500 dan 12500 berarti dua belas ribu lima ratus. */
-function parseRupiah(raw: string | undefined): number | null {
+export function parseRupiah(raw: string | undefined): number | null {
   if (!raw || raw.trim() === '') {
     return null
   }
@@ -297,7 +290,7 @@ function parseRupiah(raw: string | undefined): number | null {
   return Number.isFinite(value) && value >= 0 ? Math.round(value) : null
 }
 
-function parseQuantity(raw: string | undefined): number | null {
+export function parseQuantity(raw: string | undefined): number | null {
   if (!raw || raw.trim() === '') {
     return null
   }
@@ -315,19 +308,21 @@ function parseQuantity(raw: string | undefined): number | null {
 
 export function missingHeaders(headers: string[]): string[] {
   const ada = new Set(headers)
-  return REQUIRED_HEADERS.filter((header) => !ada.has(header))
+  return requiredProductHeaders.filter((header) => !ada.has(header))
 }
 
 /**
  * Hash isi berkas. Kunci idempotency menolak kunci yang sama dengan badan berbeda,
  * jadi hash ini yang dipakai supaya berkas yang sama tidak diimpor dua kali
- * (PRD 6.8).
+ * (PRD 6.8). Berkas XLSX di-hash sebagai biner dengan penanda format supaya isi
+ * biner tidak bisa bertabrakan dengan teks CSV.
  */
-export function hashImportContent(content: string): string {
-  return createHash('sha256').update(content.replace(/^\uFEFF/, ''), 'utf8').digest('hex')
+export function hashImportContent(content: string | Buffer): string {
+  const hash = createHash('sha256')
+  if (Buffer.isBuffer(content)) {
+    hash.update(Buffer.concat([Buffer.from('xlsx:'), content]))
+  } else {
+    hash.update(Buffer.from(content.replace(/^\uFEFF/, ''), 'utf8'))
+  }
+  return hash.digest('hex')
 }
-
-export const importPreviewSchema = z.object({
-  content: z.string().min(1, 'Berkas kosong.').max(5_000_000, 'Berkas terlalu besar. Batasnya 5 MB.'),
-  idempotencyKey: z.string().trim().min(8).max(120),
-})

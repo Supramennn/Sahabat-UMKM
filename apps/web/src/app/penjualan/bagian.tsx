@@ -1,6 +1,6 @@
 'use client'
 
-import { formatRupiah } from '@sahabat/shared'
+import { formatQuantity, formatRupiah } from '@sahabat/shared'
 import { cx } from '../../lib/cx'
 
 /**
@@ -14,10 +14,7 @@ export function rupiah(amount: number): string {
 
 /** Jumlah barang boleh pecahan, jadi pemisah desimalnya koma seperti di Indonesia. */
 export function formatQty(value: number): string {
-  const bulat = Number.isInteger(value) ? String(value) : String(Number(value.toFixed(4)))
-  const [bagianBulat, bagianDesimal] = bulat.split('.')
-  const denganPemisah = (bagianBulat ?? '0').replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return bagianDesimal ? `${denganPemisah},${bagianDesimal}` : denganPemisah
+  return formatQuantity(value)
 }
 
 /**

@@ -1,9 +1,8 @@
-import { createHash } from 'node:crypto'
 import { MAX_QUANTITY_DECIMALS } from '@sahabat/shared'
 import { parseCsv, type ParsedRow, type RowProblem } from './products-csv.ts'
 
 /**
- * Impor penjualan dari CSV (PRD 6.4 butir terakhir, PRD 6.8).
+ * Baris impor penjualan untuk CSV atau XLSX (PRD 6.4 butir terakhir, PRD 6.8).
  *
  * Satu baris berarti satu penjualan dengan satu barang. Kasir dan aplikasi kasir
  * exporting seperti itu, dan satu baris per barang membuat pesan galat jauh lebih
@@ -215,8 +214,4 @@ function parseQuantity(raw: string | undefined): number | null {
   }
   const scaled = value * 10 ** MAX_QUANTITY_DECIMALS
   return Math.abs(scaled - Math.round(scaled)) > 1e-6 ? null : value
-}
-
-export function hashSalesImportContent(content: string): string {
-  return createHash('sha256').update(content.replace(/^\uFEFF/, ''), 'utf8').digest('hex')
 }

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, formatDateInTimeZone, formatNumber, formatRupiah, fileDateStamp, toDateParts } from '../src/format.ts'
+import {
+  formatDate,
+  formatDateInTimeZone,
+  formatNumber,
+  formatQuantity,
+  formatRupiah,
+  fileDateStamp,
+  toDateParts,
+} from '../src/format.ts'
 
 describe('format Rupiah PRD 10', () => {
   it('memakai bentuk yang PRD tetapkan, tanpa spasi setelah Rp', () => {
@@ -33,6 +41,31 @@ describe('format Rupiah PRD 10', () => {
 describe('format angka', () => {
   it('kelompokkan ribuan tanpa awalan Rp', () => {
     expect(formatNumber(1234567)).toBe('1.234.567')
+  })
+})
+
+describe('format jumlah barang', () => {
+  it('memakai koma sebagai pemisah desimal', () => {
+    expect(formatQuantity(2.5)).toBe('2,5')
+  })
+
+  it('tidak menulis nol di ujung', () => {
+    expect(formatQuantity(Number('1.5000'))).toBe('1,5')
+    expect(formatQuantity(Number('0.2500'))).toBe('0,25')
+  })
+
+  it('memberi pemisah ribuan dan tanpa desimal untuk angka bulat', () => {
+    expect(formatQuantity(1500)).toBe('1.500')
+    expect(formatQuantity(0)).toBe('0')
+  })
+
+  it('membulatkan sampai empat angka desimal', () => {
+    expect(formatQuantity(Number('1.23459'))).toBe('1,2346')
+  })
+
+  it('menolak jumlah yang bukan angka', () => {
+    expect(() => formatQuantity(Number.NaN)).toThrow(RangeError)
+    expect(() => formatQuantity(Number.POSITIVE_INFINITY)).toThrow(RangeError)
   })
 })
 

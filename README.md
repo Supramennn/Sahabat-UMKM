@@ -272,6 +272,29 @@ Verifikasi Fase 8 lulus: `npm run verify` (372 tes lulus, 8 dilewati),
 1 dilewati), build produksi, dan `npm run test:e2e` (144 lulus di ponsel dan
 desktop).
 
+Fase 9 melengkapi impor sesuai PRD 6.8. Empat jenis impor — barang, supplier, saldo
+awal, dan penjualan — menerima berkas CSV maupun XLSX, dengan template yang diunduh
+dari server untuk tiap jenis dalam kedua format itu. Jenis berkas ditentukan dari
+isinya lewat penanda arsip zip, bukan dari namanya, dan tes memastikan kolom wajib
+pada template selalu sama dengan kolom yang diterima validator. Impor saldo awal
+menjadi jenis tersendiri karena tiap barisnya butuh lokasi dan tercatat di ledger
+sebagai transaksi stok masuk beralasan `saldo_awal`; kolom stok awal di berkas barang
+ditolak dengan pesan yang menunjuk halaman itu.
+
+Riwayat impor di `/pengaturan/impor-ekspor` menampilkan tiap impor, jumlah baris yang
+tersimpan dan dilewati, serta tombol pembatalannya (B-04). Pembatalan hanya mungkin
+selama belum ada transaksi turunan yang menyentuh baris hasil impor; alasannya
+ditampilkan di baris riwayat. Pembatalan barang dan supplier menghapus baris master
+yang belum terpakai, pembatalan saldo awal menulis baris pembalik di ledger sehingga
+riwayat stok tetap utuh, dan pembatalan penjualan memakai jalur pembatalan penjualan
+yang sama seperti pembatalan manual. Berkas dengan isi yang sama ditolak selama impor
+sebelumnya belum dibatalkan. Impor memakai kunci idempotency seperti penerimaan dan
+pembayaran, dan batas jumlah produk aktif dari paket ikut diperiksa saat impor barang.
+
+Verifikasi Fase 9 lulus: `npm run verify` (415 tes lulus, 8 dilewati),
+`npm run test:contrast` (35 pasangan lolos), `npm run test:postgres:local` (9 lulus,
+1 dilewati), build produksi, dan `npm run test:e2e` (152 lulus di ponsel dan desktop).
+
 Penjualan memakai `recordMovement` yang sama dengan stok keluar, jadi penjualan yang
 menyentuh barang terakhir menghasilkan satu transaksi berhasil dan satu penolakan,
 sama seperti entri stok manual. Harga pokok disimpan sebagai snapshot di setiap baris

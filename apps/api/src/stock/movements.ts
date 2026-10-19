@@ -67,6 +67,8 @@ export const reasonCodes = {
   hilang: 'hilang',
   salahCatat: 'salah_catat',
   opname: 'opname',
+  saldoAwal: 'saldo_awal',
+  pembatalanImpor: 'pembatalan_impor',
 } as const
 
 export type ReasonCode = (typeof reasonCodes)[keyof typeof reasonCodes]

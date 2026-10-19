@@ -1,4 +1,8 @@
-import { Workbook } from 'exceljs'
+import exceljs from 'exceljs'
+
+// exceljs berbentuk CommonJS. Node hanya melihat satu ekspor bernama default, jadi
+// kelas-kelasnya diambil dari situ; named import akan gagal saat server dijalankan.
+const { Workbook } = exceljs
 
 /**
  * Pembaca XLSX untuk impor (PRD 6.8 menyebut CSV atau XLSX).

@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import type { Database } from '@sahabat/db'
 import { closeTestDatabase, createTestDatabase } from '@sahabat/db/test-harness'
+import { Workbook } from 'exceljs'
 import { buildApp } from '../src/app.ts'
 import { createCapturingEmailProvider, type EmailProvider } from '../src/services/email.ts'
 import { cookieOf } from './account-helpers.ts'
@@ -10,11 +11,9 @@ import { missingHeaders, parseCsv, validateProductRows } from '../src/import/pro
 
 /**
  * PRD 6.8: impor produk dari CSV atau XLSX dengan pratinjau, impor berjalan penuh
- * atau tidak sama sekali, dan hasil yang bisa dibatalkan dalam 24 jam.
+ * atau tidak sama sekali, dan hasilnya bisa dibatalkan selama belum ada transaksi
+ * turunan (B-04).
  * PRD 3 skenario 1: pemilik mengimpor 200 produk dalam satu sesi.
- *
- * Yang diuji di sini adalah jalur CSV dan pratinjau. XLSX belum ada parser-nya,
- * dan kata "XLSX" di PRD akan ditambahkan bersama pustaka pembaca spreadsheet.
  */
 
 const PASSWORD = 'kata-sandi-pengujian-2026'
@@ -101,6 +100,57 @@ async function previewProduk(
   return { statusCode: response.statusCode, body: response.json() }
 }
 
+/** Membuat berkas XLSX asli di memori, supaya jalur baca biner benar-benar diuji. */
+async function xlsxBase64(rows: Array<Array<string | number>>): Promise<string> {
+  const workbook = new Workbook()
+  const sheet = workbook.addWorksheet('Impor')
+  for (const row of rows) {
+    sheet.addRow(row)
+  }
+  const buffer = await workbook.xlsx.writeBuffer()
+  return Buffer.from(buffer as unknown as ArrayBufferLike).toString('base64')
+}
+
+async function postImpor(
+  context: { cookie: string; workspaceId: number },
+  path: string,
+  payload: Record<string, unknown>,
+): Promise<{ statusCode: number; body: Record<string, unknown> }> {
+  const response = await app.inject({
+    method: 'POST',
+    url: `/api/workspaces/${context.workspaceId}${path}`,
+    headers: { cookie: context.cookie },
+    payload,
+  })
+  return { statusCode: response.statusCode, body: response.json() }
+}
+
+async function daftarImpor(context: { cookie: string; workspaceId: number }) {
+  const response = await app.inject({
+    method: 'GET',
+    url: `/api/workspaces/${context.workspaceId}/imports`,
+    headers: { cookie: context.cookie },
+  })
+  return response.json() as {
+    jobs: Array<{
+      id: number
+      kind: string
+      importedRows: number
+      status: string
+      cancelable: boolean
+      cancelBlockedReason: string | null
+    }>
+  }
+}
+
+async function createLocation(context: { workspaceId: number }, name: string): Promise<number> {
+  const found = await db.query<{ id: number }>(
+    'insert into locations (workspace_id, name) values ($1, $2) returning id',
+    [context.workspaceId, name],
+  )
+  return found.rows[0]!.id
+}
+
 describe('membaca CSV', () => {
   it('membaca header, tanda kutip, dan baris kosong di tengah', () => {
     const parsed = parseCsv(
@@ -165,11 +215,11 @@ describe('memvalidasi baris (PRD 6.8)', () => {
   })
 
   it('menolak jumlah dengan presisi lebih tinggi dari yang bisa disimpan', () => {
-    const parsed = parseCsv('sku,nama,satuan,stok awal\nABC-1,Kopi,kg,1.234567\n')
+    const parsed = parseCsv('sku,nama,satuan,stok minimum\nABC-1,Kopi,kg,1.234567\n')
     const validation = validateProductRows(parsed.rows)
 
     expect(validation.valid).toHaveLength(0)
-    expect(validation.problems[0]!.message).toContain('Stok awal')
+    expect(validation.problems[0]!.message).toContain('Stok minimum')
   })
 })
 
@@ -346,5 +396,138 @@ describe('impor produk (PRD 6.8, skenario 1 PRD 3)', () => {
     )
 
     expect(hasil.statusCode).toBe(403)
+  })
+})
+
+describe('impor produk dari XLSX (PRD 6.8)', () => {
+  it('membaca berkas XLSX dan menyimpannya sama seperti CSV', async () => {
+    const context = await setupWorkspace()
+    const contentBase64 = await xlsxBase64([
+      ['sku', 'nama', 'satuan', 'harga jual'],
+      ['XLSX-1', 'Kopi XLSX', 'pcs', 15000],
+      ['XLSX-2', 'Gula XLSX', 'kg', 20000],
+    ])
+
+    const preview = await postImpor(context, '/imports/products/preview', {
+      contentBase64,
+      fileName: 'produk.xlsx',
+      idempotencyKey: 'kunci-xlsx-pratinjau-panjang',
+    })
+    expect(preview.statusCode).toBe(200)
+    expect(preview.body.validRows).toBe(2)
+
+    const commit = await postImpor(context, '/imports/products', {
+      contentBase64,
+      fileName: 'produk.xlsx',
+      idempotencyKey: 'kunci-xlsx-simpan-panjang',
+    })
+    expect(commit.statusCode).toBe(201)
+    expect(commit.body.imported).toBe(2)
+
+    const produk = await db.query<{ sku: string; selling_price: string }>(
+      "select sku, selling_price from products where workspace_id = $1 and sku like 'XLSX-%' order by sku",
+      [context.workspaceId],
+    )
+    expect(produk.rows.map((row) => row.sku)).toEqual(['XLSX-1', 'XLSX-2'])
+    expect(Number(produk.rows[1]!.selling_price)).toBe(20000)
+  })
+
+  it('menolak berkas yang dikirim sebagai XLSX padahal isinya bukan XLSX', async () => {
+    const context = await setupWorkspace()
+    const hasil = await postImpor(context, '/imports/products', {
+      contentBase64: Buffer.from('sku,nama,satuan\nABC-1,Kopi,pcs\n', 'utf8').toString('base64'),
+      fileName: 'produk.xlsx',
+      idempotencyKey: 'kunci-bukan-xlsx-panjang',
+    })
+
+    expect(hasil.statusCode).toBe(400)
+    expect(hasil.body.error).toBe('berkas_bukan_xlsx')
+  })
+})
+
+describe('kolom stok awal pindah ke impor saldo awal (PRD 6.8)', () => {
+  it('menolak berkas barang yang memuat kolom stok awal dan menunjuk halaman yang benar', async () => {
+    const context = await setupWorkspace()
+    const hasil = await previewProduk(context, 'sku,nama,satuan,stok awal\nABC-1,Kopi,pcs,10\n')
+
+    expect(hasil.statusCode).toBe(400)
+    expect(hasil.body.error).toBe('kolom_stok_awal')
+    expect(String(hasil.body.message)).toContain('Impor saldo awal')
+  })
+})
+
+describe('riwayat dan pembatalan impor (PRD 6.8, B-04)', () => {
+  it('mencatat impor di riwayat dan membatalkannya selama belum dipakai', async () => {
+    const context = await setupWorkspace()
+    const content = 'sku,nama,satuan\nBATAL-1,Kopi,pcs\n'
+    const commit = await importProduk(context, content, 'kunci-batal-impor-panjang')
+    expect(commit.statusCode).toBe(201)
+    const jobId = commit.body.importJobId as number
+
+    const riwayat = await daftarImpor(context)
+    const job = riwayat.jobs.find((item) => item.id === jobId)
+    expect(job?.kind).toBe('produk')
+    expect(job?.importedRows).toBe(1)
+    expect(job?.status).toBe('selesai')
+    expect(job?.cancelable).toBe(true)
+
+    const batal = await postImpor(context, `/imports/${jobId}/cancel`, {})
+    expect(batal.statusCode).toBe(200)
+    expect(batal.body.cancelled).toBe(1)
+
+    const produk = await db.query<{ count: number }>(
+      'select count(*)::int as count from products where workspace_id = $1',
+      [context.workspaceId],
+    )
+    expect(produk.rows[0]!.count).toBe(0)
+
+    // Setelah dibatalkan, berkas yang sama boleh diimpor lagi.
+    const ulang = await importProduk(context, content, 'kunci-batal-impor-ulang')
+    expect(ulang.statusCode).toBe(201)
+    expect(ulang.body.imported).toBe(1)
+
+    const riwayatSetelah = await daftarImpor(context)
+    expect(riwayatSetelah.jobs.find((item) => item.id === jobId)?.status).toBe('dibatalkan')
+  })
+
+  it('menolak berkas yang sama sampai impor sebelumnya dibatalkan', async () => {
+    const context = await setupWorkspace()
+    const content = 'sku,nama,satuan\nGANDA-1,Kopi,pcs\n'
+    const pertama = await importProduk(context, content, 'kunci-ganda-pertama-panjang')
+    expect(pertama.statusCode).toBe(201)
+
+    const kedua = await importProduk(context, content, 'kunci-ganda-kedua-panjang')
+    expect(kedua.statusCode).toBe(409)
+    expect(kedua.body.error).toBe('berkas_sudah_diimpor')
+  })
+
+  it('tidak bisa dibatalkan ketika barangnya sudah dipakai transaksi', async () => {
+    const context = await setupWorkspace()
+    const commit = await importProduk(context, 'sku,nama,satuan\nPAKAI-1,Kopi,pcs\n', 'kunci-pakai-impor-panjang')
+    const jobId = commit.body.importJobId as number
+
+    // Saldo awal lewat impor membuat satu transaksi stok atas barang itu. Transaksi
+    // itulah yang mengunci pembatalan impor barangnya (B-04).
+    await createLocation(context, 'Gudang')
+    const saldo = await postImpor(context, '/imports/opening-balances', {
+      content: 'sku,lokasi,jumlah\nPAKAI-1,Gudang,5\n',
+      idempotencyKey: 'kunci-saldo-awal-pakai-panjang',
+    })
+    expect(saldo.statusCode).toBe(201)
+
+    const riwayat = await daftarImpor(context)
+    const job = riwayat.jobs.find((item) => item.id === jobId)
+    expect(job?.cancelable).toBe(false)
+    expect(String(job?.cancelBlockedReason)).toContain('dipakai transaksi')
+
+    const batal = await postImpor(context, `/imports/${jobId}/cancel`, {})
+    expect(batal.statusCode).toBe(409)
+    expect(batal.body.error).toBe('impor_tidak_bisa_dibatalkan')
+
+    const produk = await db.query<{ count: number }>(
+      'select count(*)::int as count from products where workspace_id = $1',
+      [context.workspaceId],
+    )
+    expect(produk.rows[0]!.count).toBe(1)
   })
 })

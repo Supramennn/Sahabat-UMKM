@@ -53,15 +53,14 @@ dan keputusan yang dibutuhkan.
 
 Fase 0 fondasi, Fase 1 autentikasi dan UI, Fase 2 stok, Fase 3 pembelian, Fase 4
 penjualan, Fase 5 pengeluaran operasional, Fase 6 paket, batas paket, uji coba,
-dan langganan, Fase 7 laporan dan ekspor, serta Fase 8 dashboard selesai. Berikutnya
-Fase 9: impor lengkap (XLSX, template, riwayat, pembatalan impor) dengan PRD 6.8.
+dan langganan, Fase 7 laporan dan ekspor, Fase 8 dashboard, serta Fase 9 impor
+lengkap (XLSX, template, riwayat, pembatalan impor) selesai. Berikutnya Fase 10:
+notifikasi email dan di dalam aplikasi dengan PRD 6.9.
 
 Urutan fase yang tersisa, supaya tidak ada tumpang tindih:
 
 | Fase | Isi | PRD |
 | --- | --- | --- |
-| 8 | Dashboard | 6.7 |
-| 9 | Impor lengkap: XLSX, template, riwayat, pembatalan impor | 6.8 |
 | 10 | Notifikasi email dan di dalam aplikasi | 6.9 |
 | 11 | Penagihan dan faktur PDF | 6.10 |
 | 12 | Situs publik, pusat bantuan, status, kontak | 11, 15 |
