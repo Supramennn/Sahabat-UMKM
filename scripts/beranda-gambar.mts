@@ -330,6 +330,11 @@ async function ambilGambar(): Promise<void> {
     { path: '/stok', berkas: 'stok.png' },
     { path: '/pembelian/po', berkas: 'pembelian.png' },
     { path: '/penjualan', berkas: 'penjualan.png' },
+    // Tiga gambar tambahan untuk halaman fitur Pengeluaran, Laporan, dan
+    // Langganan (Fase 12). Semua memakai workspace contoh yang sama.
+    { path: '/pengeluaran', berkas: 'pengeluaran.png' },
+    { path: '/laporan', berkas: 'laporan.png' },
+    { path: '/pengaturan/paket', berkas: 'langganan.png' },
   ]
 
   for (const item of halaman) {

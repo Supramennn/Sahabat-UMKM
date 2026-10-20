@@ -126,18 +126,22 @@ hanya menghasilkan satu surat, dan masa baru mengosongkannya lagi.
 
 ## Situs publik
 
-Beranda (`/`) adalah halaman statis tanpa sesi di `apps/web/src/app/page.tsx`, dengan
-seluruh teks dan daftar isinya di `apps/web/src/lib/beranda.ts` supaya bisa diuji
-(K-22): tautannya hanya menuju halaman atau bagian yang ada, harganya dibaca dari
-katalog `@sahabat/shared` yang sama dengan aplikasi, dan pertanyaan umumnya hanya
-menyatakan yang sudah berdiri di kode. Data terstruktur (`Organization`, `WebSite`,
-`SoftwareApplication` dengan `offers` per paket), `robots.txt`, dan `sitemap.xml`
-membaca `NEXT_PUBLIC_SITE_URL` untuk URL
-kanoniknya. Tangkapan layar di `apps/web/public/beranda` adalah potret aplikasi
-dengan data contoh (K-07), diambil ulang lewat `npx tsx scripts/beranda-gambar.mts`
-dengan API dev di :4000 dan build produksi di :3000. Halaman publik lainnya dari
-PRD 11 dan 15 menyusul pada Fase 12 dan hanya dipasang di menu setelah isinya siap
-(PRD 5).
+Seluruh halaman publik PRD 5 berdiri sebagai halaman statis komponen server:
+beranda (`apps/web/src/app/page.tsx` + `apps/web/src/lib/beranda.ts`, K-22), halaman
+fitur `app/fitur` plus satu halaman per modul (`apps/web/src/lib/fitur.ts`),
+`untuk-usaha`, `harga` (`lib/harga.ts`), `bantuan` (`lib/bantuan.ts`), `tentang`
+(`lib/tentang.ts`), `status` (`lib/status.ts`), `kontak` (`lib/kontak.ts`), dan
+tiga dokumen kebijakan draf (`lib/kebijakan.ts`, K-23). Header, kaki situs, tombol,
+gambar sampel, dan tabel paket dipakai bersama lewat
+`apps/web/src/app/components/situs.tsx`, dan tautan navigasi/kaki beserta helper
+metadata ada di `apps/web/src/lib/situs.ts`. `metadataBase` dibaca sekali di
+`app/layout.tsx`; `NEXT_PUBLIC_SITE_URL` mengatur URL kanonik, open graph, sitemap,
+dan robots. Tabel paketnya membaca katalog `@sahabat/shared`, jadi angkanya sama
+dengan halaman paket di aplikasi. Halaman Status menulis keadaan pemantauan apa
+adanya tanpa angka ketersediaan (PRD 14), dan tangkapan layar di
+`apps/web/public/beranda` adalah potret aplikasi dengan data contoh (K-07),
+diambil ulang lewat `npx tsx scripts/beranda-gambar.mts` dengan API dev di :4000
+dan build produksi di :3000.
 
 ## Bentuk sistem
 

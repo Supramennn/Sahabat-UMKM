@@ -47,6 +47,23 @@ const HALAMAN = [
   { path: '/laporan', nama: 'laporan usaha' },
   { path: '/dashboard', nama: 'dashboard' },
   { path: '/lainnya', nama: 'menu lainnya' },
+  // Halaman situs publik lainnya (Fase 12, PRD 5).
+  { path: '/fitur', nama: 'daftar fitur' },
+  { path: '/fitur/stok', nama: 'fitur stok' },
+  { path: '/fitur/pembelian', nama: 'fitur pembelian' },
+  { path: '/fitur/penjualan', nama: 'fitur penjualan' },
+  { path: '/fitur/pengeluaran', nama: 'fitur pengeluaran' },
+  { path: '/fitur/laporan', nama: 'fitur laporan' },
+  { path: '/fitur/langganan', nama: 'fitur langganan' },
+  { path: '/untuk-usaha', nama: 'untuk usaha F&B dan retail' },
+  { path: '/harga', nama: 'harga' },
+  { path: '/bantuan', nama: 'pusat bantuan' },
+  { path: '/tentang', nama: 'tentang' },
+  { path: '/status', nama: 'status layanan' },
+  { path: '/kontak', nama: 'kontak' },
+  { path: '/kebijakan/privasi', nama: 'kebijakan privasi' },
+  { path: '/kebijakan/syarat', nama: 'syarat dan ketentuan' },
+  { path: '/kebijakan/refund', nama: 'kebijakan refund' },
 ]
 
 test.describe('halaman autentikasi', () => {
@@ -164,6 +181,42 @@ test.describe('keterbacaan', () => {
 
   test('tidak ada pelanggaran axe pada buat usaha dan terima undangan', async ({ page }) => {
     for (const path of ['/buat-usaha', '/undangan']) {
+      await page.goto(path)
+
+      const hasil = await new AxeBuilder({ page }).analyze()
+      const serius = hasil.violations.filter(
+        (v) => v.impact === 'serious' || v.impact === 'critical',
+      )
+      const ringkasan = serius.map((v) => `${path} ${v.id}: ${v.nodes.length} node`)
+      expect(ringkasan, ringkasan.join(' | ')).toHaveLength(0)
+    }
+  })
+
+  // Halaman situs publik baru pada Fase 12 diperiksa dengan aturan yang sama:
+  // tidak ada pelanggaran serious atau critical, ponsel maupun desktop.
+  test('tidak ada pelanggaran axe pada halaman situs publik baru', async ({ page }) => {
+    // Enam belas halaman diperiksa berurutan dalam satu kunjungan, sehingga
+    // batas 30 detik per tes tidak muat ketika seluruh suite berjalan.
+    test.setTimeout(120_000)
+
+    for (const path of [
+      '/fitur',
+      '/fitur/stok',
+      '/fitur/pembelian',
+      '/fitur/penjualan',
+      '/fitur/pengeluaran',
+      '/fitur/laporan',
+      '/fitur/langganan',
+      '/untuk-usaha',
+      '/harga',
+      '/bantuan',
+      '/tentang',
+      '/status',
+      '/kontak',
+      '/kebijakan/privasi',
+      '/kebijakan/syarat',
+      '/kebijakan/refund',
+    ]) {
       await page.goto(path)
 
       const hasil = await new AxeBuilder({ page }).analyze()

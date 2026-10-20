@@ -63,8 +63,9 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"  
 Perintah API dan migrasi membaca `.env` dari akar repositori, jadi nilainya tidak
 perlu di-export manual. Berkas `.env` tidak pernah ikut ke git.
 
-`NEXT_PUBLIC_SITE_URL` dipakai beranda untuk alamat kanonik, peta situs, dan data
-terstruktur; ganti ke alamat produksi saat aplikasi dipasang di domain sungguhan.
+`NEXT_PUBLIC_SITE_URL` dipakai seluruh halaman publik untuk URL kanonik, open graph,
+peta situs, dan data terstruktur; ganti ke alamat produksi saat aplikasi dipasang di
+domain sungguhan.
 
 Penagihan langganan (PRD 6.10) mati secara bawaan. Ia hanya menyala kalau
 `MIDTRANS_SERVER_KEY`, `BILLING_SELLER_NAME`, `BILLING_SELLER_ADDRESS`,
@@ -225,7 +226,7 @@ docs/
 | Dashboard | ringkasan usaha, menu lainnya di ponsel | 6.7, 10 |
 | Notifikasi | daftar notifikasi, pengaturan notifikasi | 6.9 |
 | Langganan dan tagihan | paket dan langganan, riwayat pembayaran, faktur PDF | 6.10 |
-| Situs publik | beranda produksi dengan tangkapan layar data contoh, robots.txt, sitemap.xml, data terstruktur | 11 |
+| Situs publik | beranda + halaman fitur per modul, untuk usaha F&B dan retail, harga, pusat bantuan, tentang, status, kontak, dokumen kebijakan (draf), dengan 7 tangkapan layar data contoh, robots.txt, sitemap.xml, dan data terstruktur | 11, 15 |
 
 ## Paket dan langganan
 
@@ -395,15 +396,24 @@ Halaman `/po/<token>` adalah tampilan publik purchase order. Halamannya tidak pu
 sesi, tidak boleh diindeks mesin pencari, dan hanya bisa dibuka selama tautannya
 berlaku.
 
-## Beranda publik
+## Situs publik
 
-Beranda (`/`) adalah halaman statis tanpa sesi, dibangun dari isi di
-`apps/web/src/lib/beranda.ts` dan dirender oleh komponen server
-`apps/web/src/app/page.tsx`: header dengan masuk dan tombol buat akun, hero dengan
-tangkapan layar dashboard, tiga masalah pencatatan, cara kerja tiga modul dengan
-tangkapan layarnya, skenario kedai kopi, warung makan, dan toko retail, tabel paket,
-empat pertanyaan umum PRD 11, dan kaki situs. Tabel paketnya membaca katalog
-`@sahabat/shared`, jadi harganya tidak bisa meleset dari halaman paket di aplikasi.
+Seluruh halaman publik PRD 5 kini berdiri: beranda (`/`), daftar fitur (`/fitur`)
+plus satu halaman per modul (`/fitur/stok` sampai `/fitur/langganan`), untuk usaha
+F&B dan retail (`/untuk-usaha`), harga (`/harga`), pusat bantuan (`/bantuan`),
+tentang (`/tentang`), status layanan (`/status`), kontak (`/kontak`), dan dokumen
+kebijakan (`/kebijakan/privasi`, `/syarat`, `/refund`). Semuanya halaman statis tanpa
+sesi. Header, kaki situs, dan tabel paket dipakai bersama lewat
+`apps/web/src/app/components/situs.tsx`; tautan navigasi/kaki serta metadata ada di
+`apps/web/src/lib/situs.ts`; isi tiap halaman ada di pustakanya masing-masing
+(`lib/beranda.ts`, `lib/fitur.ts`, `lib/harga.ts`, `lib/untuk-usaha.ts`,
+`lib/bantuan.ts`, `lib/tentang.ts`, `lib/status.ts`, `lib/kontak.ts`,
+`lib/kebijakan.ts`) supaya bisa diuji (K-22 dan K-23). Tabel paketnya membaca katalog
+`@sahabat/shared`, jadi harganya tidak bisa meleset dari halaman paket di aplikasi,
+dan halaman harga menyebut angkanya masih usulan awal (PRD 16). Dokumen kebijakan
+dipasang sebagai draf berlabel "Draf, belum berlaku" sampai peninjauan penasihat
+hukum selesai, dan isi drafnya hanya menyatakan perilaku yang bisa diverifikasi di
+kode (K-23).
 
 Tangkapan layarnya adalah potret aplikasi sungguhan dengan data contoh di
 workspace "Kedai Kopi Contoh" (K-07), diambil ulang kapan saja dengan:
@@ -416,22 +426,24 @@ npx tsx scripts/beranda-gambar.mts
 
 Skrip itu mendaftarkan pengguna contoh, memverifikasi email dari log API, menyalakan
 uji coba Paket Usaha, mengisi stok, dua purchase order (satu diterima penuh, satu
-menunggu persetujuan), enam penjualan, pengeluaran, lalu memotret halaman dashboard,
-stok, purchase order, dan penjualan ke `apps/web/public/beranda`. Data contohnya
-disiapkan lewat API yang sama dengan aplikasi, bukan lewat SQL langsung, supaya
-gambarnya tidak bisa menampilkan keadaan yang tidak mungkin dibuat pengguna.
+menunggu persetujuan), enam penjualan, dan pengeluaran, lalu memotret tujuh halaman
+ke `apps/web/public/beranda`: dashboard, stok, purchase order, penjualan,
+pengeluaran, laporan, dan halaman paket. Data contohnya disiapkan lewat API yang sama
+dengan aplikasi, bukan lewat SQL langsung, supaya gambarnya tidak bisa menampilkan
+keadaan yang tidak mungkin dibuat pengguna.
 
-Sesuai PRD 5, beranda hanya menautkan halaman yang ada: navigasi modulnya sementara
-memakai loncatan ke bagian dalam halaman, dan tombol hero kedua menunjuk bagian harga
-sampai workspace contoh untuk tombol "Lihat Demo Produk" dibangun (B-13). Jawaban
-pertanyaan umum menyatakan keadaan sekarang, termasuk bahwa aplikasi masih butuh
-koneksi internet sampai antrean offline (Fase 13) selesai. Halaman fitur, pusat
-bantuan, status, kontak, dan dokumen kebijakan menyusul pada sisa Fase 12.
+Sesuai PRD 5, halaman dipasang di navigasi hanya setelah isinya selesai, dan
+navigasi kini menautkan halaman sungguhan. Tombol "Lihat Demo Produk" tetap menunggu
+workspace contoh (B-13), jadi tombol hero kedua menunjuk halaman Harga. Jawaban
+pertanyaan umum menyatakan keadaan sekarang, termasuk bahwa aplikasi
+masih butuh koneksi internet sampai antrean offline (Fase 13) selesai, dan halaman
+Status menyebut pemantauan otomatisnya belum terpasang (PRD 14).
 
-Verifikasi Fase 12 (beranda) lulus: `npm run verify` (453 tes lulus, 8 dilewati),
-`npm run test:contrast` (35 pasangan lolos), `npm run test:postgres:local` (9 lulus,
-1 dilewati), build produksi, dan `npm run test:e2e` (182 lulus, termasuk audit
-aksesibilitas axe untuk beranda di ponsel dan desktop).
+Verifikasi Fase 12 (situs publik penuh) lulus: `npm run verify` (473 tes lulus,
+8 dilewati), `npm run test:contrast` (35 pasangan lolos), `npm run
+test:postgres:local` (9 lulus, 1 dilewati), build produksi, dan `npm run test:e2e`
+(248 lulus, termasuk audit aksesibilitas axe untuk seluruh halaman publik baru di
+ponsel dan desktop).
 
 Modul stok memakai satu jalur pencatatan, `recordMovement` di
 `apps/api/src/stock/movements.ts`. Tidak ada endpoint lain yang boleh menulis ke

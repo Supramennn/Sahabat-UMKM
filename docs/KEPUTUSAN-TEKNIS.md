@@ -32,6 +32,7 @@ Terakhir diperbarui: 19 Oktober 2026.
 | K-20 | Notifikasi dan email | Baris notifikasi ditulis di dalam transaksi peristiwanya; email diambil dari antrean `emailed_at is null` oleh penjadwal dalam proses, tidak pernah dikirim dari dalam transaksi. Penerima dihitung dari izin (capability), pelaku sendiri dikecualikan, dan preferensi pengguna hanya bisa mematikan kanal. Notifikasi keamanan bersifat tingkat akun (`workspace_id null`) sehingga tampil di daftar semua usaha pemiliknya. Utang jatuh tempo memakai ambang `overdueDays > 0` yang sama dengan dashboard dan hanya untuk paket dengan fitur `returns`. Ringkasan harian opt-in, dikirim setelah pukul 7 pagi waktu usaha | PRD 6.9, PRD 6.2, PRD 8, PRD 16 |
 | K-21 | Penagihan langganan | Midtrans Snap lewat halaman pembayaran Midtrans, bukan Snap tertanam. Baris tagihan di-commit sebelum tautan bayar diminta, pelunasan hanya dipercaya dari notifikasi bertanda tangan, faktur PDF dibuat dengan pdfkit, masa berbayar menumpuk dari ujung masa berjalan, dan pembayaran hanya menyala kalau identitas penjual serta tautan kebijakan refund diisi lewat environment | PRD 6.10, PRD 15, PRD 16 |
 | K-22 | Beranda publik | Halaman statis berkomponen server dengan seluruh isi dan teks di `apps/web/src/lib/beranda.ts` supaya bisa diuji. Tangkapan layarnya adalah potret aplikasi dengan data contoh yang diambil `scripts/beranda-gambar.mts` dan ikut di-commit. Harga dibaca dari katalog `@sahabat/shared`, bukan ditulis ulang. Navigasi hanya menautkan halaman atau bagian yang ada; tombol "Lihat Demo Produk" menunggu workspace contoh (B-13). FAQ menjawab keadaan sekarang, termasuk kebutuhan koneksi internet sampai antrean offline selesai | PRD 11, PRD 5, K-07, B-13 |
+| K-23 | Situs publik lengkap | Sisa halaman publik PRD 5 dikerjakan: `/fitur` plus satu halaman per modul (`/fitur/stok`, `pembelian`, `penjualan`, `pengeluaran`, `laporan`, `langganan`), `/untuk-usaha`, `/harga`, `/bantuan`, `/tentang`, `/status`, `/kontak`, dan `/kebijakan/privasi`, `/syarat`, `/refund`. Komponen header, kaki, tombol, gambar sampel, dan tabel paket dipakai bersama di `apps/web/src/app/components/situs.tsx`; tautan navigasi/kaki dan metadata di `apps/web/src/lib/situs.ts`; isi tiap halaman di pustaka masing-masing (`lib/fitur.ts`, `lib/harga.ts`, `lib/bantuan.ts`, `lib/tentang.ts`, `lib/status.ts`, `lib/kontak.ts`, `lib/kebijakan.ts`). Halaman Status menulis "Belum dipantau otomatis" tanpa angka ketersediaan; Kontak hanya menampilkan saluran yang nyata; kebijakan dipasang sebagai draf berlabel "belum berlaku"; Harga tetap membaca katalog dengan catatan "masih usulan awal" | PRD 5, 11, 14, 15, 16 |
 
 ### Alasan K-12
 
@@ -333,6 +334,46 @@ Alamat kanonik, peta situs, robots, dan metadata membaca `NEXT_PUBLIC_SITE_URL`
 (bawaan `http://localhost:3000`) supaya URL absolut tidak ditulis ulang di beberapa
 tempat dan berbeda satu sama lain.
 
+### Alasan K-23
+
+PRD 5 dan PRD 11 memerintahkan halaman publik itu ada dan dipasang di navigasi,
+tetapi tidak menentukan bentuk isinya untuk soal transparansi. Keputusannya:
+
+- Isi setiap halaman ada di pustakanya sendiri supaya diuji seperti K-22. Tes
+  `test/situs.test.ts` memeriksa seluruh tautan situs menunjuk halaman yang ada,
+  daftar modul fitur tetap enam (B-11), tiga modul harian memakai daftar fungsi dan
+  Pengeluaran, Laporan, dan Langganan dipaparkan dengan paragraf sesuai B-12
+  (di beranda tiga modul harian yang ditonjolkan, lainnya diarahkan ke halamannya),
+  Pusat Bantuan memuat panduan per modul dan masalah umum (PRD 15), dan tangkapan
+  layarnya berlabel data contoh (K-07).
+- Halaman Status memakai kalimat "Belum dipantau otomatis" untuk setiap komponen dan
+  tidak menampilkan angka ketersediaan, RPO, atau RTO, karena PRD 14 melarang
+  menuliskannya sebelum ada tiga bulan data pemantauan dan satu uji restore yang
+  berhasil. Riwayat gangguan dinyatakan kosong karena halamannya belum berisi, bukan
+  karena klaim "tidak pernah ada gangguan".
+- Halaman Kontak tidak mengarang alamat email, nomor WhatsApp, atau jam layanan,
+  karena PRD 15 menetapkan jam layanan dan target waktu respons ditulis setelah tim
+  dukungan ditetapkan. Yang ditampilkan hanya saluran yang benar-benar hidup
+  (Pusat Bantuan) dan saluran yang disiapkan beserta status penyediaannya.
+- Dokumen kebijakan dipasang sebagai draf dengan pemberitahuan "Draf, belum berlaku"
+  di atas isinya, karena penghalang rilis menetapkan dokumen terbit setelah tinjauan
+  penasihat hukum. Isinya hanya menyatakan perilaku yang bisa diverifikasi di kode:
+  data yang disimpan, retensi audit per paket, penghapusan workspace dengan masa
+  tenggang 30 hari, MFA dengan kode pemulihan, dan ekspor ZIP. Kebijakan refund
+  menyatakan ketentuannya belum ditetapkan dan penagihan belum menyala, sehingga
+  halaman Harga sudah bisa memenuhi PRD 15 (refund tertulis dan bertaut) tanpa
+  memalsukan finalnya.
+- Halaman Harga menampilkan catatan "masih usulan awal" sesuai PRD 16 dan hanya
+  menklaim MFA, pemisahan workspace, dan ekspor seluruh data; pencadangan berkala
+  dan enkripsi saat tersimpan belum dijalankan, jadi tidak ditempatkan di teks
+  publik (aturan bukti PRD 11).
+- Pusat Bantuan dibangun sebagai satu halaman dengan daftar isi ke bagian per modul
+  dan bagian masalah umum. PRD 15 meminta isinya, bukan bentuk situsnya, dan satu
+  halaman memenuhi itu tanpa menambah mesin pencari artikel di Fase 12.
+- Catatan atas K-22: loncatan ke bagian beranda kini sudah diganti tautan ke
+  halaman sungguhan sesuai rencananya, dan tes beranda memeriksa tidak ada lagi
+  tautan `#` yang tersisa.
+
 ### Alasan K-02
 
 Satu basis kode untuk situs publik dan aplikasi. Situs publik butuh SSR untuk LCP 2,5 detik
@@ -527,8 +568,8 @@ bisa diselesaikan dengan menulis kode.
 | --- | --- | --- |
 | Badge domain dan merek "Sahabat UMKM" sudah diperiksa | 20 | belum |
 | Badan usaha penjual, rekening penerima, dan kewajiban pajak langganan ditetapkan | 15, 20 | belum, wajib dikonfirmasi ke konsultan pajak |
-| Syarat dan Ketentuan, Kebijakan Privasi, Kebijakan Refund, Perjanjian Pemrosesan Data terbit setelah ditinjau penasihat hukum | 15 | belum |
-| Kebijakan refund tertulis dan tampil di halaman Harga dan saat checkout | 15 | belum |
+| Syarat dan Ketentuan, Kebijakan Privasi, Kebijakan Refund, Perjanjian Pemrosesan Data terbit setelah ditinjau penasihat hukum | 15 | belum, draf berlabel "belum berlaku" sudah dipasang (K-23), dokumen final menunggu tinjauan |
+| Kebijakan refund tertulis dan tampil di halaman Harga dan saat checkout | 15 | belum, tertulis sebagai draf dan bertaut dari halaman Harga (K-23); tautan di checkout menunggu penagihan menyala (K-21) |
 | Uji penerimaan pengguna dengan sedikitnya lima pemilik usaha selesai | 17 | belum |
 | Uji restore backup berhasil dan waktunya tercatat | 17, 14 | belum |
 | Uji penetrasi oleh pihak yang bukan pengembang produk | 17 | belum |

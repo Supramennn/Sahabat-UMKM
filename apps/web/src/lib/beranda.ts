@@ -1,21 +1,27 @@
 import {
-  formatNumber,
-  formatRupiah,
-  planCatalog,
-  planCodes,
-  planPrice,
-  TRIAL_DAYS,
-  YEARLY_MONTHS,
-} from '@sahabat/shared'
-import type { PlanCode } from '@sahabat/shared'
+  catatanHarga,
+  catatanHargaUsulan,
+  catatanUjiCoba,
+  hargaPaket,
+  barisPaket,
+} from './harga'
+import {
+  catatanKaki,
+  tagline,
+  tautanKakiHalaman,
+  tautanKakiKebijakan,
+  tautanMasuk,
+  tautanNavigasi,
+  tombolBuatAkun,
+} from './situs'
 
 /**
  * Isi beranda publik (PRD 11).
  *
  * Teks dan daftar ditaruh di berkas ini, bukan langsung di JSX, supaya bisa
- * diuji: tautan wajib menuju halaman atau bagian yang benar-benar ada (PRD 5),
- * gambar wajib membawa keterangan "data contoh" (K-07), dan harga wajib sama
- * dengan katalog paket (PRD 11 dan PRD 16).
+ * diuji: tautan wajib menuju halaman yang ada (PRD 5), gambar wajib membawa
+ * keterangan "data contoh" (K-07), dan harga wajib sama dengan katalog paket
+ * (PRD 11 dan PRD 16).
  *
  * Yang tidak ada di sini dan tidak boleh ditambahkan tanpa bukti: testimoni,
  * jumlah pengguna, logo pelanggan, dan klaim keamanan yang belum dijalankan.
@@ -33,51 +39,27 @@ export interface Gambar {
   height: number
 }
 
-/** Id bagian beranda. Tautan dalam halaman hanya boleh menunjuk ke id ini. */
-export const idBagian = {
-  fitur: 'fitur',
-  untukUsaha: 'untuk-usaha',
-  harga: 'harga',
-  tanyaJawab: 'tanya-jawab',
-} as const
-
-export const tagline = 'Catat rapi, belanja tepat.'
-
-export const tombolUtama: Tautan = { label: 'Buat akun gratis', href: '/buat-akun' }
-
 /**
  * Tombol kedua pada hero. PRD 11 mencontohkan "Lihat Demo Produk", tetapi
  * workspace contoh untuk tombol itu belum dibangun (B-13), dan PRD 5 melarang
- * memasang tautan ke halaman yang belum ada. Sementara ini tombolnya menunjuk
- * bagian harga di halaman ini sendiri.
+ * memasang tautan ke halaman yang belum ada. Tombolnya sementara menunjuk
+ * halaman Harga.
  */
-export const tombolKedua: Tautan = { label: 'Lihat paket dan harga', href: `#${idBagian.harga}` }
-
-export const tautanBagian: Tautan[] = [
-  { label: 'Fitur', href: `#${idBagian.fitur}` },
-  { label: 'Untuk usaha F&B dan retail', href: `#${idBagian.untukUsaha}` },
-  { label: 'Harga', href: `#${idBagian.harga}` },
-]
-
-export const tautanMasuk: Tautan = { label: 'Masuk', href: '/masuk' }
-
-export const tautanKaki: Tautan[] = [
-  { label: 'Fitur', href: `#${idBagian.fitur}` },
-  { label: 'Harga', href: `#${idBagian.harga}` },
-  { label: 'Masuk', href: '/masuk' },
-  { label: 'Buat akun gratis', href: '/buat-akun' },
-]
+export const tombolKedua: Tautan = { label: 'Lihat paket dan harga', href: '/harga' }
 
 /** Semua tautan yang dipasang di beranda, dipakai tes tautan PRD 5. */
 export const semuaTautan: Tautan[] = [
-  ...tautanBagian,
+  ...tautanNavigasi,
   tautanMasuk,
-  tombolUtama,
+  tombolBuatAkun,
   tombolKedua,
-  ...tautanKaki,
+  ...tautanKakiHalaman,
+  ...tautanKakiKebijakan,
 ]
 
-export const catatanUjiCoba = `Uji coba ${TRIAL_DAYS} hari tersedia satu kali untuk setiap workspace, tanpa kartu pembayaran.`
+export { tagline }
+export { catatanUjiCoba, hargaPaket, barisPaket, catatanHarga, catatanHargaUsulan }
+export { catatanKaki }
 
 export const hero = {
   judul: 'Stok, pembelian, dan laporan usaha di satu tempat.',
@@ -117,16 +99,20 @@ export const masalah: Array<{ kebiasaan: string; jawaban: string }> = [
 
 export interface ModulBeranda {
   nama: string
+  slug: '/fitur/stok' | '/fitur/pembelian' | '/fitur/penjualan'
   ringkas: string
   isi: string
+  tautanFungsi: string
   gambar: Gambar
 }
 
 export const modul: ModulBeranda[] = [
   {
     nama: 'Stok',
+    slug: '/fitur/stok',
     ringkas: 'Riwayat yang bisa ditelusuri.',
     isi: 'Setiap barang punya SKU, satuan, harga jual, dan batas stok minimum. Halaman peringatan menampilkan barang yang sudah di bawah batas, dan riwayat stok menyimpan semua pergerakan beserta alasannya.',
+    tautanFungsi: 'Baca fungsi modul Stok',
     gambar: {
       src: '/beranda/stok.png',
       alt: 'Daftar barang beserta sisa stok di aplikasi Sahabat UMKM dengan data contoh.',
@@ -136,8 +122,10 @@ export const modul: ModulBeranda[] = [
   },
   {
     nama: 'Pembelian',
+    slug: '/fitur/pembelian',
     ringkas: 'Pesanan dan utang yang tercatat.',
     isi: 'Purchase order dibuat untuk supplier, diajukan untuk persetujuan, lalu dicatat saat barangnya datang. Jumlah yang diterima dan sisa utang terlihat per supplier.',
+    tautanFungsi: 'Baca fungsi modul Pembelian',
     gambar: {
       src: '/beranda/pembelian.png',
       alt: 'Daftar purchase order di aplikasi Sahabat UMKM dengan data contoh.',
@@ -147,8 +135,10 @@ export const modul: ModulBeranda[] = [
   },
   {
     nama: 'Penjualan',
+    slug: '/fitur/penjualan',
     ringkas: 'Dicatat saat pelanggan membayar.',
-    isi: 'Penjualan dicatat dari ponsel: pilih barang, jumlah, dan metode pembayaran. Stok di lokasi tempat barang keluar langsung berkurang, dan pembatalan menyimpan alasan tanpa menghapus catatannya.',
+    isi: 'Penjualan dicatat melalui ponsel: pilih barang, jumlah, dan metode pembayaran. Stok di lokasi tempat barang keluar langsung berkurang, dan pembatalan menyimpan alasan tanpa menghapus catatannya.',
+    tautanFungsi: 'Baca fungsi modul Penjualan',
     gambar: {
       src: '/beranda/penjualan.png',
       alt: 'Daftar penjualan di aplikasi Sahabat UMKM dengan data contoh.',
@@ -176,61 +166,14 @@ export const skenario: Array<{ usaha: string; alur: string }> = [
   },
 ]
 
-export interface BarisPaket {
-  label: string
-  nilai: Record<PlanCode, string>
-}
-
-/** Harga tampil satu paket, dibaca dari katalog bersama supaya sama dengan aplikasi. */
-export function hargaPaket(code: PlanCode): { utama: string; keterangan: string | null } {
-  const bulanan = planPrice(code, 'bulanan')
-  if (bulanan === 0) {
-    return { utama: 'Gratis', keterangan: null }
-  }
-  return {
-    utama: `${formatRupiah(bulanan)} / bulan`,
-    keterangan: `${formatRupiah(planPrice(code, 'tahunan'))} / tahun, setara ${YEARLY_MONTHS} bulan`,
-  }
-}
-
-/** Baris perbandingan paket, sejajar dengan tabel PRD 16. */
-export function barisPaket(): BarisPaket[] {
-  const untukSemua = (ambil: (plan: (typeof planCatalog)[PlanCode]) => string): Record<PlanCode, string> =>
-    Object.fromEntries(planCodes.map((code) => [code, ambil(planCatalog[code])])) as Record<PlanCode, string>
-
-  const yaTidak = (nilai: boolean) => (nilai ? 'Ya' : 'Tidak')
-
-  return [
-    { label: 'Produk aktif', nilai: untukSemua((plan) => formatNumber(plan.activeProducts)) },
-    { label: 'Anggota termasuk undangan', nilai: untukSemua((plan) => formatNumber(plan.members)) },
-    { label: 'Lokasi', nilai: untukSemua((plan) => formatNumber(plan.locations)) },
-    { label: 'Purchase order dan penerimaan', nilai: untukSemua(() => 'Ya') },
-    { label: 'Penjualan sederhana', nilai: untukSemua((plan) => yaTidak(plan.sales)) },
-    { label: 'Retur dan utang supplier', nilai: untukSemua((plan) => yaTidak(plan.returns)) },
-    { label: 'Stok opname', nilai: untukSemua((plan) => yaTidak(plan.stocktake)) },
-    { label: 'Ekspor', nilai: untukSemua((plan) => (plan.xlsxExport ? 'CSV dan XLSX' : 'CSV')) },
-    { label: 'Approval PO berjenjang', nilai: untukSemua((plan) => yaTidak(plan.multilevelApproval)) },
-    {
-      label: 'Riwayat audit',
-      nilai: untukSemua((plan) => (plan.auditLogDays >= 365 ? '12 bulan' : `${plan.auditLogDays} hari`)),
-    },
-  ]
-}
-
-export const catatanHarga: string[] = [
-  `Pembayaran tahunan setara ${YEARLY_MONTHS} bulan.`,
-  'Harga belum termasuk pajak yang berlaku.',
-  'MFA, pemisahan data antar workspace, dan ekspor seluruh data tersedia di semua paket.',
-]
-
 export const tanyaJawab: Array<{ tanya: string; jawab: string }> = [
   {
     tanya: 'Apakah data saya bisa diekspor?',
     jawab:
-      'Bisa. Owner dan Admin dapat mengunduh seluruh data workspace dalam bentuk CSV kapan saja, tanpa biaya tambahan. Paket berbayar juga bisa membuat ekspor XLSX dari laporan.',
+      'Bisa. Owner dan Admin dapat mengunduh seluruh data workspace dalam bentuk arsip berisi berkas CSV kapan saja, tanpa biaya tambahan. Paket berbayar juga bisa membuat ekspor XLSX dari laporan.',
   },
   {
-    tanya: 'Bagaimana kalau sinyal hilang saat mencatat?',
+    tanya: 'Bagaimana jika sinyal hilang saat mencatat?',
     jawab:
       'Aplikasi saat ini memerlukan koneksi internet untuk menyimpan catatan. Pencatatan saat sinyal hilang belum tersedia, dan sedang dikerjakan untuk rilis berikutnya.',
   },
@@ -242,9 +185,11 @@ export const tanyaJawab: Array<{ tanya: string; jawab: string }> = [
   {
     tanya: 'Di mana data usaha saya disimpan?',
     jawab:
-      'Data disimpan di basis data layanan Sahabat UMKM dan dipisahkan per workspace. Semua permintaan diperiksa di server, sehingga anggota workspace lain tidak bisa membuka data Anda.',
+      'Data disimpan di basis data layanan Sahabat UMKM dan dipisahkan per workspace. Semua permintaan diperiksa di server, sehingga pengguna di luar workspace tidak bisa membuka data Anda.',
+  },
+  {
+    tanya: 'Bagaimana dengan keamanan dan cadangan data?',
+    jawab:
+      'Verifikasi dua langkah (MFA) dan pemisahan data antar workspace sudah berdiri dan bisa dipakai di semua paket. Pencadangan berkala dan uji pemulihannya belum selesai, jadi belum ada klaim yang dipasang di situs ini sampai ujinya terbukti.',
   },
 ]
-
-export const catatanKaki =
-  'Kebijakan privasi, syarat dan ketentuan, kebijakan refund, status layanan, dan kontak belum tersedia. Halaman-halaman itu ditambahkan sebelum rilis, dan baru dipasang di sini setelah isinya siap supaya tidak ada tautan yang menunjuk ke halaman kosong.'

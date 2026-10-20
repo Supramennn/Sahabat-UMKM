@@ -61,14 +61,15 @@ lengkap (XLSX, template, riwayat, pembatalan impor), Fase 10 notifikasi
 email dan di dalam aplikasi (PRD 6.9), serta Fase 11 penagihan dan faktur PDF
 (PRD 6.10) selesai.
 
-Fase 12 sedang berjalan: bagian yang sudah selesai adalah beranda produksi
-(`apps/web/src/app/page.tsx` + `apps/web/src/lib/beranda.ts`, tangkapan layar data
-contoh di `apps/web/public/beranda`, robots.txt, sitemap.xml, dan
-`scripts/beranda-gambar.mts` untuk memotret ulang). Sisa Fase 12: halaman fitur
-(satu halaman per modul), Untuk usaha F&B dan retail, Harga, Pusat Bantuan,
-halaman Status Layanan, Kontak, dan dokumen kebijakan (privasi, syarat, refund)
-dengan PRD 11 dan 15; halaman yang belum ada tidak boleh dipasang di menu (PRD 5),
-dan tombol "Lihat Demo Produk" menunggu workspace contoh (B-13).
+Fase 12 selesai: beranda produksi (`apps/web/src/app/page.tsx` +
+`apps/web/src/lib/beranda.ts`), tujuh tangkapan layar data contoh di
+`apps/web/public/beranda`, robots.txt, sitemap.xml, `scripts/beranda-gambar.mts`
+untuk memotret ulang, halaman fitur `/fitur` plus satu halaman per modul, Untuk
+usaha F&B dan retail, Harga, Pusat Bantuan, Tentang, Status Layanan, Kontak, dan
+dokumen kebijakan privasi, syarat, dan refund sebagai draf berlabel "belum berlaku"
+sampai peninjauan penasihat hukum selesai (K-23). Navigasi hanya menautkan halaman
+yang ada; tombol "Lihat Demo Produk" masih menunggu workspace contoh (B-13), jadi
+tombol hero kedua sementara menunjuk halaman Harga.
 
 Penagihan sengaja mati sampai kunci Midtrans, identitas penjual, dan tautan kebijakan
 refund diisi lewat environment; selama itu kosong, tombol bayar tidak muncul dan
@@ -79,7 +80,6 @@ Urutan fase yang tersisa, supaya tidak ada tumpang tindih:
 
 | Fase | Isi | PRD |
 | --- | --- | --- |
-| 12 | Situs publik, pusat bantuan, status, kontak | 11, 15 |
 | 13 | PWA, antrean offline, daftar periksa aktivasi | 10, 12 |
 
 Cara menjalankan semuanya tercantum di README.md. Perintah yang dipakai sebelum
