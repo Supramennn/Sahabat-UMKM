@@ -2,11 +2,15 @@
 
 import { useApp, AppProvider } from '../components/app-context'
 import { AppShell, moduleNav } from '../components/shell'
+import { PANDUAN_MODUL } from '../../lib/panduan-modul'
 
 /**
  * Halaman Lainnya untuk navigasi bawah ponsel (PRD 10). Isinya diambil dari
  * daftar menu yang sama dengan sidebar, jadi tidak ada tautan yang hanya hidup
  * di satu tempat. Empat tujuan yang sudah ada di navigasi bawah tidak diulang.
+ *
+ * Panduan singkat per modul (PRD 12) dibaca lagi dari sini: panel di halaman
+ * modul bisa ditutup, dan teks yang sama tetap ada di bagian ini.
  */
 
 const DI_NAVIGASI_BAWAH = new Set(['/dashboard', '/stok', '/pembelian', '/penjualan', '/lainnya'])
@@ -53,6 +57,27 @@ function MorePageContent() {
             </ul>
           </section>
         ))}
+
+        <section aria-labelledby="judul-panduan-modul" className="flex flex-col gap-3 rounded-surface border border-border-subtle bg-surface p-4 shadow-raised">
+          <h2 className="text-lg font-semibold" id="judul-panduan-modul">Panduan singkat per modul</h2>
+          {PANDUAN_MODUL.map((panduan) => (
+            <article key={panduan.slug} className="border-t border-border-subtle pt-2 first:border-t-0 first:pt-0">
+              <h3 className="text-[0.9375rem] font-semibold">{panduan.judul}</h3>
+              {panduan.paragraf.map((paragraf) => (
+                <p key={paragraf.slice(0, 24)} className="text-[0.9375rem] text-text-secondary">{paragraf}</p>
+              ))}
+              <ul className="flex flex-wrap gap-2">
+                {panduan.tautan.map((tautan) => (
+                  <li key={tautan.href + tautan.label}>
+                    <a className="inline-flex min-h-touch items-center font-semibold text-secondary" href={tautan.href}>
+                      {tautan.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </section>
       </section>
     </AppShell>
   )

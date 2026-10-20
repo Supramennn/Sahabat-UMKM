@@ -3,9 +3,11 @@
 import type { ChangeEvent, ReactNode } from 'react'
 import { useState } from 'react'
 import { apiPost, errorMessage } from '../../lib/api'
+import { panduanBySlug, slugPanduanHalaman } from '../../lib/panduan-modul'
 import { cx } from '../../lib/cx'
 import { useApp } from './app-context'
 import { PageTransition } from './motion'
+import { PanelPanduanModul } from './panduan'
 
 /**
  * Kerangka aplikasi setelah masuk. PRD 10: desktop memakai sidebar, bilah atas,
@@ -142,6 +144,8 @@ export function AppShell({
 }) {
   const app = useApp()
   const unread = app.unreadCount ?? 0
+  const slugPanduan = slugPanduanHalaman(activeHref)
+  const panduan = slugPanduan ? panduanBySlug(slugPanduan) : undefined
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -211,6 +215,9 @@ export function AppShell({
             <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
             {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
           </div>
+
+          {/* PRD 12: tur singkat per modul saat halaman modul pertama dibuka. */}
+          {panduan ? <PanelPanduanModul panduan={panduan} /> : null}
 
           <PageTransition className="flex flex-col gap-4">{children}</PageTransition>
         </main>
