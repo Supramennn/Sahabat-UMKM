@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { can } from '@sahabat/shared'
 import { useApp, AppProvider } from '../components/app-context'
 import { AppShell } from '../components/shell'
+import { DaftarPeriksaAktivasi } from '../components/daftar-periksa'
 import { ErrorState } from '../components/ui'
 import { apiGet, errorMessage, type LocationsResponse } from '../../lib/api'
 import { cx } from '../../lib/cx'
@@ -132,6 +133,8 @@ function DashboardPageContent() {
   return (
     <AppShell workspaceName={app.workspaceName} roleLabel={app.roleLabel} activeHref="/dashboard" breadcrumb="Beranda" title="Dashboard">
       <section className="flex min-w-0 flex-col gap-6">
+        {/* PRD 12: langkah aktivasi yang dilewati harus bisa ditemukan lagi lewat daftar periksa di dashboard. */}
+        <DaftarPeriksaAktivasi />
         {error ? <ErrorState title="Dashboard tidak bisa dimuat" body={error} /> : null}
         {loading && !data ? <p className="rounded-surface border border-border-subtle bg-surface p-4 text-text-secondary shadow-raised" role="status">Memuat dashboard.</p> : null}
 

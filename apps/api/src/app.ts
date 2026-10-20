@@ -23,6 +23,7 @@ import { registerPlanRoutes } from './plans/routes.ts'
 import { registerReportRoutes } from './reports/routes.ts'
 import { registerExportRoutes } from './export/routes.ts'
 import { registerDashboardRoutes } from './dashboard/routes.ts'
+import { registerOnboardingRoutes } from './onboarding/routes.ts'
 import { registerNotificationRoutes } from './notifications/routes.ts'
 import { createPaymentGateway, readBillingConfigFromEnv, type BillingConfig } from './plans/billing.ts'
 import { StockError } from './stock/movements.ts'
@@ -144,6 +145,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     registerReportRoutes(app, { db: options.db })
     registerExportRoutes(app, { db: options.db })
     registerDashboardRoutes(app, { db: options.db })
+    registerOnboardingRoutes(app, { db: options.db })
     registerNotificationRoutes(app, { db: options.db })
   }
 

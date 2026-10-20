@@ -688,6 +688,26 @@ export type NotificationPreferencesResponse = {
   digestEnabled: boolean
 }
 
+/* Daftar periksa aktivasi (PRD 12) -------------------------------------------- */
+
+export type ActivationStepKey = 'profil_usaha' | 'produk' | 'stok_awal' | 'transaksi'
+
+export type OnboardingStep = {
+  key: ActivationStepKey
+  label: string
+  detail: string
+  href: string
+  /** Kerja yang belum dikerjakan di dalam langkah; kosong saat langkah selesai. */
+  sisa: string[]
+  done: boolean
+  skipped: boolean
+}
+
+export type OnboardingResponse = {
+  langkah: OnboardingStep[]
+  semuaSelesai: boolean
+}
+
 /* Berkas impor --------------------------------------------------------------- */
 
 export interface ImportFilePayload {
