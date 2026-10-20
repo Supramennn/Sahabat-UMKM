@@ -168,13 +168,17 @@ describe('pusat bantuan (PRD 15)', () => {
     expect(gabungan).toContain('verifikasi')
   })
 
-  it('tidak menjanjikan antrean offline yang belum ada', () => {
+  it('menjelaskan keadaan antrean offline apa adanya (PRD 10)', () => {
     const gabungan = bagianBantuan
       .flatMap((bagian) => bagian.butir.map((butir) => butir.isi))
       .concat(masalahUmum.map((item) => item.isi))
       .join(' ')
       .toLowerCase()
-    expect(gabungan).toContain('antrean penyimpanan offline belum tersedia')
+    // Antrean offline untuk catatan stok sudah berdiri; bagian lain masih butuh
+    // sambungan, dan keduanya harus tersurat.
+    expect(gabungan).toContain('antrean')
+    expect(gabungan).toContain('mengonfirmasi')
+    expect(gabungan).toContain('sambungan internet')
   })
 })
 

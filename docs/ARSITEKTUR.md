@@ -143,6 +143,36 @@ adanya tanpa angka ketersediaan (PRD 14), dan tangkapan layar di
 diambil ulang lewat `npx tsx scripts/beranda-gambar.mts` dengan API dev di :4000
 dan build produksi di :3000.
 
+## PWA dan perangkat offline
+
+PWA (PRD 10, K-24) berdiri dari empat bagian: manifest
+(`apps/web/public/manifest.webmanifest`, warna dan ikon dari token PRD 10, ikonnya
+dihasilkan `scripts/ikon-pwa.mts`), service worker (`apps/web/public/sw.js`),
+`offline.html` untuk halaman yang belum pernah dibuka, dan pendaftaran
+`apps/web/src/app/components/pwa-registrasi.tsx` yang hanya aktif di build produksi.
+Service worker memakai jaringan dulu untuk navigasi, salinan hanya untuk halaman yang
+pernah dibuka, aset statis yang tak berubah memakai salinan, dan API pada asal lain
+tidak pernah disangga supaya angka tidak pernah basi.
+
+Antrean offline catatan stok (PRD 10, K-25) ada di `apps/web/src/lib/offline.ts`:
+isian yang gagal karena jaringan disimpan di localStorage bersama kunci idempotensi,
+statusnya terlihat di halaman Catat stok, dan pengiriman ulang memakai fungsi kirim
+yang sama dengan formulir. Daftar barang dan lokasi disalin berlabel waktu agar
+halaman yang sudah dibuka tetap terpakai; tidak ada angka stok yang disajikan dari
+salinan. Halaman Pusat Bantuan, beranda, dan Tentang menyatakan batasnya: hanya
+catatan stok yang berantre, modul lain masih butuh koneksi.
+
+## Aktivasi
+
+Daftar periksa aktivasi (PRD 12, K-26) dihitung server di `apps/api/src/onboarding`
+dari data workspace: jenis usaha terisi, ada barang aktif, ada catatan stok masuk dan
+batas minimum, ada transaksi. Lewatan disimpan di `workspace_onboarding_skips`
+(migrasi 0013), hanya boleh diubah Owner dan Admin, dan kartu daftar periksa
+(`apps/web/src/app/components/daftar-periksa.tsx`) hilang bila semua langkah selesai
+atau dilewati. Panduan singkat per modul memakai satu pustaka teks
+(`apps/web/src/lib/panduan-modul.ts`) yang dirender panelnya di halaman modul lewat
+AppShell dan dibaca ulang dari halaman Lainnya.
+
 ## Bentuk sistem
 
 Modular monolith, sesuai PRD 13. Dua proses yang berjalan terpisah:

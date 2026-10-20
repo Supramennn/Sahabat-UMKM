@@ -223,7 +223,8 @@ docs/
 | Penjualan | daftar penjualan, catat penjualan, detail dan pembatalan, pelanggan, impor CSV | 6.4, 6.8 |
 | Pengeluaran | daftar, pencatatan, detail, kategori, lampiran foto/PDF | 6.5 |
 | Laporan dan ekspor | laporan usaha, pengaturan impor dan ekspor | 6.6, 6.8 |
-| Dashboard | ringkasan usaha, menu lainnya di ponsel | 6.7, 10 |
+| Dashboard | ringkasan usaha, daftar periksa aktivasi (PRD 12), menu lainnya yang memuat panduan singkat per modul | 6.7, 10, 12 |
+| PWA | manifest dengan ikon, service worker dengan offline.html, antrean offline catatan stok dengan idempotensi | 10, 20 |
 | Notifikasi | daftar notifikasi, pengaturan notifikasi | 6.9 |
 | Langganan dan tagihan | paket dan langganan, riwayat pembayaran, faktur PDF | 6.10 |
 | Situs publik | beranda + halaman fitur per modul, untuk usaha F&B dan retail, harga, pusat bantuan, tentang, status, kontak, dokumen kebijakan (draf), dengan 7 tangkapan layar data contoh, robots.txt, sitemap.xml, dan data terstruktur | 11, 15 |
@@ -435,8 +436,8 @@ keadaan yang tidak mungkin dibuat pengguna.
 Sesuai PRD 5, halaman dipasang di navigasi hanya setelah isinya selesai, dan
 navigasi kini menautkan halaman sungguhan. Tombol "Lihat Demo Produk" tetap menunggu
 workspace contoh (B-13), jadi tombol hero kedua menunjuk halaman Harga. Jawaban
-pertanyaan umum menyatakan keadaan sekarang, termasuk bahwa aplikasi
-masih butuh koneksi internet sampai antrean offline (Fase 13) selesai, dan halaman
+pertanyaan umum menyatakan keadaan sekarang: catatan stok bisa masuk antrean offline,
+modul lain masih butuh koneksi, dan aplikasi ini bukan pengganti akuntansi. Halaman
 Status menyebut pemantauan otomatisnya belum terpasang (PRD 14).
 
 Verifikasi Fase 12 (situs publik penuh) lulus: `npm run verify` (473 tes lulus,
@@ -444,6 +445,38 @@ Verifikasi Fase 12 (situs publik penuh) lulus: `npm run verify` (473 tes lulus,
 test:postgres:local` (9 lulus, 1 dilewati), build produksi, dan `npm run test:e2e`
 (248 lulus, termasuk audit aksesibilitas axe untuk seluruh halaman publik baru di
 ponsel dan desktop).
+
+## PWA dan perangkat offline (Fase 13)
+
+PRD 10 dan PRD 12 tamat di fase ini. PWA dapat dipasang: manifest di
+`apps/web/public/manifest.webmanifest` memakai warna token PRD 10, ikonnya lima PNG
+yang dihasilkan `npx tsx scripts/ikon-pwa.mts` tanpa pustaka gambar (lambang tiga
+batangnya sementara sampai merek resmi ditetapkan), dan service worker
+`apps/web/public/sw.js` memakai jaringan dulu untuk navigasi dengan salinan hanya
+sebagai penyelamat; halaman yang belum pernah dibuka jatuh ke `offline.html`, dan API
+pada asal lain tidak pernah disangga sehingga angka tidak pernah disajikan dari
+salinan (K-24).
+
+Antrean offline catatan stok berdiri di `apps/web/src/lib/offline.ts`: isian Catat
+stok yang gagal karena jaringan masuk antrean dengan status yang terlihat (menunggu
+atau gagal beserta alasan server), kunci idempotensinya ikut tersimpan sehingga
+kirim ulang tidak menggandakan stok, dan salinan daftar barang/lokasi berlabel waktu
+agar halaman yang sudah dibuka tetap terpakai (K-25). Modul lain masih butuh koneksi
+dan teks publiknya menyatakan itu.
+
+Daftar periksa aktivasi (PRD 12, K-26) dihitung server di `apps/api/src/onboarding`
+dari data nyata, lewatannya disimpan di tabel `workspace_onboarding_skips`
+(migrasi 0013), hanya Owner dan Admin yang boleh melompati, dan kartunya hilang
+saat semua langkah selesai. Panduan singkat per modul tampil saat halaman modul
+pertama dibuka (`apps/web/src/lib/panduan-modul.ts`, panel dari AppShell) dan teks
+yang sama bisa dibaca ulang di Lainnya.
+
+Verifikasi Fase 13 lulus: `npm run verify` (506 tes lulus, 8 dilewati),
+`npm run test:contrast` (35 pasangan lolos), `npm run test:postgres:local`
+(9 lulus, 1 dilewati), build produksi, dan `npm run test:e2e` (254 lulus, termasuk
+dua spesifikasi baru: alur antrean offline dari formulir sampai konfirmasi server,
+serta hidupnya manifest, ikon, pendaftaran service worker, dan buka ulang halaman
+tanpa sinyal di ponsel dan desktop).
 
 Modul stok memakai satu jalur pencatatan, `recordMovement` di
 `apps/api/src/stock/movements.ts`. Tidak ada endpoint lain yang boleh menulis ke

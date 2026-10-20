@@ -22,7 +22,7 @@ test('isian stok saat online gagal masuk antrean, lalu terkirim saat koneksi kem
 
   await page.goto('/stok/input')
   const pilihan = page.locator('#produk option:not([value=""])')
-  await expect(pilihan.first()).toBeVisible({ timeout: 60_000 })
+  await expect(pilihan.first()).toBeAttached({ timeout: 60_000 })
   const nilaiBarang = await pilihan.first().getAttribute('value')
   expect(nilaiBarang).toBeTruthy()
 

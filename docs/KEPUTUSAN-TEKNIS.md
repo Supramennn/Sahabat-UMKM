@@ -31,8 +31,11 @@ Terakhir diperbarui: 19 Oktober 2026.
 | K-19 | Gaya frontend | Tailwind CSS v4 dan Motion (Framer Motion) untuk seluruh antarmuka, menggantikan K-16. Nilai warna tetap hanya dari `packages/design-tokens`; blok `@theme` di `apps/web/src/styles/globals.css` wajib sama persis dan dijaga tes `theme-sync`. Gerak dibatasi pada animasi transformasi masuk yang terukur dan menghormati `prefers-reduced-motion` | Permintaan pemilik produk, 17 Okt 2026; PRD 13 |
 | K-20 | Notifikasi dan email | Baris notifikasi ditulis di dalam transaksi peristiwanya; email diambil dari antrean `emailed_at is null` oleh penjadwal dalam proses, tidak pernah dikirim dari dalam transaksi. Penerima dihitung dari izin (capability), pelaku sendiri dikecualikan, dan preferensi pengguna hanya bisa mematikan kanal. Notifikasi keamanan bersifat tingkat akun (`workspace_id null`) sehingga tampil di daftar semua usaha pemiliknya. Utang jatuh tempo memakai ambang `overdueDays > 0` yang sama dengan dashboard dan hanya untuk paket dengan fitur `returns`. Ringkasan harian opt-in, dikirim setelah pukul 7 pagi waktu usaha | PRD 6.9, PRD 6.2, PRD 8, PRD 16 |
 | K-21 | Penagihan langganan | Midtrans Snap lewat halaman pembayaran Midtrans, bukan Snap tertanam. Baris tagihan di-commit sebelum tautan bayar diminta, pelunasan hanya dipercaya dari notifikasi bertanda tangan, faktur PDF dibuat dengan pdfkit, masa berbayar menumpuk dari ujung masa berjalan, dan pembayaran hanya menyala kalau identitas penjual serta tautan kebijakan refund diisi lewat environment | PRD 6.10, PRD 15, PRD 16 |
-| K-22 | Beranda publik | Halaman statis berkomponen server dengan seluruh isi dan teks di `apps/web/src/lib/beranda.ts` supaya bisa diuji. Tangkapan layarnya adalah potret aplikasi dengan data contoh yang diambil `scripts/beranda-gambar.mts` dan ikut di-commit. Harga dibaca dari katalog `@sahabat/shared`, bukan ditulis ulang. Navigasi hanya menautkan halaman atau bagian yang ada; tombol "Lihat Demo Produk" menunggu workspace contoh (B-13). FAQ menjawab keadaan sekarang, termasuk kebutuhan koneksi internet sampai antrean offline selesai | PRD 11, PRD 5, K-07, B-13 |
+| K-22 | Beranda publik | Halaman statis berkomponen server dengan seluruh isi dan teks di `apps/web/src/lib/beranda.ts` supaya bisa diuji. Tangkapan layarnya adalah potret aplikasi dengan data contoh yang diambil `scripts/beranda-gambar.mts` dan ikut di-commit. Harga dibaca dari katalog `@sahabat/shared`, bukan ditulis ulang. Navigasi hanya menautkan halaman atau bagian yang ada; tombol "Lihat Demo Produk" menunggu workspace contoh (B-13). FAQ menjawab keadaan sekarang, termasuk cara antrean offline (K-25) mengamankan catatan stok saat sinyal hilang | PRD 11, PRD 5, K-07, B-13 |
 | K-23 | Situs publik lengkap | Sisa halaman publik PRD 5 dikerjakan: `/fitur` plus satu halaman per modul (`/fitur/stok`, `pembelian`, `penjualan`, `pengeluaran`, `laporan`, `langganan`), `/untuk-usaha`, `/harga`, `/bantuan`, `/tentang`, `/status`, `/kontak`, dan `/kebijakan/privasi`, `/syarat`, `/refund`. Komponen header, kaki, tombol, gambar sampel, dan tabel paket dipakai bersama di `apps/web/src/app/components/situs.tsx`; tautan navigasi/kaki dan metadata di `apps/web/src/lib/situs.ts`; isi tiap halaman di pustaka masing-masing (`lib/fitur.ts`, `lib/harga.ts`, `lib/bantuan.ts`, `lib/tentang.ts`, `lib/status.ts`, `lib/kontak.ts`, `lib/kebijakan.ts`). Halaman Status menulis "Belum dipantau otomatis" tanpa angka ketersediaan; Kontak hanya menampilkan saluran yang nyata; kebijakan dipasang sebagai draf berlabel "belum berlaku"; Harga tetap membaca katalog dengan catatan "masih usulan awal" | PRD 5, 11, 14, 15, 16 |
+| K-24 | PWA | Manifest di `apps/web/public/manifest.webmanifest` memakai warna token PRD 10 dan ikon PNG yang dihasilkan skrip tanpa pustaka gambar `scripts/ikon-pwa.mts`; lambang tiga batangnya sementara sampai merek resmi ditetapkan. Service worker `public/sw.js`: navigasi jaringan dulu lalu salinan, jatuh ke `offline.html` bila halaman belum pernah dibuka; aset statis yang tak berubah `_next/static`, `ikon`, `beranda` memakai salinan dulu; asal API berbeda dan tidak pernah disangga sehingga angka tidak pernah disajikan dari salinan. Pendaftaran hanya pada build produksi | PRD 10 |
+| K-25 | Antrean offline catatan stok | Isian Catat stok yang gagal karena jaringan masuk antrean di `apps/web/src/lib/offline.ts` (localStorage per asal), lengkap dengan kunci idempotensi yang ikut tersimpan sehingga kirim ulang tidak menggandakan stok. Status entri hanya "menunggu" atau "gagal berikut alasan server"; entri dihapus hanya setelah balasan sukses dari server, dan salinan daftar barang/lokasi selalu berlabel waktu salinannya. Modul lain tidak masuk antrean dan tetap menyatakan butuh koneksi | PRD 10, PRD 20, PRD 6.4 |
+| K-26 | Aktivasi dan panduan | Daftar periksa aktivasi dihitung server dari data workspace (`apps/api/src/onboarding`) dengan tabel `workspace_onboarding_skips` hanya untuk langkah yang sengaja dilewati; melompati atau membuka kembali hanya boleh Owner dan Admin, dan kartunya hilang bila semua langkah selesai atau dilewati. Panduan singkat per modul tampil saat halaman modul pertama dibuka, tutupnya disimpan di localStorage karena pilihannya tampilan, bukan data, dan teksnya bisa dibaca ulang dari halaman Lainnya | PRD 12 |
 
 ### Alasan K-12
 
@@ -324,11 +327,11 @@ berubah, bukan sekadar tertinggal dari sesi pengembangan tertentu.
 Navigasi dan tombolnya hanya menautkan yang benar-benar ada (PRD 5): sementara memakai
 loncatan ke bagian beranda sampai halaman modul dan harga berdiri, dan tombol "Lihat
 Demo Produk" belum dibuat karena workspace contohnya belum ada (B-13). FAQ menjawab
-seadanya: ekspor CSV sudah ada, aplikasi masih butuh internet sampai antrean offline
-(Fase 13) selesai, dan aplikasi ini bukan pengganti akuntansi (PRD 2). Butir yang belum
-terpasang (cadangan otomatis, enkripsi data saat tersimpan, TLS, kanal dukungan) tidak
-dipasang di beranda; melanggengkan klaimnya di teks promosi berarti membuat janji yang
-tidak bisa dipenuhi kode.
+seadanya: ekspor CSV sudah ada, catatan stok bisa masuk antrean offline (K-25),
+modul lain masih butuh koneksi, dan aplikasi ini bukan pengganti akuntansi (PRD 2).
+Butir yang belum terpasang (cadangan otomatis, enkripsi data saat tersimpan, TLS, kanal
+dukungan) tidak dipasang di beranda; melanggengkan klaimnya di teks promosi berarti
+membuat janji yang tidak bisa dipenuhi kode.
 
 Alamat kanonik, peta situs, robots, dan metadata membaca `NEXT_PUBLIC_SITE_URL`
 (bawaan `http://localhost:3000`) supaya URL absolut tidak ditulis ulang di beberapa
@@ -373,6 +376,60 @@ tetapi tidak menentukan bentuk isinya untuk soal transparansi. Keputusannya:
 - Catatan atas K-22: loncatan ke bagian beranda kini sudah diganti tautan ke
   halaman sungguhan sesuai rencananya, dan tes beranda memeriksa tidak ada lagi
   tautan `#` yang tersisa.
+
+### Alasan K-24
+
+PRD 10 menuntut aplikasi yang bisa dipasang dan halaman yang sudah dimuat tetap bisa
+dibuka saat sinyal hilang, tetapi tidak menentukan strategi service worker. Yang dipilih:
+
+- Navigasi jaringan dulu demi angka yang selalu baru; salinan hanya penyelamat saat
+  jaringan gagal, dan halaman yang belum pernah dibuka diberi `offline.html` yang
+  menyatakan batasnya dengan jujur, bukan memalsukan halaman lama.
+- API berada pada asal (origin) yang berbeda dan tidak pernah disangga. Menyajikan data
+  stok dari salinan berarti menampilkan angka basi seolah baru, dan itu melanggar
+  integritas data. Input offline diurus antrean halaman (K-25), bukan service worker,
+  supaya satu jalur kode yang sama untuk kirim langsung dan kirim ulang, termasuk
+  balasan galat yang sama.
+- Ikon dibuat skrip tanpa pustaka gambar dengan pengesahan baca ulang, karena menambah
+  dependensi gambar untuk lima berkas PNG kecil tidak sebanding. Lambang tiga batangnya
+  sementara sampai merek resmi ditetapkan; itu tetap tercatat di penghalang bagian 8.
+- Pendaftaran service worker hanya di build produksi supaya pengembangan dengan isi
+  yang terus berubah tidak tertahan salinan lama.
+
+### Alasan K-25
+
+PRD 10 menuntut isian offline masuk antrean dengan status terlihat dan tidak pernah
+dianggap berhasil sebelum server mengonfirmasi; PRD 20 memitigasi data ganda dengan
+antrean beridempotensi. Bentuknya:
+
+- Kunci idempotensi dibuat saat isian masuk antrean dan disimpan bersama entri, jadi
+  kirim ulang yang sama menghasilkan satu baris ledger, bukan dua. Ini memakai
+  dukungan idempotensi endpoint penyesuaian stok yang sudah ada (PRD 6.4).
+- Statusnya dua: "menunggu koneksi" dan "gagal dikirim" beserta alasan server. Entri
+  gagal tidak dihapus diam-diam, karena saldo yang berubah sejak isian dibuat bisa
+  membuatnya ditolak (stok negatif), dan itu keputusan pengguna, bukan sistem.
+- Antrean disimpan di localStorage, bukan IndexedDB, karena isinya hanya draf kecil
+  yang belum terkirim dan berkas sederhananya mudah diuji. Data utama tetap di server;
+  antrean yang rusak dibaca sebagai kosong dan tidak pernah diklaim terkirim.
+- Daftar barang dan lokasi disalin berlabel waktu supaya halaman yang sudah dibuka
+  tetap bisa dipakai offline, dan salinannya tidak pernah menyamar sebagai data segar.
+
+### Alasan K-26
+
+PRD 12 menuntut langkah opsional bisa dilewati dan ditemukan lagi lewat daftar periksa
+di dashboard, plus tur singkat per modul yang bisa dipanggil ulang. Keputusannya:
+
+- Keadaan selesai dihitung dari data (jenis usaha terisi, ada barang aktif, ada catatan
+  stok masuk dan batas minimum, ada transaksi), bukan dicentang saat pengguna membuka
+  halaman tautannya, jadi daftar tidak bisa berpura-pura selesai.
+- Lewatan disimpan di tabel `workspace_onboarding_skips` di server, bukan di peramban,
+  supaya keadaan sama untuk semua anggota dan perangkat. Hanya Owner dan Admin boleh
+  melompati karena perubahan itu mengubah tampilan semua anggota; server yang
+  memeriksa perannya, seperti aturan umum proyek ini.
+- Panduan singkat memakai satu pustaka teks untuk panel halaman modul dan bagian
+  "Panduan singkat per modul" di halaman Lainnya, sehingga "dipanggil ulang dari menu"
+  tidak butuh mekanisme tambahan dan teksnya teruji. Tutup panel disimpan di localStorage
+  karena pilihan tampilan, bukan data usaha.
 
 ### Alasan K-02
 

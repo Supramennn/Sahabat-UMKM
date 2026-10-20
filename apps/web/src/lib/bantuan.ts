@@ -198,7 +198,7 @@ export const masalahUmum: ButirBantuan[] = [
   },
   {
     judul: 'Sinyal hilang saat mencatat',
-    isi: 'Aplikasi membutuhkan sambungan internet untuk menyimpan. Catatan yang gagal terkirim perlu diulang setelah kembali online, karena antrean penyimpanan offline belum tersedia.',
+    isi: 'Halaman yang sudah pernah dibuka tetap bisa dibuka tanpa sinyal. Catatan stok yang dibuat saat offline masuk antrean dengan status yang terlihat dan baru mengubah saldo setelah server mengonfirmasi saat koneksi kembali. Mencatat penjualan, pembelian, dan pengeluaran masih membutuhkan sambungan internet.',
   },
   {
     judul: 'Saldo tidak sama dengan hitungan fisik',

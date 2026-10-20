@@ -76,11 +76,15 @@ refund diisi lewat environment; selama itu kosong, tombol bayar tidak muncul dan
 paket berbayar tetap hanya bisa diuji 14 hari. Rinciannya di K-21
 `docs/KEPUTUSAN-TEKNIS.md`, termasuk penghalang uji pembayaran sungguhan.
 
-Urutan fase yang tersisa, supaya tidak ada tumpang tindih:
-
-| Fase | Isi | PRD |
-| --- | --- | --- |
-| 13 | PWA, antrean offline, daftar periksa aktivasi | 10, 12 |
+Fase 13 selesai: PWA dapat dipasang (manifest, ikon dari `scripts/ikon-pwa.mts`,
+service worker dengan halaman `offline.html`, K-24), antrean offline catatan stok
+dengan status terlihat dan kunci idempotensi tersimpan (K-25), daftar periksa
+aktivasi di dashboard yang dihitung server dan langkahnya bisa dilewati serta
+dibuka lagi (K-26), dan panduan singkat per modul yang bisa dipanggil ulang dari
+Lainnya. Seluruh fase PRD sudah selesai; yang tersisa hanya penghalang rilis di
+luar kendali kode pada bagian 8 `docs/KEPUTUSAN-TEKNIS.md` (badan usaha, kunci
+Midtrans, penasihat hukum, UAT, penetrasi, dukungan, penunjukan merek) dan
+perkakas pencadangan yang menguji restore.
 
 Cara menjalankan semuanya tercantum di README.md. Perintah yang dipakai sebelum
 menyerahkan hasil: npm run verify, npm run test:contrast, npm run test:postgres:local,

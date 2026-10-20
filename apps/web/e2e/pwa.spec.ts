@@ -21,11 +21,16 @@ test('manifest dan ikon PWA tersedia serta service worker terdaftar', async ({ p
   expect((await page.request.get('/offline.html')).status()).toBe(200)
 
   // Pendaftaran service worker hanya di build produksi, dan berjalan dalam
-  // keadaan aktif supaya laman dapat dilayani tanpa jaringan.
+  // keadaan aktif supaya laman dapat dilayani tanpa jaringan. scriptURL kembali
+  // absolut, jadi yang dibandingkan adalah path-nya.
   await expect
-    .poll(async () => page.evaluate(async () => (await navigator.serviceWorker.getRegistration('/'))?.active?.scriptURL ?? null), {
-      timeout: 15_000,
-    })
+    .poll(
+      async () => {
+        const skrip = await page.evaluate(async () => (await navigator.serviceWorker.getRegistration('/'))?.active?.scriptURL ?? null)
+        return skrip === null ? null : new URL(skrip).pathname
+      },
+      { timeout: 15_000 },
+    )
     .toBe('/sw.js')
 })
 

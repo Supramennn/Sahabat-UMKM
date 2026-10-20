@@ -175,7 +175,7 @@ export const tanyaJawab: Array<{ tanya: string; jawab: string }> = [
   {
     tanya: 'Bagaimana jika sinyal hilang saat mencatat?',
     jawab:
-      'Aplikasi saat ini memerlukan koneksi internet untuk menyimpan catatan. Pencatatan saat sinyal hilang belum tersedia, dan sedang dikerjakan untuk rilis berikutnya.',
+      'Halaman yang sudah pernah dibuka tetap bisa dibuka tanpa sinyal, dan catatan stok yang ditulis saat offline masuk antrean dengan status yang terlihat. Catatan tersebut baru mengubah saldo setelah server mengonfirmasi saat koneksi kembali. Mencatat penjualan, pembelian, dan pengeluaran masih perlu koneksi internet.',
   },
   {
     tanya: 'Apakah ini pengganti akuntansi?',

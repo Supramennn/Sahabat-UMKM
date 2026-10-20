@@ -31,6 +31,6 @@ export const prinsipTentang: Prinsip[] = [
 
 export const batasTentang: string[] = [
   'Aplikasi ini bukan pengganti akuntansi. Tidak ada jurnal, neraca, atau perhitungan pajak, dan laporan tidak menampilkan laba bersih.',
-  'Aplikasi membutuhkan sambungan internet. Antrean pencatatan saat sinyal hilang sedang dikerjakan untuk rilis berikutnya.',
+  'Catatan stok bisa dibuat saat sinyal hilang dan masuk antrean dengan status yang terlihat, tetapi bagian lain seperti penjualan, pembelian, dan pengeluaran masih membutuhkan sambungan internet.',
   'Workspace contoh untuk mencoba produk tanpa mendaftar belum tersedia. Untuk sekarang, cara mencobanya adalah membuat akun gratis dan mengisi data sendiri.',
 ]
