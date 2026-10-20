@@ -8,7 +8,7 @@ import { expect, test } from '@playwright/test'
  */
 
 const HALAMAN = [
-  { path: '/', nama: 'beranda sementara' },
+  { path: '/', nama: 'beranda publik' },
   { path: '/masuk', nama: 'masuk' },
   { path: '/buat-akun', nama: 'buat akun' },
   { path: '/lupa-kata-sandi', nama: 'lupa kata sandi' },

@@ -63,6 +63,9 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"  
 Perintah API dan migrasi membaca `.env` dari akar repositori, jadi nilainya tidak
 perlu di-export manual. Berkas `.env` tidak pernah ikut ke git.
 
+`NEXT_PUBLIC_SITE_URL` dipakai beranda untuk alamat kanonik, peta situs, dan data
+terstruktur; ganti ke alamat produksi saat aplikasi dipasang di domain sungguhan.
+
 Penagihan langganan (PRD 6.10) mati secara bawaan. Ia hanya menyala kalau
 `MIDTRANS_SERVER_KEY`, `BILLING_SELLER_NAME`, `BILLING_SELLER_ADDRESS`,
 `BILLING_SELLER_EMAIL`, dan `BILLING_REFUND_POLICY_URL` diisi; tanpa itu halaman paket
@@ -222,6 +225,7 @@ docs/
 | Dashboard | ringkasan usaha, menu lainnya di ponsel | 6.7, 10 |
 | Notifikasi | daftar notifikasi, pengaturan notifikasi | 6.9 |
 | Langganan dan tagihan | paket dan langganan, riwayat pembayaran, faktur PDF | 6.10 |
+| Situs publik | beranda produksi dengan tangkapan layar data contoh, robots.txt, sitemap.xml, data terstruktur | 11 |
 
 ## Paket dan langganan
 
@@ -390,6 +394,44 @@ penjualan (A-07), jadi laba kotor bulan lalu tidak berubah karena ada pembelian 
 Halaman `/po/<token>` adalah tampilan publik purchase order. Halamannya tidak punya
 sesi, tidak boleh diindeks mesin pencari, dan hanya bisa dibuka selama tautannya
 berlaku.
+
+## Beranda publik
+
+Beranda (`/`) adalah halaman statis tanpa sesi, dibangun dari isi di
+`apps/web/src/lib/beranda.ts` dan dirender oleh komponen server
+`apps/web/src/app/page.tsx`: header dengan masuk dan tombol buat akun, hero dengan
+tangkapan layar dashboard, tiga masalah pencatatan, cara kerja tiga modul dengan
+tangkapan layarnya, skenario kedai kopi, warung makan, dan toko retail, tabel paket,
+empat pertanyaan umum PRD 11, dan kaki situs. Tabel paketnya membaca katalog
+`@sahabat/shared`, jadi harganya tidak bisa meleset dari halaman paket di aplikasi.
+
+Tangkapan layarnya adalah potret aplikasi sungguhan dengan data contoh di
+workspace "Kedai Kopi Contoh" (K-07), diambil ulang kapan saja dengan:
+
+```bash
+npx tsx scripts/dev-api.mts 2>&1 | Tee-Object -FilePath .tmp/dev-api.log
+npm run build && npm run start --workspace apps/web
+npx tsx scripts/beranda-gambar.mts
+```
+
+Skrip itu mendaftarkan pengguna contoh, memverifikasi email dari log API, menyalakan
+uji coba Paket Usaha, mengisi stok, dua purchase order (satu diterima penuh, satu
+menunggu persetujuan), enam penjualan, pengeluaran, lalu memotret halaman dashboard,
+stok, purchase order, dan penjualan ke `apps/web/public/beranda`. Data contohnya
+disiapkan lewat API yang sama dengan aplikasi, bukan lewat SQL langsung, supaya
+gambarnya tidak bisa menampilkan keadaan yang tidak mungkin dibuat pengguna.
+
+Sesuai PRD 5, beranda hanya menautkan halaman yang ada: navigasi modulnya sementara
+memakai loncatan ke bagian dalam halaman, dan tombol hero kedua menunjuk bagian harga
+sampai workspace contoh untuk tombol "Lihat Demo Produk" dibangun (B-13). Jawaban
+pertanyaan umum menyatakan keadaan sekarang, termasuk bahwa aplikasi masih butuh
+koneksi internet sampai antrean offline (Fase 13) selesai. Halaman fitur, pusat
+bantuan, status, kontak, dan dokumen kebijakan menyusul pada sisa Fase 12.
+
+Verifikasi Fase 12 (beranda) lulus: `npm run verify` (453 tes lulus, 8 dilewati),
+`npm run test:contrast` (35 pasangan lolos), `npm run test:postgres:local` (9 lulus,
+1 dilewati), build produksi, dan `npm run test:e2e` (182 lulus, termasuk audit
+aksesibilitas axe untuk beranda di ponsel dan desktop).
 
 Modul stok memakai satu jalur pencatatan, `recordMovement` di
 `apps/api/src/stock/movements.ts`. Tidak ada endpoint lain yang boleh menulis ke

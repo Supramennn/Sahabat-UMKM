@@ -14,7 +14,9 @@ blob-report/
 .env.*.local
 !.env.example
 
+# Log dan berkas sementara pengerjaan lokal
 *.log
+.tmp/
 npm-debug.log*
 
 # embedded postgres data directories used by local development

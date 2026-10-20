@@ -43,6 +43,9 @@ Integritas data lebih penting daripada kecepatan.
 `npm run verify` menjalankan lint, typecheck, dan tes. `npm test` tidak butuh Docker
 maupun server database.
 
+Kalau satu unit pekerjaan sudah selesai dan verifikasinya lulus, langsung commit dan
+push tanpa menunggu persetujuan ulang.
+
 ## Fase
 
 Kerjaan berjalan per fase. Laporan tiap fase memuat apa yang selesai, bagian PRD yang
@@ -56,8 +59,16 @@ penjualan, Fase 5 pengeluaran operasional, Fase 6 paket, batas paket, uji coba,
 dan langganan, Fase 7 laporan dan ekspor, Fase 8 dashboard, Fase 9 impor
 lengkap (XLSX, template, riwayat, pembatalan impor), Fase 10 notifikasi
 email dan di dalam aplikasi (PRD 6.9), serta Fase 11 penagihan dan faktur PDF
-(PRD 6.10) selesai. Berikutnya Fase 12: situs publik, pusat bantuan, status, dan
-kontak dengan PRD 11 dan 15.
+(PRD 6.10) selesai.
+
+Fase 12 sedang berjalan: bagian yang sudah selesai adalah beranda produksi
+(`apps/web/src/app/page.tsx` + `apps/web/src/lib/beranda.ts`, tangkapan layar data
+contoh di `apps/web/public/beranda`, robots.txt, sitemap.xml, dan
+`scripts/beranda-gambar.mts` untuk memotret ulang). Sisa Fase 12: halaman fitur
+(satu halaman per modul), Untuk usaha F&B dan retail, Harga, Pusat Bantuan,
+halaman Status Layanan, Kontak, dan dokumen kebijakan (privasi, syarat, refund)
+dengan PRD 11 dan 15; halaman yang belum ada tidak boleh dipasang di menu (PRD 5),
+dan tombol "Lihat Demo Produk" menunggu workspace contoh (B-13).
 
 Penagihan sengaja mati sampai kunci Midtrans, identitas penjual, dan tautan kebijakan
 refund diisi lewat environment; selama itu kosong, tombol bayar tidak muncul dan

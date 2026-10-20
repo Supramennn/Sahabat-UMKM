@@ -31,6 +31,7 @@ Terakhir diperbarui: 19 Oktober 2026.
 | K-19 | Gaya frontend | Tailwind CSS v4 dan Motion (Framer Motion) untuk seluruh antarmuka, menggantikan K-16. Nilai warna tetap hanya dari `packages/design-tokens`; blok `@theme` di `apps/web/src/styles/globals.css` wajib sama persis dan dijaga tes `theme-sync`. Gerak dibatasi pada animasi transformasi masuk yang terukur dan menghormati `prefers-reduced-motion` | Permintaan pemilik produk, 17 Okt 2026; PRD 13 |
 | K-20 | Notifikasi dan email | Baris notifikasi ditulis di dalam transaksi peristiwanya; email diambil dari antrean `emailed_at is null` oleh penjadwal dalam proses, tidak pernah dikirim dari dalam transaksi. Penerima dihitung dari izin (capability), pelaku sendiri dikecualikan, dan preferensi pengguna hanya bisa mematikan kanal. Notifikasi keamanan bersifat tingkat akun (`workspace_id null`) sehingga tampil di daftar semua usaha pemiliknya. Utang jatuh tempo memakai ambang `overdueDays > 0` yang sama dengan dashboard dan hanya untuk paket dengan fitur `returns`. Ringkasan harian opt-in, dikirim setelah pukul 7 pagi waktu usaha | PRD 6.9, PRD 6.2, PRD 8, PRD 16 |
 | K-21 | Penagihan langganan | Midtrans Snap lewat halaman pembayaran Midtrans, bukan Snap tertanam. Baris tagihan di-commit sebelum tautan bayar diminta, pelunasan hanya dipercaya dari notifikasi bertanda tangan, faktur PDF dibuat dengan pdfkit, masa berbayar menumpuk dari ujung masa berjalan, dan pembayaran hanya menyala kalau identitas penjual serta tautan kebijakan refund diisi lewat environment | PRD 6.10, PRD 15, PRD 16 |
+| K-22 | Beranda publik | Halaman statis berkomponen server dengan seluruh isi dan teks di `apps/web/src/lib/beranda.ts` supaya bisa diuji. Tangkapan layarnya adalah potret aplikasi dengan data contoh yang diambil `scripts/beranda-gambar.mts` dan ikut di-commit. Harga dibaca dari katalog `@sahabat/shared`, bukan ditulis ulang. Navigasi hanya menautkan halaman atau bagian yang ada; tombol "Lihat Demo Produk" menunggu workspace contoh (B-13). FAQ menjawab keadaan sekarang, termasuk kebutuhan koneksi internet sampai antrean offline selesai | PRD 11, PRD 5, K-07, B-13 |
 
 ### Alasan K-12
 
@@ -300,6 +301,37 @@ Pengingat perpanjangan tujuh hari dan satu hari dikirim ke pemegang izin
 karena tagihan adalah urusan langganan yang berlaku untuk semua pemilik. Cap waktunya
 disimpan per masa di `workspace_subscriptions`, jadi satu tenggat hanya menghasilkan
 satu surat, dan cap itu direset saat masa baru dimulai.
+
+### Alasan K-22
+
+PRD 11 menuntut beranda yang menjelaskan masalah pencatatan, alur tiap modul, skenario
+usaha, harga, dan pertanyaan umum, tetapi tidak menentukan di mana isinya berada dan
+bagaimana gambarnya dibuat. Isinya dipisah ke `apps/web/src/lib/beranda.ts` dan halaman
+hanya merender, karena teks promosi yang tidak diuji cepat melenceng: tautan ke halaman
+yang belum ada, klaim fitur yang belum berdiri, dan angka paket yang berbeda dari
+halaman paket di aplikasi. Tes beranda memeriksa tautan yang ada, label "data contoh"
+(K-07), harga yang cocok dengan katalog, dan isi pertanyaan umum.
+
+Gambarnya bukan desain tiruan, melainkan tangkapan layar aplikasi sungguhan dari
+workspace contoh "Kedai Kopi Contoh" dengan uji coba Paket Usaha, supaya apa yang
+dilihat calon pengguna benar-benar halaman yang ada, bukan gambar rancangan yang
+menggambarkan keadaan yang belum berdiri.
+
+Skrip perekamnya ikut di-commit supaya gambar bisa dipotret ulang setiap kali aplikasi
+berubah, bukan sekadar tertinggal dari sesi pengembangan tertentu.
+
+Navigasi dan tombolnya hanya menautkan yang benar-benar ada (PRD 5): sementara memakai
+loncatan ke bagian beranda sampai halaman modul dan harga berdiri, dan tombol "Lihat
+Demo Produk" belum dibuat karena workspace contohnya belum ada (B-13). FAQ menjawab
+seadanya: ekspor CSV sudah ada, aplikasi masih butuh internet sampai antrean offline
+(Fase 13) selesai, dan aplikasi ini bukan pengganti akuntansi (PRD 2). Butir yang belum
+terpasang (cadangan otomatis, enkripsi data saat tersimpan, TLS, kanal dukungan) tidak
+dipasang di beranda; melanggengkan klaimnya di teks promosi berarti membuat janji yang
+tidak bisa dipenuhi kode.
+
+Alamat kanonik, peta situs, robots, dan metadata membaca `NEXT_PUBLIC_SITE_URL`
+(bawaan `http://localhost:3000`) supaya URL absolut tidak ditulis ulang di beberapa
+tempat dan berbeda satu sama lain.
 
 ### Alasan K-02
 

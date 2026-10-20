@@ -124,6 +124,21 @@ Pengingat perpanjangan tujuh hari dan satu hari dijalankan tugas harian
 24 jam. Cap waktunya disimpan per masa di `workspace_subscriptions`, jadi satu tenggat
 hanya menghasilkan satu surat, dan masa baru mengosongkannya lagi.
 
+## Situs publik
+
+Beranda (`/`) adalah halaman statis tanpa sesi di `apps/web/src/app/page.tsx`, dengan
+seluruh teks dan daftar isinya di `apps/web/src/lib/beranda.ts` supaya bisa diuji
+(K-22): tautannya hanya menuju halaman atau bagian yang ada, harganya dibaca dari
+katalog `@sahabat/shared` yang sama dengan aplikasi, dan pertanyaan umumnya hanya
+menyatakan yang sudah berdiri di kode. Data terstruktur (`Organization`, `WebSite`,
+`SoftwareApplication` dengan `offers` per paket), `robots.txt`, dan `sitemap.xml`
+membaca `NEXT_PUBLIC_SITE_URL` untuk URL
+kanoniknya. Tangkapan layar di `apps/web/public/beranda` adalah potret aplikasi
+dengan data contoh (K-07), diambil ulang lewat `npx tsx scripts/beranda-gambar.mts`
+dengan API dev di :4000 dan build produksi di :3000. Halaman publik lainnya dari
+PRD 11 dan 15 menyusul pada Fase 12 dan hanya dipasang di menu setelah isinya siap
+(PRD 5).
+
 ## Bentuk sistem
 
 Modular monolith, sesuai PRD 13. Dua proses yang berjalan terpisah:
