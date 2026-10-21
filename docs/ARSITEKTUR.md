@@ -300,6 +300,38 @@ penyimpanan.
   "hari" pada laporan sama dengan hari yang dilihat pengguna. Fungsi
   `toDateParts` di `packages/shared` melakukan penerjemahan itu.
 
+## Cadangan logis
+
+Cadangan (K-27) dibangun di `packages/db/src/cadangan.ts`, bukan dari `pg_dump`:
+distribusi PostgreSQL tertanam yang menjalankan tes tanpa Docker tidak menyertakan
+`pg_dump` maupun `pg_restore`, dan tidak semua hosting menyediakannya, sementara klien
+`pg` yang sudah ada di proyek bisa menghasilkan satu-format yang sama di mana saja.
+
+Bentuknya hanya data: urutan tabel diambil dari katalog dengan pemsortan topologis atas
+ketergantungan foreign key, lalu tiap baris dirender menjadi satu pernyataan `insert`
+dengan nilai yang sudah digubah menjadi teks SQL di sisi server
+(`format('%L::%s', ...)`) sehingga tidak ada presisi yang hilang antara server dan
+klien. Kolom identity dimasukkan dengan `overriding system value`, lalu sekuensnya
+dan sekuens mandiri seperti `payment_numbers` disetel ke nilai terakhirnya supaya
+nomor berikutnya tidak menabrak data yang dipulihkan.
+
+Pemulihan (`pulihkanCadangan`) mengasumsikan skema sudah dibangun migrasi di database
+sasaran, lalu menjalankan seluruh pernyataan dalam satu transaksi:
+`alter table ... disable trigger user` dan `truncate ... restart identity cascade`
+di depan, `enable` lagi di akhir. Trigger pengguna dimatikan karena trigger seperti
+`set_default_location` pada tabel lokasi mengisi ulang kolom saat dimuat, dan hasil
+pemulihan harus persis sama dengan sumber, bukan hasil olahan trigger. Batasnya:
+kedua pernyataan itu butuh hak pemilik tabel, jadi peran pemulihan di produksi
+haruslah pemiliknya.
+
+Pembuktian, bukan kata-kata: `verifikasiPulihan` membuat ulang cadangan dari database
+hasil pemulihan dan menuntut bentuknya identik per pernyataan ditambah jumlah baris
+per tabel sama. Uji itu berjalan sepanjang `npm run test:postgres:local`
+(`packages/db/test-postgres/cadangan-restore.test.ts`) dan lewat `npm run
+uji-restore`, yang menulis laporan waktunya ke `.tmp/uji-restore/`. Perintah
+`npm run cadangkan` membuat berkas cadangan dari `DATABASE_URL` untuk
+dipakai di server yang hidup.
+
 ## Strategi pengujian
 
 `npm test` berjalan tanpa Docker dan tanpa server database, memakai PGlite, yaitu

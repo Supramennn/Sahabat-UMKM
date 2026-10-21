@@ -83,8 +83,14 @@ aktivasi di dashboard yang dihitung server dan langkahnya bisa dilewati serta
 dibuka lagi (K-26), dan panduan singkat per modul yang bisa dipanggil ulang dari
 Lainnya. Seluruh fase PRD sudah selesai; yang tersisa hanya penghalang rilis di
 luar kendali kode pada bagian 8 `docs/KEPUTUSAN-TEKNIS.md` (badan usaha, kunci
-Midtrans, penasihat hukum, UAT, penetrasi, dukungan, penunjukan merek) dan
-perkakas pencadangan yang menguji restore.
+Midtrans, penasihat hukum, UAT, penetrasi, dukungan, penunjukan merek).
+
+Pencadangan (PRD 17, K-27) selesai: mesin cadangan logis di
+`packages/db/src/cadangan.ts` dengan uji restore pembuluh penuh di
+`packages/db/test-postgres/cadangan-restore.test.ts` dan dua perintah,
+`npm run uji-restore` (uji + laporan waktu di `.tmp/uji-restore/`) dan
+`npm run cadangkan` (berkas SQL dari `DATABASE_URL`). Angka waktunya hasil mesin
+lokal; angka produksi menunggu hosting, dan pemulihan butuh peran pemilik tabel.
 
 Cara menjalankan semuanya tercantum di README.md. Perintah yang dipakai sebelum
 menyerahkan hasil: npm run verify, npm run test:contrast, npm run test:postgres:local,

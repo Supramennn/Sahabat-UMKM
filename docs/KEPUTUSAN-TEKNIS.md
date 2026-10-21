@@ -36,6 +36,7 @@ Terakhir diperbarui: 19 Oktober 2026.
 | K-24 | PWA | Manifest di `apps/web/public/manifest.webmanifest` memakai warna token PRD 10 dan ikon PNG yang dihasilkan skrip tanpa pustaka gambar `scripts/ikon-pwa.mts`; lambang tiga batangnya sementara sampai merek resmi ditetapkan. Service worker `public/sw.js`: navigasi jaringan dulu lalu salinan, jatuh ke `offline.html` bila halaman belum pernah dibuka; aset statis yang tak berubah `_next/static`, `ikon`, `beranda` memakai salinan dulu; asal API berbeda dan tidak pernah disangga sehingga angka tidak pernah disajikan dari salinan. Pendaftaran hanya pada build produksi | PRD 10 |
 | K-25 | Antrean offline catatan stok | Isian Catat stok yang gagal karena jaringan masuk antrean di `apps/web/src/lib/offline.ts` (localStorage per asal), lengkap dengan kunci idempotensi yang ikut tersimpan sehingga kirim ulang tidak menggandakan stok. Status entri hanya "menunggu" atau "gagal berikut alasan server"; entri dihapus hanya setelah balasan sukses dari server, dan salinan daftar barang/lokasi selalu berlabel waktu salinannya. Modul lain tidak masuk antrean dan tetap menyatakan butuh koneksi | PRD 10, PRD 20, PRD 6.4 |
 | K-26 | Aktivasi dan panduan | Daftar periksa aktivasi dihitung server dari data workspace (`apps/api/src/onboarding`) dengan tabel `workspace_onboarding_skips` hanya untuk langkah yang sengaja dilewati; melompati atau membuka kembali hanya boleh Owner dan Admin, dan kartunya hilang bila semua langkah selesai atau dilewati. Panduan singkat per modul tampil saat halaman modul pertama dibuka, tutupnya disimpan di localStorage karena pilihannya tampilan, bukan data, dan teksnya bisa dibaca ulang dari halaman Lainnya | PRD 12 |
+| K-27 | Cadangan logis dan uji restore | Cadangan dibuat sebagai berkas SQL dari klien aplikasi (`packages/db/src/cadangan.ts`), bukan binari `pg_dump`, karena distribusi PostgreSQL tertanam dan banyak hosting tidak menyediakannya. Isinya hanya data schema public dalam urutan topologis FK; skema dibangun ulang oleh migrasi saat pemulihan, trigger pengguna dinonaktifkan selama pemuatan agar hasil menyalin data persis, identity dimasukkan dengan `overriding system value` lalu sekuens diselaraskan, sekuens mandiri seperti `payment_numbers` dibawa nilai terakhirnya. Uji restore pembuluh penuh dijalankan `packages/db/test-postgres/cadangan-restore.test.ts` bersama `npm run test:postgres:local` dan `npm run uji-restore` yang mencatat waktunya ke `.tmp/uji-restore/laporan-uji-restore.json`. Batasan: memulihkan butuh hak pemilik tabel untuk mematikan trigger dan truncate, soal itu jalur produksi menunggu hosting | PRD 17, PRD 14, PRD 13 |
 
 ### Alasan K-12
 
@@ -431,6 +432,29 @@ di dashboard, plus tur singkat per modul yang bisa dipanggil ulang. Keputusannya
   tidak butuh mekanisme tambahan dan teksnya teruji. Tutup panel disimpan di localStorage
   karena pilihan tampilan, bukan data usaha.
 
+### Alasan K-27
+
+PRD 14 dan 17 menuntut cadangan yang terbukti kembali waktunya tercatat, dan PRD 13
+menyatakan ledger tidak boleh berubah. Keputusannya:
+
+- `pg_dump` tidak dapat dipakai sebagai dasar tunggal: distribusi PostgreSQL tertanam
+  yang memungkinkan `npm run test:postgres:local` jalan tanpa Docker hanya mengirim
+  `initdb`, `pg_ctl`, dan `postgres`. Cadangan logis dari klien aplikasi memberi satu
+  jalur yang sama di mesin pengembangan dan di hosting produksi.
+- Nilai kolom dirender sisi server (`format('%L::%s', kolom::text, format_type(...))`,
+  timestamptz selalu dengan zona eksplisit +00) supaya tidak ada presisi yang hilang
+  di klien. Uji restore-nya membuktikan itu dengan membandingkan cadangan yang
+  dibuat ulang dari database hasil pemulihan: harus identik per pernyataan.
+- Trigger pengguna dinonaktifkan dan tabel dikosongkan selama pemuatan karena
+  trigger seperti `set_default_location` pada locations mengisi ulang kolom
+  `default_location_id` saat baris dimuat; tanpa itu, hasil pemulihan bisa berbeda
+  dari data sumber. Dua
+  pernyataan itu butuh hak pemilik tabel, sehingga pemulihan di produksi direncanakan
+  dengan peran pemilik khusus — batas ini tercatat di bagian 8.
+- Sekuens ikut diselaras (identity lewat `setval` ke maksimum + 1, sekuens mandiri
+  seperti `payment_numbers` lewat nilai terakhir + `is_called`), supaya nomor ID
+  dan nomor tagihan tidak menimpa baris yang dipulihkan.
+
 ### Alasan K-02
 
 Satu basis kode untuk situs publik dan aplikasi. Situs publik butuh SSR untuk LCP 2,5 detik
@@ -628,7 +652,7 @@ bisa diselesaikan dengan menulis kode.
 | Syarat dan Ketentuan, Kebijakan Privasi, Kebijakan Refund, Perjanjian Pemrosesan Data terbit setelah ditinjau penasihat hukum | 15 | belum, draf berlabel "belum berlaku" sudah dipasang (K-23), dokumen final menunggu tinjauan |
 | Kebijakan refund tertulis dan tampil di halaman Harga dan saat checkout | 15 | belum, tertulis sebagai draf dan bertaut dari halaman Harga (K-23); tautan di checkout menunggu penagihan menyala (K-21) |
 | Uji penerimaan pengguna dengan sedikitnya lima pemilik usaha selesai | 17 | belum |
-| Uji restore backup berhasil dan waktunya tercatat | 17, 14 | belum |
+| Uji restore backup berhasil dan waktunya tercatat | 17, 14 | terbukti di level lokal: cadangan logis + uji restore pembuluh penuh dijalankan otomatis oleh `npm run uji-restore` dengan waktu tercatat di `.tmp/uji-restore/laporan-uji-restore.json` (K-27); angka untuk infrastruktur produksi menunggu hosting ditetapkan |
 | Uji penetrasi oleh pihak yang bukan pengembang produk | 17 | belum |
 | Penanggung jawab dukungan dan jam layanan ditunjuk | 15, 20 | belum |
 | Tarif resmi payment gateway dibaca dari sumber resmi | 6.10 | belum |

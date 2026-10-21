@@ -17,6 +17,8 @@
     "test:watch": "vitest",
     "test:postgres": "vitest run --project postgres",
     "test:postgres:local": "tsx scripts/postgres-lokal.mts",
+    "cadangkan": "tsx scripts/cadangkan.mts cadangkan",
+    "uji-restore": "tsx scripts/cadangkan.mts uji",
     "test:e2e": "npm run test:e2e --workspace apps/web",
     "lint": "eslint .",
     "migrate": "npm run migrate --workspace packages/db",

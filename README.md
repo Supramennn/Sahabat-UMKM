@@ -192,6 +192,8 @@ yang sama.
 | `npx tsx scripts/dev-api.mts` | Jalankan API dengan database PGlite dalam memori, untuk pemeriksaan manual tanpa PostgreSQL |
 | `npm run test:postgres` | Tes yang butuh PostgreSQL sungguhan, setel `TEST_DATABASE_URL` |
 | `npm run test:postgres:local` | Jalankan tes PostgreSQL sungguhan tanpa Docker, memakai klaster tertanam di `.pgdata` |
+| `npm run uji-restore` | Uji cadangan dan pemulihan pembuluh penuh dengan waktu tercatat, tanpa Docker (K-27); laporannya di `.tmp/uji-restore/laporan-uji-restore.json` |
+| `npm run cadangkan` | Buat berkas cadangan logis dari database di `DATABASE_URL` ke `.tmp/cadangan/` |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript di seluruh workspace |
 | `npm run verify` | lint, typecheck, dan tes |
@@ -483,6 +485,44 @@ Modul stok memakai satu jalur pencatatan, `recordMovement` di
 `stock_movements` atau `stock_balances`, dan penerimaan barang pada modul pembelian
 ikut memakainya, jadi stok yang masuk dari PO dan stok yang dicatat manual melewati
 mekanisme penguncian yang sama.
+
+## Cadangan dan uji pemulihan
+
+Mesin cadangannya di `packages/db/src/cadangan.ts` (K-27): cadangan logis berupa
+berkas SQL pernyataan `insert` yang dibangun di sisi server, data saja, dengan urutan
+tabel yang mengikuti ketergantungan foreign key. Skema tidak ikut dicadangkan karena
+pemulihan membangunnya kembali dari migrasi. Sekuens identity dan sekuens mandiri
+seperti `payment_numbers` ikut diselaraskan supaya nomor baru tidak menimpa baris
+hasil pemulihan.
+
+Dua perintah yang memakainya:
+
+```sh
+npm run uji-restore   # uji pembuluh penuh: buat cadangan, pulihkan, cocokkan, catat waktu
+npm run cadangkan     # buat cadangan database di DATABASE_URL ke .tmp/cadangan/
+```
+
+`npm run uji-restore` menyalakan klaster PostgreSQL tertanam di `.pgdata-cadangan`
+(port 5434) tanpa Docker, mengisi dua database dengan alur bisnis contoh ditambah
+baris jenis sulit (numeric khusus, timestamptz presisi mikro, bytea, jsonb, inet,
+uuid, teks berisi tanda petik dan baris baru), lalu memulihkannya dan mencocokkan isi
+kedua database per pernyataan plus jumlah baris per tabel. Hasilnya identik dan
+waktunya tercatat di `.tmp/uji-restore/laporan-uji-restore.json`; uji gagal dengan
+keluar 1 bila ada yang berbeda. Uji yang sama berjalan sebagai bagian dari
+`packages/db/test-postgres/cadangan-restore.test.ts` bersama `npm run
+test:postgres:local`.
+
+Angka pada mesin pengembangan 21 Oktober 2026: cadangan 324 ms, pemulihan 667 ms
+untuk 169 pernyataan, pencocokan 259 ms. Angka produksi menunggu hosting ditetapkan.
+Batasan: pemulihan mematikan trigger pengguna dan mengosongkan tabel, jadi butuh peran
+pemilik tabel di database sasaran.
+
+Verifikasi unit ini pada mesin yang sama: `npm run verify` (lint, typecheck, 506 tes
+lulus, 13 dilewati), `npm run test:postgres:local` (14 lulus, 1 dilewati; yang
+dilewati memang tugasnya menunggu peran tertentu), `npm run test:contrast` (35
+pasangan lolos), dan `npm run test:e2e` (254 lulus, termasuk perbaikan kecil di
+`e2e/pwa.spec.ts`: menunggu service worker `activated` sebelum muat ulang tanpa
+sinyal, supaya ujinya tidak kadang gagal karena ras).
 
 ## Aturan yang berlaku di semua fase
 

@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test'
-
 /**
  * PRD 10: aplikasi dapat dipasang sebagai PWA dan halaman yang sudah dimuat
  * tetap bisa dibuka saat sinyal hilang. Diperiksa lewat server produksi: tautan
@@ -38,11 +37,13 @@ test('halaman yang pernah dibuka tetap terbuka tanpa sinyal (PRD 10)', async ({ 
   test.setTimeout(90_000)
 
   await page.goto('/') // PWA terpasang setelah halaman pertama.
+  // Bukan cuma terdaftar: worker harus aktif dan mengendalikan halaman, kalau
+  // tidak muat ulang tanpa sinyal melewati ia dan gagal ERR_INTERNET_DISCONNECTED.
   await expect
-    .poll(async () => page.evaluate(async () => Boolean(await navigator.serviceWorker.getRegistration('/'))), {
+    .poll(async () => page.evaluate(() => navigator.serviceWorker?.controller?.state ?? null), {
       timeout: 15_000,
     })
-    .toBe(true)
+    .toBe('activated')
 
   // Halaman publik berikut tersalin oleh service worker saat jaringan sehat.
   await page.goto('/bantuan')
